@@ -1,0 +1,50 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #00A884;
+  --color-secondary: #0F1F3D;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    @apply bg-slate-50 text-slate-800;
+  }
+}
+
+@layer utilities {
+  /* Tenant-aware colour utilities */
+  .bg-primary   { background-color: var(--color-primary); }
+  .bg-secondary { background-color: var(--color-secondary); }
+  .text-primary   { color: var(--color-primary); }
+  .text-secondary { color: var(--color-secondary); }
+  .border-primary { border-color: var(--color-primary); }
+  .ring-primary   { --tw-ring-color: var(--color-primary); }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg
+           font-semibold text-white text-sm transition-opacity hover:opacity-90;
+    background-color: var(--color-primary);
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg
+           font-semibold text-sm border-2 transition-colors;
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+  }
+
+  .btn-secondary:hover {
+    background-color: var(--color-primary);
+    @apply text-white;
+  }
+
+  .card {
+    @apply bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden;
+  }
+}
