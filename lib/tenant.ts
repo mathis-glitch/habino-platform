@@ -18,6 +18,11 @@ export function getTenantSlug(hostname: string): string | null {
     return process.env.NEXT_PUBLIC_DEV_TENANT_SLUG || "demo";
   }
 
+  // Vercel preview deployments (*.vercel.app) → use dev tenant slug
+  if (hostname.endsWith(".vercel.app")) {
+    return process.env.NEXT_PUBLIC_DEV_TENANT_SLUG || "demo";
+  }
+
   // Subdomain of root domain: demo.habino.app → demo
   if (hostname.endsWith(`.${ROOT_DOMAIN}`)) {
     const sub = hostname.slice(0, hostname.length - ROOT_DOMAIN.length - 1);
