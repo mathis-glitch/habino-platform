@@ -1,12 +1,10 @@
 "use client";
 
 import { useState, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 function LoginForm() {
-  const router       = useRouter();
   const searchParams = useSearchParams();
   const redirectTo   = searchParams.get("redirect") || "/admin";
 
@@ -20,15 +18,21 @@ function LoginForm() {
     setLoading(true);
     setError(null);
 
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const res = await fetch("/api/auth/login", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ email, password }),
+    });
 
-    if (error) {
-      setError(error.message);
+    const data = await res.json();
+
+    if (!res.ok) {
+      setError(data.error || "Login failed");
       setLoading(false);
       return;
     }
 
+    // Full page navigation so browser sends the newly set cookies
     window.location.href = redirectTo;
   }
 
