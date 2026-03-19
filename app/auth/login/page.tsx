@@ -1,33 +1,36 @@
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
+"use client";
+
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 
-export default async function LoginPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ redirect?: string; error?: string }>;
-}) {
-  const params     = await searchParams;
-  const redirectTo = params.redirect || "/admin";
-  const errorMsg   = params.error ? decodeURIComponent(params.error) : null;
+function LoginForm() {
+  const router       = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo   = searchParams.get("redirect") || "/admin";
 
-  async function handleLogin(formData: FormData) {
-    "use server";
+  const [email,    setEmail]    = useState("");
+  const [password, setPassword] = useState("");
+  const [error,    setError]    = useState<string | null>(null);
+  const [loading,  setLoading]  = useState(false);
 
-    const email    = formData.get("email")      as string;
-    const password = formData.get("password")   as string;
-    const dest     = formData.get("redirectTo") as string || "/admin";
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
 
-    const supabase = await createClient();
+    const supabase = createClient();
     const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      redirect(
-        `/auth/login?redirect=${encodeURIComponent(dest)}&error=${encodeURIComponent(error.message)}`
-      );
+      setError(error.message);
+      setLoading(false);
+      return;
     }
 
-    redirect(dest);
+    router.push(redirectTo);
+    router.refresh();
   }
 
   const inputClass =
@@ -48,8 +51,7 @@ export default async function LoginPage({
 
         {/* Card */}
         <div className="card p-8">
-          <form action={handleLogin} className="flex flex-col gap-5">
-            <input type="hidden" name="redirectTo" value={redirectTo} />
+          <form onSubmit={handleLogin} className="flex flex-col gap-5">
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">
@@ -62,6 +64,8 @@ export default async function LoginPage({
                 autoComplete="email"
                 placeholder="you@example.com"
                 className={inputClass}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
 
@@ -76,20 +80,23 @@ export default async function LoginPage({
                 autoComplete="current-password"
                 placeholder="••••••••"
                 className={inputClass}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
               />
             </div>
 
-            {errorMsg && (
+            {error && (
               <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
-                {errorMsg}
+                {error}
               </p>
             )}
 
             <button
               type="submit"
-              className="btn-primary w-full py-2.5 rounded-lg font-medium"
+              disabled={loading}
+              className="btn-primary w-full py-2.5 rounded-lg font-medium disabled:opacity-60"
             >
-              Sign in
+              {loading ? "Signing in…" : "Sign in"}
             </button>
           </form>
 
@@ -102,5 +109,13 @@ export default async function LoginPage({
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }
