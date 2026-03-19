@@ -20,13 +20,11 @@ export async function middleware(request: NextRequest) {
   let tenantId: string | null = null;
   let tenantSlug: string | null = null;
 
-  const response = NextResponse.next({
-    request: {
-      headers: new Headers(request.headers),
-    },
-  });
+  // Use the official Supabase Next.js SSR pattern:
+  // When session tokens are refreshed, we must forward the new cookies
+  // to server components via the request — not just the browser response.
+  let supabaseResponse = NextResponse.next({ request });
 
-  // Create a Supabase client to look up tenant
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -36,9 +34,14 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, options);
-          });
+          // Step 1: update the request cookies so server components see the fresh session
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+          // Step 2: rebuild the response with the updated request cookies
+          supabaseResponse = NextResponse.next({ request });
+          // Step 3: also set cookies on the response so the browser stores them
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          );
         },
       },
     }
@@ -74,24 +77,17 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // ── 2. Inject tenant info into request headers ─────────────
-  if (tenantId) {
-    response.headers.set("x-tenant-id",   tenantId);
-    response.headers.set("x-tenant-slug", tenantSlug || "");
-  } else {
-    // No tenant found for this domain — could show a 404 or marketing page
-    // For now, continue without tenant (root domain shows marketing page)
-    response.headers.set("x-tenant-id",   "");
-    response.headers.set("x-tenant-slug", "");
-  }
-
-  // ── 3. Refresh session token (required for server components to read auth) ─
-  // This call refreshes/syncs the Supabase session cookies so that any
-  // Server Component that calls supabase.auth.getUser() will see a valid session.
-  // We do NOT redirect here — auth protection is handled inside each page.
+  // ── 2. Refresh session (must happen before tenant headers are set) ───────────
+  // getUser() validates + refreshes the session. If tokens were rotated,
+  // setAll() above already updated supabaseResponse with the new cookies.
   await supabase.auth.getUser();
 
-  return response;
+  // ── 3. Inject tenant info into request headers ─────────────
+  // Set on supabaseResponse so server components can read via headers()
+  supabaseResponse.headers.set("x-tenant-id",   tenantId   ?? "");
+  supabaseResponse.headers.set("x-tenant-slug", tenantSlug ?? "");
+
+  return supabaseResponse;
 }
 
 export const config = {
