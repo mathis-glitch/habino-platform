@@ -6,11 +6,11 @@ export async function middleware(request: NextRequest) {
   const hostname = request.headers.get("host") || "";
   const { pathname } = request.nextUrl;
 
-  // Skip middleware for static files and Next.js internals only
-  // Note: /api/ routes are NOT skipped — they need x-tenant-id injected too
+  // Skip middleware for static files, Next.js internals, and auth API routes
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon") ||
+    pathname.startsWith("/api/auth") ||
     pathname.includes(".")
   ) {
     return NextResponse.next();

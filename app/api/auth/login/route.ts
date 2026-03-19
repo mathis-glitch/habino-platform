@@ -39,6 +39,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.redirect(errorUrl, { status: 303 });
   }
 
-  // successResponse already has the session cookies attached by setAll above
+  // Force session to be written to cookies
+  await supabase.auth.getUser();
+
   return successResponse;
 }
