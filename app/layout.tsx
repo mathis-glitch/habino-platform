@@ -6,7 +6,7 @@ import { TenantProvider } from "./tenant-provider";
 import { createServiceClient } from "@/lib/supabase/server";
 import { tenantCssVars } from "@/lib/tenant";
 import { Tenant } from "@/lib/types";
-import { AgentChat } from "@/components/chat/AgentChat";
+import { AgentChat } from "./components/chat/AgentChat";
 
 const inter = Inter({ subsets: ["latin"] });
 

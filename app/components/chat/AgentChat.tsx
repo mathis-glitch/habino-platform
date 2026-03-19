@@ -18,8 +18,7 @@ export function AgentChat() {
   const inputRef  = useRef<HTMLTextAreaElement>(null);
   const pathname  = usePathname();
 
-  // Don't show on admin pages
-  if (pathname?.startsWith("/admin") || pathname?.startsWith("/auth")) return null;
+  const isHidden = pathname?.startsWith("/admin") || pathname?.startsWith("/auth");
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -113,6 +112,8 @@ export function AgentChat() {
       return <span key={i}>{part}</span>;
     });
   }
+
+  if (isHidden) return null;
 
   return (
     <>

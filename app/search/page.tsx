@@ -2,7 +2,7 @@ import { headers } from "next/headers";
 import { createServiceClient } from "@/lib/supabase/server";
 import { PropertyCard } from "@/components/properties/PropertyCard";
 import { SearchBar } from "@/components/properties/SearchBar";
-import { FilterPanel } from "@/components/properties/FilterPanel";
+import { FilterPanel } from "../components/properties/FilterPanel";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Property, ListingType, PropertyType } from "@/lib/types";

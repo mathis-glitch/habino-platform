@@ -35,9 +35,10 @@ export async function POST(request: NextRequest) {
 
   // Build listing summary for context
   const listingSummary = properties?.length
-    ? properties.map((p) =>
-        `• [${p.listing_type === "buy" ? "For Sale" : "For Rent"}] ${p.title} — ${p.currency} ${p.price.toLocaleString()} — ${p.bedrooms}bd/${p.bathrooms}ba — ${p.neighbourhood ? `${p.neighbourhood}, ` : ""}${p.city} — ID: ${p.id}`
-      ).join("\n")
+    ? properties.map((p: Record<string, unknown>) => {
+        const price = typeof p.price === "number" ? p.price.toLocaleString() : p.price;
+        return `• [${p.listing_type === "buy" ? "For Sale" : "For Rent"}] ${p.title} — ${p.currency} ${price} — ${p.bedrooms}bd/${p.bathrooms}ba — ${p.neighbourhood ? `${p.neighbourhood}, ` : ""}${p.city} — ID: ${p.id}`;
+      }).join("\n")
     : "No listings currently available.";
 
   const systemPrompt = `You are a helpful real estate assistant for ${tenant?.name || "this platform"}. ${tenant?.tagline ? `The platform's tagline is: "${tenant.tagline}".` : ""}
