@@ -21,7 +21,8 @@ export default async function AdminDashboard() {
 
   // Stats
   const { count: totalCount }  = await serviceClient.from("properties").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId);
-  const { count: activeCount } = await serviceClient.from("properties").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("status", "active");
+  const { count: activeCount }      = await serviceClient.from("properties").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("status", "active");
+  const { count: pendingApptCount } = await serviceClient.from("appointments").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("status", "pending");
 
   // Recent listings
   const { data: recent } = await serviceClient
@@ -42,19 +43,20 @@ export default async function AdminDashboard() {
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-2xl font-bold text-slate-900">Admin Dashboard</h1>
           <Link href="/admin/listings/new" className="btn-primary px-5 py-2.5 rounded-lg text-sm">
-            + Add listing
+            + Inserat anlegen
           </Link>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-10">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
           {[
-            { label: "Total listings",  value: totalCount  || 0 },
-            { label: "Active listings", value: activeCount || 0 },
-            { label: "Draft listings",  value: (totalCount || 0) - (activeCount || 0) },
-          ].map(({ label, value }) => (
+            { label: "Inserate gesamt",    value: totalCount  || 0, color: "text-slate-900" },
+            { label: "Aktiv",              value: activeCount || 0, color: "text-emerald-600" },
+            { label: "Entwurf",            value: (totalCount || 0) - (activeCount || 0), color: "text-slate-900" },
+            { label: "Termine ausstehend", value: pendingApptCount || 0, color: "text-amber-600" },
+          ].map(({ label, value, color }) => (
             <div key={label} className="card p-5">
-              <p className="text-3xl font-bold text-slate-900">{value}</p>
+              <p className={`text-3xl font-bold ${color}`}>{value}</p>
               <p className="text-sm text-slate-500 mt-1">{label}</p>
             </div>
           ))}
@@ -122,10 +124,10 @@ export default async function AdminDashboard() {
             </div>
             <span className="text-slate-400">→</span>
           </Link>
-          <Link href="/market" className="card p-5 hover:shadow-md transition-shadow flex items-center justify-between">
+          <Link href="/admin/appointments" className="card p-5 hover:shadow-md transition-shadow flex items-center justify-between">
             <div>
-              <p className="font-semibold text-slate-800">Market Insights</p>
-              <p className="text-sm text-slate-500 mt-0.5">AI market intelligence tool</p>
+              <p className="font-semibold text-slate-800">Terminanfragen</p>
+              <p className="text-sm text-slate-500 mt-0.5">{pendingApptCount || 0} ausstehend</p>
             </div>
             <span className="text-slate-400">→</span>
           </Link>

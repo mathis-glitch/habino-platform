@@ -1,13 +1,12 @@
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
-import Image from "next/image";
 import Link from "next/link";
 import { createServiceClient } from "@/lib/supabase/server";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
-import { Badge } from "@/components/ui/Badge";
 import { PropertyCard } from "@/components/properties/PropertyCard";
-import { MarketInsightWidget } from "@/components/market/MarketInsightWidget";
+import { ImageGallery } from "../../components/properties/ImageGallery";
+import { BookingForm } from "../../components/properties/BookingForm";
 import { CopyLinkButton } from "@/components/ui/CopyLinkButton";
 import { Property } from "@/lib/types";
 import { formatPrice, formatArea } from "@/lib/utils";
@@ -20,12 +19,10 @@ export default async function PropertyDetailPage({
   const { id }      = await params;
   const headersList = await headers();
   const tenantId    = headersList.get("x-tenant-id");
-
   if (!tenantId) notFound();
 
   const supabase = createServiceClient();
 
-  // Fetch property
   const { data: property } = await supabase
     .from("properties")
     .select("*, images:property_images(id, url, sort_order)")
@@ -36,13 +33,10 @@ export default async function PropertyDetailPage({
 
   if (!property) notFound();
 
-  // Sort images
   const images = (property.images || []).sort(
     (a: { sort_order: number }, b: { sort_order: number }) => a.sort_order - b.sort_order
   );
-  const hero = images[0]?.url || null;
 
-  // Similar listings
   const { data: similar } = await supabase
     .from("properties")
     .select("*, images:property_images(id, url, sort_order)")
@@ -53,69 +47,50 @@ export default async function PropertyDetailPage({
     .neq("id", id)
     .limit(3);
 
+  const specs = [
+    property.bedrooms  > 0 && { label: "Zimmer",    value: property.bedrooms },
+    property.bathrooms > 0 && { label: "Bäder",     value: property.bathrooms },
+    property.area_sqm  > 0 && { label: "m²",        value: property.area_sqm },
+    property.floor     != null && { label: "Etage",  value: property.floor },
+    property.parking   > 0 && { label: "Parkplätze", value: property.parking },
+  ].filter(Boolean) as { label: string; value: number }[];
+
   return (
     <>
       <Header />
       <main className="max-w-5xl mx-auto px-4 py-8">
 
         {/* Breadcrumb */}
-        <nav className="text-sm text-slate-500 mb-6 flex items-center gap-2">
-          <Link href="/" className="hover:text-primary">Home</Link>
+        <nav className="text-sm text-slate-400 mb-6 flex items-center gap-2 flex-wrap">
+          <Link href="/" className="hover:text-primary transition-colors">KI Agent</Link>
           <span>/</span>
-          <Link href={`/?type=${property.listing_type}`} className="hover:text-primary capitalize">
-            {property.listing_type === "buy" ? "For Sale" : "For Rent"}
+          <Link href="/search" className="hover:text-primary transition-colors">Immobilien</Link>
+          <span>/</span>
+          <Link href={`/search?type=${property.listing_type}`} className="hover:text-primary transition-colors capitalize">
+            {property.listing_type === "buy" ? "Kaufen" : "Mieten"}
           </Link>
           <span>/</span>
-          <span className="text-slate-700 line-clamp-1">{property.title}</span>
+          <span className="text-slate-600 line-clamp-1">{property.title}</span>
         </nav>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-          {/* ── Left column: images + details ── */}
+          {/* ── Left: images + details ── */}
           <div className="lg:col-span-2 flex flex-col gap-6">
 
-            {/* Hero image */}
-            <div className="relative w-full h-72 md:h-96 rounded-2xl overflow-hidden bg-slate-200">
-              {hero ? (
-                <Image
-                  src={hero}
-                  alt={property.title}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 1024px) 100vw, 66vw"
-                  priority
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-slate-400">
-                  <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1}
-                      d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                  </svg>
-                </div>
-              )}
-              <div className="absolute top-4 left-4">
-                <Badge variant={property.listing_type === "buy" ? "info" : "success"} className="text-sm">
-                  {property.listing_type === "buy" ? "For Sale" : "For Rent"}
-                </Badge>
-              </div>
-            </div>
+            <ImageGallery images={images} title={property.title} />
 
-            {/* Thumbnail strip */}
-            {images.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto pb-1">
-                {images.slice(1).map((img: { id: string; url: string }) => (
-                  <div key={img.id} className="relative h-20 w-28 shrink-0 rounded-lg overflow-hidden bg-slate-200">
-                    <Image src={img.url} alt="" fill className="object-cover" sizes="112px" />
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Title + price */}
+            {/* Title + location */}
             <div>
-              <h1 className="text-2xl font-bold text-slate-900">{property.title}</h1>
-              <p className="text-slate-500 mt-1 flex items-center gap-1">
-                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="flex items-start justify-between gap-3 flex-wrap">
+                <h1 className="text-2xl font-bold text-slate-900 leading-tight">{property.title}</h1>
+                <span className="px-3 py-1 rounded-full text-sm font-semibold text-white shrink-0"
+                  style={{ backgroundColor: property.listing_type === "buy" ? "#3B82F6" : "var(--color-primary)" }}>
+                  {property.listing_type === "buy" ? "Kaufen" : "Mieten"}
+                </span>
+              </div>
+              <p className="text-slate-500 mt-2 flex items-center gap-1.5">
+                <svg className="w-4 h-4 shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                     d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                 </svg>
@@ -124,12 +99,12 @@ export default async function PropertyDetailPage({
             </div>
 
             {/* Price */}
-            <div className="bg-slate-50 rounded-xl p-4 flex items-center justify-between">
+            <div className="bg-slate-50 rounded-2xl p-5 flex items-center justify-between">
               <div>
                 <p className="text-3xl font-bold text-slate-900">
                   {formatPrice(property.price, property.currency)}
                   {property.listing_type === "rent" && (
-                    <span className="text-lg font-normal text-slate-400">/mo</span>
+                    <span className="text-lg font-normal text-slate-400 ml-1">/Monat</span>
                   )}
                 </p>
                 {property.area_sqm && (
@@ -138,87 +113,89 @@ export default async function PropertyDetailPage({
                   </p>
                 )}
               </div>
-              <Badge variant="outline" className="text-sm capitalize">{property.property_type}</Badge>
+              <span className="px-3 py-1.5 rounded-xl text-sm font-medium bg-white border border-slate-200 text-slate-600 capitalize">
+                {property.property_type}
+              </span>
             </div>
 
-            {/* Specs */}
-            <div className="grid grid-cols-3 gap-3">
-              {property.bedrooms > 0 && (
-                <div className="card p-3 text-center">
-                  <p className="text-2xl font-bold text-slate-900">{property.bedrooms}</p>
-                  <p className="text-xs text-slate-500 mt-0.5">Bedrooms</p>
-                </div>
-              )}
-              {property.bathrooms > 0 && (
-                <div className="card p-3 text-center">
-                  <p className="text-2xl font-bold text-slate-900">{property.bathrooms}</p>
-                  <p className="text-xs text-slate-500 mt-0.5">Bathrooms</p>
-                </div>
-              )}
-              {property.area_sqm && (
-                <div className="card p-3 text-center">
-                  <p className="text-2xl font-bold text-slate-900">{property.area_sqm}</p>
-                  <p className="text-xs text-slate-500 mt-0.5">m²</p>
-                </div>
-              )}
-            </div>
+            {/* Specs grid */}
+            {specs.length > 0 && (
+              <div className={`grid gap-3 ${specs.length >= 4 ? "grid-cols-4" : `grid-cols-${specs.length}`}`}>
+                {specs.map(({ label, value }) => (
+                  <div key={label} className="bg-white border border-slate-100 rounded-2xl p-4 text-center shadow-sm">
+                    <p className="text-2xl font-bold text-slate-900">{value}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">{label}</p>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Description */}
             {property.description && (
               <div>
-                <h2 className="font-semibold text-slate-800 mb-2">About this property</h2>
+                <h2 className="font-semibold text-slate-800 mb-3 text-base">Objektbeschreibung</h2>
                 <p className="text-slate-600 leading-relaxed whitespace-pre-line">{property.description}</p>
               </div>
             )}
 
-            {/* AI Valuation widget */}
-            {property.city && (
-              <MarketInsightWidget
-                location={property.neighbourhood ? `${property.neighbourhood}, ${property.city}` : property.city}
-                propertyType={property.property_type}
-                areaSqm={property.area_sqm}
-              />
+            {/* Features */}
+            {property.features?.length > 0 && (
+              <div>
+                <h2 className="font-semibold text-slate-800 mb-3 text-base">Ausstattung</h2>
+                <div className="flex flex-wrap gap-2">
+                  {property.features.map((f: string) => (
+                    <span key={f} className="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-sm">{f}</span>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
 
-          {/* ── Right column: agent + contact ── */}
+          {/* ── Right: contact + booking ── */}
           <div className="flex flex-col gap-4">
 
-            {/* Agent card */}
-            {(property.agent_name || property.agent_phone || property.agent_email) && (
-              <div className="card p-5 sticky top-20">
-                <h3 className="font-semibold text-slate-800 mb-4">Contact Agent</h3>
+            {/* Price summary (mobile sticky) */}
+            <div className="hidden lg:block bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+              <p className="text-2xl font-bold text-slate-900">
+                {formatPrice(property.price, property.currency)}
+                {property.listing_type === "rent" && (
+                  <span className="text-base font-normal text-slate-400 ml-1">/Monat</span>
+                )}
+              </p>
+              <p className="text-sm text-slate-400 mt-0.5 capitalize">{property.property_type} · {property.city}</p>
+            </div>
 
+            {/* Booking form */}
+            <BookingForm propertyId={property.id} propertyTitle={property.title} />
+
+            {/* Agent contact */}
+            {(property.agent_name || property.agent_phone || property.agent_email) && (
+              <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                <h3 className="font-semibold text-slate-800 mb-4 text-sm">Ansprechpartner</h3>
                 {property.agent_name && (
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0"
-                         style={{ backgroundColor: "color-mix(in srgb, var(--color-primary) 12%, white)" }}>
-                      <span className="text-primary font-bold text-sm">
-                        {property.agent_name.charAt(0).toUpperCase()}
-                      </span>
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0"
+                      style={{ backgroundColor: "var(--color-primary)" }}>
+                      {property.agent_name.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <p className="font-medium text-slate-800">{property.agent_name}</p>
-                      <p className="text-xs text-slate-500">Listing Agent</p>
+                      <p className="font-medium text-slate-800 text-sm">{property.agent_name}</p>
+                      <p className="text-xs text-slate-400">Listing Agent</p>
                     </div>
                   </div>
                 )}
-
                 <div className="flex flex-col gap-2">
                   {property.agent_phone && (
-                    <a
-                      href={`tel:${property.agent_phone}`}
-                      className="btn-primary w-full py-2.5 rounded-lg text-sm text-center"
-                    >
+                    <a href={`tel:${property.agent_phone}`}
+                      className="w-full py-2.5 rounded-xl text-sm text-center font-medium text-white transition-opacity hover:opacity-90"
+                      style={{ backgroundColor: "var(--color-primary)" }}>
                       📞 {property.agent_phone}
                     </a>
                   )}
                   {property.agent_email && (
-                    <a
-                      href={`mailto:${property.agent_email}?subject=Enquiry: ${encodeURIComponent(property.title)}`}
-                      className="btn-secondary w-full py-2.5 rounded-lg text-sm text-center"
-                    >
-                      Email Agent
+                    <a href={`mailto:${property.agent_email}?subject=Anfrage: ${encodeURIComponent(property.title)}`}
+                      className="w-full py-2.5 rounded-xl text-sm text-center font-medium border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors">
+                      E-Mail schreiben
                     </a>
                   )}
                 </div>
@@ -226,17 +203,17 @@ export default async function PropertyDetailPage({
             )}
 
             {/* Share */}
-            <div className="card p-4 text-center">
-              <p className="text-sm text-slate-500">Share this listing</p>
+            <div className="bg-white border border-slate-100 rounded-2xl p-4 text-center shadow-sm">
+              <p className="text-xs text-slate-400 mb-2">Inserat teilen</p>
               <CopyLinkButton />
             </div>
           </div>
         </div>
 
-        {/* Similar listings */}
+        {/* Similar */}
         {similar && similar.length > 0 && (
           <section className="mt-14">
-            <h2 className="font-semibold text-slate-800 text-lg mb-5">Similar properties</h2>
+            <h2 className="font-semibold text-slate-800 text-lg mb-5">Ähnliche Inserate</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {(similar as Property[]).map((p) => (
                 <PropertyCard key={p.id} property={p} />
