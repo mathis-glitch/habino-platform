@@ -64,16 +64,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
   }
 
-  // Verify auth via Bearer token (more reliable than SSR cookies in API routes)
-  const token = request.headers.get("Authorization")?.replace("Bearer ", "");
-  if (!token) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const serviceClient = createServiceClient();
-  const { data: { user } } = await serviceClient.auth.getUser(token);
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const serviceClient = createServiceClient();
 
   const body = await request.json();
 

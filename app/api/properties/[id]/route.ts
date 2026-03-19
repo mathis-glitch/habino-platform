@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServiceClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 
 // GET /api/properties/[id]
 export async function GET(
@@ -42,9 +42,8 @@ export async function PUT(
   const tenantId = request.headers.get("x-tenant-id");
   if (!tenantId) return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
 
-  const token = request.headers.get("Authorization")?.replace("Bearer ", "");
-  if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const { data: { user } } = await createServiceClient().auth.getUser(token);
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await request.json();
@@ -76,9 +75,8 @@ export async function DELETE(
   const tenantId = request.headers.get("x-tenant-id");
   if (!tenantId) return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
 
-  const token = request.headers.get("Authorization")?.replace("Bearer ", "");
-  if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const { data: { user } } = await createServiceClient().auth.getUser(token);
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const serviceClient = createServiceClient();
