@@ -145,14 +145,24 @@ export function AIChatPage() {
       });
       const data = await res.json();
 
+      // Surface real error message so we can debug
+      if (!res.ok || data.error) {
+        setMessages([...newMessages, {
+          role: "assistant",
+          content: `⚠️ Fehler: ${data.error || `HTTP ${res.status}`}`,
+        }]);
+        return;
+      }
+
       setMessages([...newMessages, {
         role: "assistant",
-        content: data.reply || "Entschuldigung, keine Antwort erhalten.",
+        content: data.reply ?? "",
         properties: data.properties?.length ? data.properties : undefined,
         appointment: data.appointment,
       }]);
-    } catch {
-      setMessages([...newMessages, { role: "assistant", content: "Verbindungsfehler. Bitte erneut versuchen." }]);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setMessages([...newMessages, { role: "assistant", content: `⚠️ Verbindungsfehler: ${msg}` }]);
     } finally {
       setLoading(false);
     }

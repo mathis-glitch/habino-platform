@@ -179,17 +179,18 @@ ${tenant?.contact_email ? `\nKontakt: ${tenant.contact_email}` : ""}`;
       temperature: 0.7,
     });
 
-    const reply = secondPass.choices[0].message.content || "Entschuldigung, keine Antwort.";
+    const reply = secondPass.choices[0].message.content
+      ?? (toolResults.properties ? "Hier sind passende Inserate für Sie:" : "Fertig.");
 
     return NextResponse.json({
       reply,
-      // Pass structured results so the frontend can render rich UI
       ...(toolResults.properties !== undefined && { properties: toolResults.properties }),
       ...(toolResults.appointment !== undefined && { appointment: toolResults.appointment }),
     });
 
   } catch (err: unknown) {
-    console.error("Chat API error:", err);
-    return NextResponse.json({ error: "KI-Service nicht verfügbar." }, { status: 500 });
+    const detail = err instanceof Error ? err.message : String(err);
+    console.error("Chat API error:", detail);
+    return NextResponse.json({ error: detail }, { status: 500 });
   }
 }
