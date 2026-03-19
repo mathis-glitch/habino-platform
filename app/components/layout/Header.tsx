@@ -2,20 +2,46 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTenant } from "@/app/tenant-provider";
 import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
 
 export default function Header() {
-  const { tenant }   = useTenant();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const router = useRouter();
+  const { tenant }    = useTenant();
+  const [menuOpen,   setMenuOpen]   = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isAdmin,    setIsAdmin]    = useState(false);
+
+  useEffect(() => {
+    const supabase = createClient();
+
+    async function checkUser() {
+      const { data: { user } } = await supabase.auth.getUser();
+      setIsLoggedIn(!!user);
+      if (user) {
+        const { data: profile } = await supabase
+          .from("users")
+          .select("role")
+          .eq("id", user.id)
+          .single();
+        setIsAdmin(profile?.role === "operator_admin" || profile?.role === "admin");
+      }
+    }
+
+    checkUser();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsLoggedIn(!!session);
+      if (!session) setIsAdmin(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   async function handleSignOut() {
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.refresh();
+    window.location.href = "/";
   }
 
   return (
@@ -48,8 +74,26 @@ export default function Header() {
 
         {/* Auth buttons */}
         <div className="hidden md:flex items-center gap-3">
-          <Link href="/auth/login"    className="text-sm font-medium text-slate-600 hover:text-primary transition-colors">Sign in</Link>
-          <Link href="/auth/register" className="btn-primary text-sm">List property</Link>
+          {isLoggedIn ? (
+            <>
+              {isAdmin && (
+                <Link href="/admin" className="text-sm font-medium text-slate-600 hover:text-primary transition-colors">
+                  Dashboard
+                </Link>
+              )}
+              <button
+                onClick={handleSignOut}
+                className="text-sm font-medium text-slate-600 hover:text-red-500 transition-colors"
+              >
+                Sign out
+              </button>
+            </>
+          ) : (
+            <>
+              <Link href="/auth/login"    className="text-sm font-medium text-slate-600 hover:text-primary transition-colors">Sign in</Link>
+              <Link href="/auth/register" className="btn-primary text-sm">List property</Link>
+            </>
+          )}
         </div>
 
         {/* Mobile hamburger */}
@@ -74,8 +118,19 @@ export default function Header() {
           <Link href="/?type=rent" className="py-2 hover:text-primary" onClick={() => setMenuOpen(false)}>Rent</Link>
           <Link href="/market"     className="py-2 hover:text-primary" onClick={() => setMenuOpen(false)}>Market Insights</Link>
           <hr className="border-slate-100" />
-          <Link href="/auth/login"    className="py-2" onClick={() => setMenuOpen(false)}>Sign in</Link>
-          <Link href="/auth/register" className="btn-primary text-center" onClick={() => setMenuOpen(false)}>List property</Link>
+          {isLoggedIn ? (
+            <>
+              {isAdmin && (
+                <Link href="/admin" className="py-2 hover:text-primary" onClick={() => setMenuOpen(false)}>Dashboard</Link>
+              )}
+              <button onClick={handleSignOut} className="py-2 text-left text-red-500">Sign out</button>
+            </>
+          ) : (
+            <>
+              <Link href="/auth/login"    className="py-2" onClick={() => setMenuOpen(false)}>Sign in</Link>
+              <Link href="/auth/register" className="btn-primary text-center" onClick={() => setMenuOpen(false)}>List property</Link>
+            </>
+          )}
         </div>
       )}
     </header>
