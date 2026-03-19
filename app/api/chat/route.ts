@@ -4,78 +4,192 @@ import { createServiceClient } from "@/lib/supabase/server";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+// ── Tool definitions ────────────────────────────────────────────────────────
+const tools: OpenAI.Chat.ChatCompletionTool[] = [
+  {
+    type: "function",
+    function: {
+      name: "search_properties",
+      description: "Search available properties based on user criteria. Call this whenever the user asks to find, show, or search for properties.",
+      parameters: {
+        type: "object",
+        properties: {
+          listing_type:  { type: "string", enum: ["buy", "rent"], description: "Whether the user wants to buy or rent" },
+          property_type: { type: "string", enum: ["apartment", "house", "villa", "studio", "commercial", "land"], description: "Type of property" },
+          min_price:     { type: "number", description: "Minimum price in the listing currency" },
+          max_price:     { type: "number", description: "Maximum price in the listing currency" },
+          bedrooms:      { type: "number", description: "Minimum number of bedrooms" },
+          city:          { type: "string", description: "City or location to search in" },
+          query:         { type: "string", description: "Free-text search in title/description" },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "book_appointment",
+      description: "Book a viewing appointment for a specific property. Call this when the user wants to visit, view, or schedule a showing.",
+      parameters: {
+        type: "object",
+        properties: {
+          property_id:   { type: "string", description: "ID of the property to view" },
+          property_title:{ type: "string", description: "Title of the property" },
+          name:          { type: "string", description: "Full name of the person booking" },
+          email:         { type: "string", description: "Email address for confirmation" },
+          phone:         { type: "string", description: "Phone number (optional)" },
+          preferred_date:{ type: "string", description: "Preferred date/time as a human-readable string" },
+          message:       { type: "string", description: "Any additional message or questions" },
+        },
+        required: ["property_id", "name", "email", "preferred_date"],
+      },
+    },
+  },
+];
+
+// ── Tool handlers ────────────────────────────────────────────────────────────
+async function handleSearchProperties(args: Record<string, unknown>, tenantId: string) {
+  const supabase = createServiceClient();
+  let query = supabase
+    .from("properties")
+    .select("id, title, listing_type, property_type, price, currency, bedrooms, bathrooms, area_sqm, city, neighbourhood, status, images:property_images(id, url, sort_order)")
+    .eq("tenant_id", tenantId)
+    .eq("status", "active")
+    .order("created_at", { ascending: false })
+    .limit(6);
+
+  if (args.listing_type)  query = query.eq("listing_type", args.listing_type);
+  if (args.property_type) query = query.eq("property_type", args.property_type);
+  if (args.min_price)     query = query.gte("price", args.min_price);
+  if (args.max_price)     query = query.lte("price", args.max_price);
+  if (args.bedrooms)      query = query.gte("bedrooms", args.bedrooms);
+  if (args.city)          query = query.ilike("city", `%${args.city}%`);
+  if (args.query)         query = query.ilike("title", `%${args.query}%`);
+
+  const { data } = await query;
+  return data || [];
+}
+
+async function handleBookAppointment(args: Record<string, unknown>, tenantId: string) {
+  const supabase = createServiceClient();
+  const { error } = await supabase.from("appointments").insert({
+    tenant_id:      tenantId,
+    property_id:    args.property_id,
+    property_title: args.property_title || null,
+    name:           args.name,
+    email:          args.email,
+    phone:          args.phone || null,
+    preferred_date: args.preferred_date,
+    message:        args.message || null,
+    status:         "pending",
+  });
+  if (error) {
+    console.error("Appointment insert error:", error);
+    return { success: false, error: error.message };
+  }
+  return { success: true };
+}
+
+// ── Main route ───────────────────────────────────────────────────────────────
 export async function POST(request: NextRequest) {
   const tenantId = request.headers.get("x-tenant-id");
-  if (!tenantId) {
-    return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
-  }
+  if (!tenantId) return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
 
   const { messages, context } = await request.json();
-  if (!messages?.length) {
-    return NextResponse.json({ error: "No messages provided" }, { status: 400 });
-  }
+  if (!messages?.length) return NextResponse.json({ error: "No messages" }, { status: 400 });
 
-  const serviceClient = createServiceClient();
-
-  // Load tenant info
-  const { data: tenant } = await serviceClient
+  const supabase = createServiceClient();
+  const { data: tenant } = await supabase
     .from("tenants")
     .select("name, tagline, contact_email, whatsapp")
     .eq("id", tenantId)
     .single();
 
-  // Load recent active listings (limit to avoid token overload)
-  const { data: properties } = await serviceClient
-    .from("properties")
-    .select("id, title, listing_type, property_type, price, currency, bedrooms, bathrooms, area_sqm, city, neighbourhood, status")
-    .eq("tenant_id", tenantId)
-    .eq("status", "active")
-    .order("created_at", { ascending: false })
-    .limit(30);
+  const systemPrompt = `Du bist ein freundlicher, professioneller KI-Immobilienassistent für ${tenant?.name || "diese Plattform"}.
+${tenant?.tagline ? `Plattform-Motto: "${tenant.tagline}"` : ""}
 
-  // Build listing summary for context
-  const listingSummary = properties?.length
-    ? properties.map((p: Record<string, unknown>) => {
-        const price = typeof p.price === "number" ? p.price.toLocaleString() : p.price;
-        return `• [${p.listing_type === "buy" ? "For Sale" : "For Rent"}] ${p.title} — ${p.currency} ${price} — ${p.bedrooms}bd/${p.bathrooms}ba — ${p.neighbourhood ? `${p.neighbourhood}, ` : ""}${p.city} — ID: ${p.id}`;
-      }).join("\n")
-    : "No listings currently available.";
-
-  const systemPrompt = `You are a helpful real estate assistant for ${tenant?.name || "this platform"}. ${tenant?.tagline ? `The platform's tagline is: "${tenant.tagline}".` : ""}
-
-You help users find properties, answer questions about the market, and guide them through their property search. You are friendly, professional, and concise.
-
-CURRENT LISTINGS (${properties?.length || 0} active):
-${listingSummary}
-
-When recommending properties, use the listing IDs to link them like: /properties/[ID]
-${context?.currentProperty ? `\nThe user is currently viewing: ${context.currentProperty}` : ""}
-${tenant?.contact_email ? `\nFor enquiries: ${tenant.contact_email}` : ""}
-${tenant?.whatsapp ? `\nWhatsApp: ${tenant.whatsapp}` : ""}
-
-Guidelines:
-- Keep responses concise and helpful (2-4 sentences max unless asked for more)
-- When recommending listings, mention 2-3 max and include the property link
-- For detailed market analysis, suggest using the Market Insights page
-- If you don't have relevant listings, say so honestly and suggest broadening the search
-- Don't make up prices or data not in the listings`;
+Deine Aufgaben:
+- Nutze search_properties wenn jemand Immobilien sucht — immer, egal wie die Anfrage formuliert ist.
+- Nutze book_appointment wenn jemand eine Besichtigung oder einen Termin möchte.
+- Antworte auf Deutsch, kurz und hilfreich (2–4 Sätze).
+- Wenn du Termine buchst, bestätige alle Details bevor du die Funktion aufrufst.
+- Erfinde keine Preise oder Daten.
+${context?.currentProperty ? `\nDer Nutzer schaut sich gerade Inserat-ID: ${context.currentProperty} an.` : ""}
+${tenant?.contact_email ? `\nKontakt: ${tenant.contact_email}` : ""}`;
 
   try {
-    const completion = await openai.chat.completions.create({
+    // Round 1: let model decide which tool to call
+    const firstPass = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         { role: "system", content: systemPrompt },
-        ...messages.slice(-10), // keep last 10 messages for context
+        ...messages.slice(-10),
+      ],
+      tools,
+      tool_choice: "auto",
+      max_tokens: 600,
+      temperature: 0.7,
+    });
+
+    const assistantMsg = firstPass.choices[0].message;
+    const toolCalls = assistantMsg.tool_calls;
+
+    // No tool call → plain reply
+    if (!toolCalls || toolCalls.length === 0) {
+      return NextResponse.json({ reply: assistantMsg.content || "Entschuldigung, keine Antwort." });
+    }
+
+    // Execute each tool call
+    const toolResults: Record<string, unknown> = {};
+    const toolMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+      { role: "assistant", content: assistantMsg.content, tool_calls: toolCalls } as OpenAI.Chat.ChatCompletionMessageParam,
+    ];
+
+    for (const call of toolCalls) {
+      const args = JSON.parse(call.function.arguments || "{}");
+      let result: unknown;
+
+      if (call.function.name === "search_properties") {
+        result = await handleSearchProperties(args, tenantId);
+        toolResults.properties = result;
+      } else if (call.function.name === "book_appointment") {
+        result = await handleBookAppointment(args, tenantId);
+        toolResults.appointment = result;
+      } else {
+        result = { error: "Unknown tool" };
+      }
+
+      toolMessages.push({
+        role: "tool",
+        tool_call_id: call.id,
+        content: JSON.stringify(result),
+      } as OpenAI.Chat.ChatCompletionMessageParam);
+    }
+
+    // Round 2: model reads tool results and writes final reply
+    const secondPass = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        ...messages.slice(-10),
+        ...toolMessages,
       ],
       max_tokens: 400,
       temperature: 0.7,
     });
 
-    const reply = completion.choices[0]?.message?.content || "Sorry, I couldn't generate a response.";
-    return NextResponse.json({ reply });
+    const reply = secondPass.choices[0].message.content || "Entschuldigung, keine Antwort.";
 
-  } catch (err: any) {
+    return NextResponse.json({
+      reply,
+      // Pass structured results so the frontend can render rich UI
+      ...(toolResults.properties !== undefined && { properties: toolResults.properties }),
+      ...(toolResults.appointment !== undefined && { appointment: toolResults.appointment }),
+    });
+
+  } catch (err: unknown) {
     console.error("Chat API error:", err);
-    return NextResponse.json({ error: "AI service unavailable." }, { status: 500 });
+    return NextResponse.json({ error: "KI-Service nicht verfügbar." }, { status: 500 });
   }
 }
