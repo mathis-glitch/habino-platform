@@ -29,8 +29,7 @@ function LoginForm() {
       return;
     }
 
-    router.push(redirectTo);
-    router.refresh();
+    window.location.href = redirectTo;
   }
 
   const inputClass =
