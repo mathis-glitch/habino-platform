@@ -46,9 +46,8 @@ export default function Header() {
     window.location.href = "/";
   }
 
-  const isChat       = pathname === "/";
-  const isProperties = pathname === "/search" || pathname?.startsWith("/properties");
-  const isMarket     = pathname === "/market";
+  const isChat  = pathname === "/";
+  const isSaved = pathname === "/saved";
 
   function navClass(active: boolean) {
     return `relative flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-150 ${
@@ -79,7 +78,7 @@ export default function Header() {
           )}
         </Link>
 
-        {/* Center: 3 main tabs */}
+        {/* Center: 2 main tabs */}
         <nav className="hidden md:flex items-center gap-1 bg-slate-100 rounded-2xl p-1">
 
           {/* KI Agent */}
@@ -91,22 +90,13 @@ export default function Header() {
             KI Agent
           </Link>
 
-          {/* Immobilien */}
-          <Link href="/search" className={navClass(isProperties)} style={isProperties ? { backgroundColor: "var(--color-primary)" } : {}}>
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          {/* Merkliste */}
+          <Link href="/saved" className={navClass(isSaved)} style={isSaved ? { backgroundColor: "var(--color-primary)" } : {}}>
+            <svg className="w-4 h-4" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
             </svg>
-            Immobilien
-          </Link>
-
-          {/* Markt */}
-          <Link href="/market" className={navClass(isMarket)} style={isMarket ? { backgroundColor: "var(--color-primary)" } : {}}>
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-            </svg>
-            Markt
+            Merkliste
           </Link>
         </nav>
 
@@ -152,17 +142,13 @@ export default function Header() {
       {/* Mobile menu */}
       {menuOpen && (
         <div className="md:hidden border-t border-slate-100 bg-white px-4 pb-4 pt-2 flex flex-col gap-1">
-          <Link href="/"       className={`${navClass(isChat)} justify-start`}       style={isChat ? { backgroundColor: "var(--color-primary)" } : {}} onClick={() => setMenuOpen(false)}>
+          <Link href="/" className={`${navClass(isChat)} justify-start`} style={isChat ? { backgroundColor: "var(--color-primary)" } : {}} onClick={() => setMenuOpen(false)}>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
             KI Agent
           </Link>
-          <Link href="/search" className={`${navClass(isProperties)} justify-start`} style={isProperties ? { backgroundColor: "var(--color-primary)" } : {}} onClick={() => setMenuOpen(false)}>
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
-            Immobilien
-          </Link>
-          <Link href="/market" className={`${navClass(isMarket)} justify-start`}     style={isMarket ? { backgroundColor: "var(--color-primary)" } : {}} onClick={() => setMenuOpen(false)}>
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>
-            Markt
+          <Link href="/saved" className={`${navClass(isSaved)} justify-start`} style={isSaved ? { backgroundColor: "var(--color-primary)" } : {}} onClick={() => setMenuOpen(false)}>
+            <svg className="w-4 h-4" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+            Merkliste
           </Link>
           <hr className="border-slate-100 my-2" />
           {isLoggedIn ? (
