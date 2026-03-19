@@ -1,40 +1,13 @@
-"use client";
-
-import { useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-function LoginForm() {
-  const searchParams = useSearchParams();
-  const redirectTo   = searchParams.get("redirect") || "/admin";
-
-  const [email,    setEmail]    = useState("");
-  const [password, setPassword] = useState("");
-  const [error,    setError]    = useState<string | null>(null);
-  const [loading,  setLoading]  = useState(false);
-
-  async function handleLogin(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-
-    const res = await fetch("/api/auth/login", {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ email, password }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      setError(data.error || "Login failed");
-      setLoading(false);
-      return;
-    }
-
-    // Full page navigation so browser sends the newly set cookies
-    window.location.href = redirectTo;
-  }
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ redirect?: string; error?: string }>;
+}) {
+  const params     = await searchParams;
+  const redirectTo = params.redirect || "/admin";
+  const errorMsg   = params.error ? decodeURIComponent(params.error) : null;
 
   const inputClass =
     "w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm " +
@@ -54,7 +27,8 @@ function LoginForm() {
 
         {/* Card */}
         <div className="card p-8">
-          <form onSubmit={handleLogin} className="flex flex-col gap-5">
+          <form method="POST" action="/api/auth/login" className="flex flex-col gap-5">
+            <input type="hidden" name="redirectTo" value={redirectTo} />
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">
@@ -67,8 +41,6 @@ function LoginForm() {
                 autoComplete="email"
                 placeholder="you@example.com"
                 className={inputClass}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
 
@@ -83,23 +55,20 @@ function LoginForm() {
                 autoComplete="current-password"
                 placeholder="••••••••"
                 className={inputClass}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
               />
             </div>
 
-            {error && (
+            {errorMsg && (
               <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
-                {error}
+                {errorMsg}
               </p>
             )}
 
             <button
               type="submit"
-              disabled={loading}
-              className="btn-primary w-full py-2.5 rounded-lg font-medium disabled:opacity-60"
+              className="btn-primary w-full py-2.5 rounded-lg font-medium"
             >
-              {loading ? "Signing in…" : "Sign in"}
+              Sign in
             </button>
           </form>
 
@@ -112,13 +81,5 @@ function LoginForm() {
         </div>
       </div>
     </div>
-  );
-}
-
-export default function LoginPage() {
-  return (
-    <Suspense>
-      <LoginForm />
-    </Suspense>
   );
 }
