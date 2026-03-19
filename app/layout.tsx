@@ -6,6 +6,7 @@ import { TenantProvider } from "./tenant-provider";
 import { createServiceClient } from "@/lib/supabase/server";
 import { tenantCssVars } from "@/lib/tenant";
 import { Tenant } from "@/lib/types";
+import { AgentChat } from "@/components/chat/AgentChat";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -57,6 +58,7 @@ export default async function RootLayout({
       <body className={inter.className}>
         <TenantProvider tenant={tenant}>
           {children}
+          <AgentChat />
         </TenantProvider>
       </body>
     </html>
