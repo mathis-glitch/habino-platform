@@ -25,8 +25,8 @@ export async function generateMetadata(): Promise<Metadata> {
     .single();
 
   return {
-    title: tenant ? `${tenant.name} — Property Search` : "Habino",
-    description: tenant?.tagline || "AI-powered real estate platform",
+    title: tenant?.name || "Habino",
+    description: tenant?.tagline || "KI-gestützter Immobilienassistent",
   };
 }
 

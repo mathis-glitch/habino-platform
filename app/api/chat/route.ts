@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import { createServiceClient } from "@/lib/supabase/server";
 
+if (!process.env.OPENAI_API_KEY) {
+  console.error("OPENAI_API_KEY is not set!");
+}
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // ── Tool definitions ────────────────────────────────────────────────────────
@@ -95,6 +98,10 @@ async function handleBookAppointment(args: Record<string, unknown>, tenantId: st
 export async function POST(request: NextRequest) {
   const tenantId = request.headers.get("x-tenant-id");
   if (!tenantId) return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
+
+  if (!process.env.OPENAI_API_KEY) {
+    return NextResponse.json({ error: "OPENAI_API_KEY fehlt in den Umgebungsvariablen. Bitte in Vercel unter Settings → Environment Variables eintragen." }, { status: 500 });
+  }
 
   const { messages, context } = await request.json();
   if (!messages?.length) return NextResponse.json({ error: "No messages" }, { status: 400 });
