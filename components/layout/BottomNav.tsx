@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 const TABS = [
   {
     href: "/",
-    label: "AI Agent",
+    label: "KI Agent",
     icon: (active: boolean) => (
       <svg className={`w-6 h-6 ${active ? "text-white" : "text-slate-400"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={active ? 2.5 : 2}
@@ -15,8 +15,8 @@ const TABS = [
     ),
   },
   {
-    href: "/search",
-    label: "Search",
+    href: "/markt",
+    label: "Markt",
     icon: (active: boolean) => (
       <svg className={`w-6 h-6 ${active ? "text-white" : "text-slate-400"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={active ? 2.5 : 2}
@@ -38,7 +38,7 @@ const TABS = [
   },
   {
     href: "/profile",
-    label: "Profile",
+    label: "Profil",
     icon: (active: boolean) => (
       <svg className={`w-6 h-6 ${active ? "text-white" : "text-slate-400"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={active ? 2.5 : 2}
@@ -52,7 +52,7 @@ export default function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200"
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
       <div className="flex items-stretch h-16">
         {TABS.map((tab) => {
@@ -64,14 +64,22 @@ export default function BottomNav() {
             <Link
               key={tab.href}
               href={tab.href}
-              className="flex-1 flex flex-col items-center justify-center gap-1 transition-all active:scale-95"
+              className="flex-1 flex flex-col items-center justify-center gap-0.5 relative transition-all active:scale-95"
             >
-              {/* Active indicator dot + icon wrapper */}
-              <div className={`w-12 h-8 rounded-xl flex items-center justify-center transition-all ${
+              {/* Top pill indicator */}
+              {active && (
+                <span
+                  className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-1 rounded-b-full"
+                  style={{ backgroundColor: "var(--color-primary)" }}
+                />
+              )}
+              {/* Icon bubble */}
+              <div className={`w-10 h-8 rounded-xl flex items-center justify-center transition-all duration-200 ${
                 active ? "shadow-sm" : ""
               }`} style={active ? { backgroundColor: "var(--color-primary)" } : {}}>
                 {tab.icon(active)}
               </div>
+              {/* Label */}
               <span className={`text-[10px] font-semibold tracking-wide transition-colors ${
                 active ? "" : "text-slate-400"
               }`} style={active ? { color: "var(--color-primary)" } : {}}>

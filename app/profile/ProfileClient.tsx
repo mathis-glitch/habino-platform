@@ -70,38 +70,62 @@ export function ProfileClient() {
 
   return (
     <main className="min-h-screen bg-slate-50">
-      <div className="max-w-2xl mx-auto px-4 py-8">
 
-        {/* Header */}
-        <div className="flex items-start justify-between mb-8">
-          <div className="flex items-center gap-4">
-            <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shrink-0"
-              style={{ background: "var(--color-primary)" }}
-            >
-              {initials}
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900">
-                {profile.full_name ?? "Your Profile"}
-              </h1>
-              {profile.email && (
-                <p className="text-slate-400 text-sm mt-0.5">{profile.email}</p>
-              )}
-              {profile.bio && (
-                <p className="text-slate-500 text-sm mt-1 max-w-xs">{profile.bio}</p>
+      {/* ── Gradient dark header ─────────────────────────────────── */}
+      <div className="px-5 pt-7 pb-16" style={{ background: "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)" }}>
+        <div className="flex items-center justify-between">
+          <h1 className="font-bold text-xl text-white">Profil</h1>
+          <Link
+            href="/?wizard=profile"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold text-white bg-white/10 hover:bg-white/20 transition-colors"
+          >
+            <span>✨</span>
+            {hasProfile ? "Bearbeiten" : "Einrichten"}
+          </Link>
+        </div>
+      </div>
+
+      <div className="max-w-2xl mx-auto px-4 -mt-10 pb-8">
+
+        {/* ── Avatar card ─────────────────────────────────────────── */}
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 text-center mb-4">
+          <div className="flex justify-center mb-3">
+            <div className="relative inline-block">
+              <div
+                className="w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-bold"
+                style={{ background: "var(--color-primary)" }}
+              >
+                {initials}
+              </div>
+              {hasProfile && (
+                <div className="absolute -bottom-0.5 -right-0.5 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center border-2 border-white">
+                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
               )}
             </div>
           </div>
-
-          {/* Edit button */}
+          <h2 className="font-bold text-xl text-slate-900">{profile.full_name ?? "Kein Name"}</h2>
+          {profile.email && <p className="text-sm text-slate-500 mt-0.5">{profile.email}</p>}
+          {profile.bio && <p className="text-sm text-slate-500 mt-1 max-w-xs mx-auto">{profile.bio}</p>}
+          {hasProfile && (
+            <div className="flex items-center justify-center gap-2 mt-3">
+              <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200">
+                <svg className="w-3 h-3 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="text-xs font-semibold text-emerald-700">Verifiziert</span>
+              </div>
+            </div>
+          )}
           <Link
             href="/?wizard=profile"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-semibold shrink-0 shadow-sm hover:opacity-90 active:scale-95 transition-all"
+            className="mt-4 w-full h-11 rounded-xl text-white text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-[0.98]"
             style={{ backgroundColor: "var(--color-primary)" }}
           >
             <span>✨</span>
-            {hasProfile ? "Edit with AI" : "Set up with AI"}
+            {hasProfile ? "Mit KI bearbeiten" : "Mit KI einrichten"}
           </Link>
         </div>
 

@@ -37,30 +37,39 @@ export function PropertyCard({ property: p, compact = false }: PropertyCardProps
     // ── Horizontal list card ────────────────────────────────────────────────
     return (
       <Link href={`/properties/${p.id}`}
-        className="group flex items-center gap-3 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 p-3 overflow-hidden">
+        className="group flex items-center bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 overflow-hidden">
         {/* Thumbnail */}
-        <div className="relative w-20 h-16 rounded-xl overflow-hidden bg-slate-100 shrink-0">
+        <div className="relative w-28 h-24 shrink-0 bg-slate-100">
           {hero && !imgError ? (
-            <Image src={hero} alt={p.title} fill className="object-cover"
-              sizes="80px" onError={() => setImgError(true)} />
+            <Image src={hero} alt={p.title} fill
+              className="object-cover group-hover:scale-105 transition-transform duration-500"
+              sizes="112px" onError={() => setImgError(true)} />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-slate-300 text-xl">🏠</div>
+            <div className="w-full h-full flex items-center justify-center text-slate-300 text-2xl">🏠</div>
           )}
+          <div className={`absolute top-1.5 left-1.5 text-[10px] font-bold text-white px-2 py-0.5 rounded-full ${badgeBg}`}>
+            {badge}
+          </div>
         </div>
         {/* Info */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 mb-0.5">
-            <span className={`text-[10px] font-bold text-white px-1.5 py-0.5 rounded-md ${badgeBg}`}>{badge}</span>
-            <span className="text-[10px] text-slate-400 capitalize">{p.property_type}</span>
-          </div>
+        <div className="flex-1 min-w-0 py-3 px-3">
           <p className="font-semibold text-slate-800 text-sm truncate">{p.title}</p>
-          <p className="text-xs text-slate-400 truncate">{location}</p>
-        </div>
-        {/* Price */}
-        <div className="text-right shrink-0">
-          <p className="font-bold text-sm" style={{ color: "var(--color-primary)" }}>{formatPrice(p.price, p.currency, true)}</p>
-          {p.listing_type === "rent" && <p className="text-[10px] text-slate-400">/mo</p>}
-          {p.bedrooms > 0 && <p className="text-[10px] text-slate-400 mt-0.5">{p.bedrooms} bd</p>}
+          <p className="text-xs text-slate-400 truncate mt-0.5 flex items-center gap-1">
+            <svg className="w-3 h-3 shrink-0 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+            </svg>
+            {location}
+          </p>
+          <div className="flex items-center justify-between mt-2">
+            <p className="font-bold text-base text-slate-900">
+              {formatPrice(p.price, p.currency, true)}
+              {p.listing_type === "rent" && <span className="text-slate-400 font-normal text-xs ml-1">/mo</span>}
+            </p>
+            <div className="flex items-center gap-2 text-xs text-slate-400">
+              {p.bedrooms > 0 && <span>{p.bedrooms} Zi.</span>}
+              {p.area_sqm && <span>{p.area_sqm} m²</span>}
+            </div>
+          </div>
         </div>
       </Link>
     );
@@ -68,7 +77,7 @@ export function PropertyCard({ property: p, compact = false }: PropertyCardProps
 
   // ── Standard grid card ────────────────────────────────────────────────────
   return (
-    <div className="group relative bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden">
+    <div className="group relative bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02] transition-all duration-200 overflow-hidden">
       {/* Save button */}
       <button
         onClick={(e) => { e.preventDefault(); toggle(p.id); }}
@@ -95,7 +104,7 @@ export function PropertyCard({ property: p, compact = false }: PropertyCardProps
           )}
           {/* Badge overlay */}
           <div className="absolute top-3 left-3">
-            <span className={`px-2.5 py-1 rounded-lg text-xs font-bold text-white shadow-sm ${badgeBg}`}>
+            <span className={`px-2.5 py-1 rounded-full text-xs font-bold text-white shadow-sm ${badgeBg}`}>
               {badge}
             </span>
           </div>

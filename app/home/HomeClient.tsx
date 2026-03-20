@@ -290,14 +290,54 @@ export function HomeClient() {
     );
   }
 
+  // Greeting helper
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Guten Morgen" : hour < 18 ? "Guten Tag" : "Guten Abend";
+
   return (
     <main className="min-h-screen bg-slate-50">
-      <div className="max-w-4xl mx-auto px-4 py-8">
 
-        {/* Page header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-slate-900">My Home</h1>
-          <p className="text-slate-500 text-sm mt-1">Your personal real estate dashboard</p>
+      {/* ── Gradient greeting hero ───────────────────────────────── */}
+      <div className="px-5 pt-6 pb-14 text-white"
+        style={{ background: "linear-gradient(135deg, var(--color-primary) 0%, color-mix(in srgb, var(--color-primary) 65%, #0f1f3d) 100%)" }}>
+        <h1 className="font-bold text-2xl">{greeting} 👋</h1>
+        <p className="text-white/70 text-sm mt-1">Dein persönliches Immobilien-Dashboard</p>
+      </div>
+
+      <div className="max-w-4xl mx-auto px-4 -mt-8">
+
+        {/* ── Stats row ──────────────────────────────────────────── */}
+        <div className="grid grid-cols-3 gap-3 mb-5">
+          {[
+            { label: "Gespeichert", value: savedProps.length, emoji: "🔖" },
+            { label: "Verträge",    value: contracts.length,   emoji: "📄" },
+            { label: "Aktive",      value: activeProps.length, emoji: "🏠" },
+          ].map(({ label, value, emoji }) => (
+            <div key={label} className="bg-white rounded-2xl p-3 shadow-sm border border-slate-100 text-center">
+              <div className="text-xl mb-1">{emoji}</div>
+              <div className="font-black text-2xl text-slate-900">{value}</div>
+              <div className="text-[11px] text-slate-500 font-medium mt-0.5">{label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Quick actions ───────────────────────────────────────── */}
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          <Link
+            href={CONTRACT_CHAT_URL}
+            className="flex items-center gap-3 p-4 rounded-2xl text-white shadow-sm active:scale-[0.98] transition-all"
+            style={{ backgroundColor: "var(--color-primary)" }}
+          >
+            <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center text-lg shrink-0">🏠</div>
+            <span className="text-sm font-semibold leading-snug">Immobilie inserieren</span>
+          </Link>
+          <Link
+            href={CONTRACT_CHAT_URL}
+            className="flex items-center gap-3 p-4 bg-white border border-slate-200 rounded-2xl shadow-sm active:scale-[0.98] transition-all"
+          >
+            <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-lg shrink-0">📄</div>
+            <span className="text-sm font-semibold text-slate-800 leading-snug">Vertrag erstellen</span>
+          </Link>
         </div>
 
         {/* Tabs */}
