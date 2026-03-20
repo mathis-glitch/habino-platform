@@ -140,7 +140,7 @@ export function ListingForm({ property, tenantId }: Props) {
 
   const inputClass = "w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:border-transparent bg-white transition-all";
   const labelClass = "block text-sm font-medium text-slate-700 mb-1.5";
-  const sectionClass = "bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col gap-4";
+  const sectionClass = "bg-white rounded-xl border border-slate-200 shadow-sm p-6 flex flex-col gap-4";
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5 max-w-3xl">

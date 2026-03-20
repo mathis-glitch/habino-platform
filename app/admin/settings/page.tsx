@@ -33,7 +33,7 @@ const inputClass =
 
 const labelClass = "block text-sm font-medium text-slate-700 mb-1.5";
 
-const sectionClass = "bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col gap-4";
+const sectionClass = "bg-white rounded-xl border border-slate-200 shadow-sm p-6 flex flex-col gap-4";
 
 export default function SettingsPage() {
   const router  = useRouter();
@@ -104,7 +104,7 @@ export default function SettingsPage() {
         <h1 className="text-2xl font-bold text-slate-900 mb-8">Brand & Einstellungen</h1>
 
         {loading ? (
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8 text-center text-slate-400">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-8 text-center text-slate-400">
             Wird geladen…
           </div>
         ) : (

@@ -297,51 +297,56 @@ export function HomeClient() {
   return (
     <main className="min-h-screen bg-slate-50">
 
-      {/* ── Gradient greeting hero ───────────────────────────────── */}
+      {/* ── Greeting hero — forest green matching Figma dashboard ── */}
       <div className="px-5 pt-6 pb-14 text-white"
-        style={{ background: "linear-gradient(135deg, var(--color-primary) 0%, color-mix(in srgb, var(--color-primary) 65%, #0f1f3d) 100%)" }}>
+        style={{ background: "linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark, #235f35) 100%)" }}>
         <h1 className="font-bold text-2xl">{greeting} 👋</h1>
-        <p className="text-white/70 text-sm mt-1">Dein persönliches Immobilien-Dashboard</p>
+        <p className="text-white/75 text-sm mt-1">Dein persönliches Immobilien-Dashboard</p>
       </div>
 
       <div className="max-w-4xl mx-auto px-4 -mt-8">
 
-        {/* ── Stats row ──────────────────────────────────────────── */}
+        {/* ── Stats row — first card green-filled like Figma ─────── */}
         <div className="grid grid-cols-3 gap-3 mb-5">
           {[
-            { label: "Gespeichert", value: savedProps.length, emoji: "🔖" },
-            { label: "Verträge",    value: contracts.length,   emoji: "📄" },
-            { label: "Aktive",      value: activeProps.length, emoji: "🏠" },
-          ].map(({ label, value, emoji }) => (
-            <div key={label} className="bg-white rounded-2xl p-3 shadow-sm border border-slate-100 text-center">
-              <div className="text-xl mb-1">{emoji}</div>
-              <div className="font-black text-2xl text-slate-900">{value}</div>
-              <div className="text-[11px] text-slate-500 font-medium mt-0.5">{label}</div>
+            { label: "Gespeichert", value: savedProps.length, primary: true },
+            { label: "Verträge",    value: contracts.length,  primary: false },
+            { label: "Aktive",      value: activeProps.length, primary: false },
+          ].map(({ label, value, primary }) => (
+            <div key={label}
+              className={`rounded-xl p-3 shadow-sm border text-center transition-colors ${
+                primary
+                  ? "border-transparent text-white"
+                  : "bg-white border-slate-200 text-slate-900"
+              }`}
+              style={primary ? { backgroundColor: "var(--color-primary)" } : {}}>
+              <div className={`font-black text-2xl ${primary ? "text-white" : "text-slate-900"}`}>{value}</div>
+              <div className={`text-[11px] font-medium mt-0.5 ${primary ? "text-white/80" : "text-slate-500"}`}>{label}</div>
             </div>
           ))}
         </div>
 
-        {/* ── Quick actions ───────────────────────────────────────── */}
+        {/* ── Quick actions ────────────────────────────────────────── */}
         <div className="grid grid-cols-2 gap-3 mb-6">
           <Link
-            href={CONTRACT_CHAT_URL}
-            className="flex items-center gap-3 p-4 rounded-2xl text-white shadow-sm active:scale-[0.98] transition-all"
+            href="/?q=Immobilie+inserieren"
+            className="flex items-center gap-3 p-4 rounded-xl text-white shadow-sm active:scale-[0.98] transition-all"
             style={{ backgroundColor: "var(--color-primary)" }}
           >
-            <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center text-lg shrink-0">🏠</div>
+            <div className="w-9 h-9 rounded-lg bg-white/20 flex items-center justify-center text-lg shrink-0">🏠</div>
             <span className="text-sm font-semibold leading-snug">Immobilie inserieren</span>
           </Link>
           <Link
             href={CONTRACT_CHAT_URL}
-            className="flex items-center gap-3 p-4 bg-white border border-slate-200 rounded-2xl shadow-sm active:scale-[0.98] transition-all"
+            className="flex items-center gap-3 p-4 bg-white border border-slate-200 rounded-xl shadow-sm active:scale-[0.98] transition-all hover:border-slate-300"
           >
-            <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-lg shrink-0">📄</div>
+            <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-lg shrink-0">📄</div>
             <span className="text-sm font-semibold text-slate-800 leading-snug">Vertrag erstellen</span>
           </Link>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 bg-white border border-slate-100 rounded-xl p-1 shadow-sm mb-6 w-fit">
+        <div className="flex gap-1 bg-white border border-slate-200 rounded-xl p-1 shadow-sm mb-6 w-fit">
           {([
             { id: "saved",      label: "Saved",        count: savedProps.length },
             { id: "properties", label: "My Properties", count: activeProps.length },
@@ -514,7 +519,7 @@ function PropertyCard({
   return (
     <div
       onClick={onClick}
-      className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+      className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
     >
       <div className="relative h-36 bg-slate-100">
         {image ? (
@@ -554,7 +559,7 @@ function ContractRow({ contract: c, onClick }: { contract: Contract; onClick: ()
   return (
     <div
       onClick={onClick}
-      className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex items-center gap-4 cursor-pointer hover:shadow-md transition-shadow"
+      className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 flex items-center gap-4 cursor-pointer hover:shadow-md transition-shadow"
     >
       {/* Property thumb */}
       <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0">

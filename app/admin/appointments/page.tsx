@@ -60,7 +60,7 @@ export default async function AppointmentsPage() {
             { label: "Ausstehend", value: pending,                   color: "text-amber-600" },
             { label: "Bestätigt",  value: confirmed,                 color: "text-emerald-600" },
           ].map(({ label, value, color }) => (
-            <div key={label} className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm">
+            <div key={label} className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
               <p className={`text-3xl font-bold ${color}`}>{value}</p>
               <p className="text-sm text-slate-500 mt-1">{label}</p>
             </div>
@@ -68,7 +68,7 @@ export default async function AppointmentsPage() {
         </div>
 
         {/* Table */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           {!appointments?.length ? (
             <div className="text-center py-20">
               <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4">

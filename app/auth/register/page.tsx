@@ -69,7 +69,7 @@ export default function RegisterPage() {
   if (step === "success") {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
-        <div className="w-full max-w-md bg-white rounded-2xl border border-slate-100 shadow-sm p-8 text-center">
+        <div className="w-full max-w-md bg-white rounded-xl border border-slate-200 shadow-sm p-8 text-center">
           <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5"
             style={{ background: "linear-gradient(135deg, #00A884, #0F1F3D)" }}>
             <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -119,7 +119,7 @@ export default function RegisterPage() {
           <p className="text-slate-500 mt-1.5 text-sm">Eigene Immobilienplattform erstellen</p>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-8">
 
           <div className="flex flex-wrap gap-2 mb-6">
             {["KI-Agent", "Inseratsverwaltung", "Terminanfragen", "Marktdaten"].map((f) => (

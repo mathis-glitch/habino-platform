@@ -141,7 +141,7 @@ export default async function AdminDashboard() {
             { label: "Entwurf",            value: draft,  color: "text-slate-500" },
             { label: "Termine ausstehend", value: appts,  color: "text-amber-600" },
           ].map(({ label, value, color }) => (
-            <div key={label} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+            <div key={label} className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
               <p className={`text-3xl font-bold ${color}`}>{value}</p>
               <p className="text-sm text-slate-500 mt-1">{label}</p>
             </div>
@@ -149,7 +149,7 @@ export default async function AdminDashboard() {
         </div>
 
         {/* Recent listings */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden mb-6">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-6">
           <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
             <h2 className="font-semibold text-slate-800">Neueste Inserate</h2>
             <Link href="/admin/listings" className="text-sm hover:underline" style={{ color: "var(--color-primary)" }}>
@@ -216,7 +216,7 @@ export default async function AdminDashboard() {
         {/* Quick links */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Link href="/admin/settings"
-            className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 hover:shadow-md transition-shadow flex items-center justify-between">
+            className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 hover:shadow-md transition-shadow flex items-center justify-between">
             <div>
               <p className="font-semibold text-slate-800">Brand & Einstellungen</p>
               <p className="text-sm text-slate-500 mt-0.5">Logo, Farben, Kontakt</p>
@@ -224,7 +224,7 @@ export default async function AdminDashboard() {
             <span className="text-slate-400">→</span>
           </Link>
           <Link href="/admin/appointments"
-            className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 hover:shadow-md transition-shadow flex items-center justify-between">
+            className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 hover:shadow-md transition-shadow flex items-center justify-between">
             <div>
               <p className="font-semibold text-slate-800">Terminanfragen</p>
               <p className="text-sm text-slate-500 mt-0.5">

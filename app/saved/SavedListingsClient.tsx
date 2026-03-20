@@ -471,7 +471,7 @@ function CompareView({ properties, onClose }: { properties: Property[]; onClose:
         <h1 className="text-xl font-bold text-slate-900">Comparing {properties.length} properties</h1>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-x-auto">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
         <table className="w-full text-sm" style={{ minWidth: `${200 + properties.length * 200}px` }}>
           <thead>
             <tr className="border-b border-slate-100">
@@ -606,7 +606,7 @@ export function SavedListingsClient() {
         <div className="h-8 w-40 bg-slate-100 rounded-lg mb-8 animate-pulse" />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-white rounded-2xl border border-slate-100 overflow-hidden animate-pulse">
+            <div key={i} className="bg-white rounded-xl border border-slate-200 overflow-hidden animate-pulse">
               <div className="h-40 bg-slate-100" />
               <div className="p-4 space-y-3">
                 <div className="h-5 bg-slate-100 rounded w-1/2" />

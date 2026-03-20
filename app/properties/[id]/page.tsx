@@ -99,7 +99,7 @@ export default async function PropertyDetailPage({
             </div>
 
             {/* Price */}
-            <div className="bg-slate-50 rounded-2xl p-5 flex items-center justify-between">
+            <div className="bg-slate-50 rounded-xl p-5 flex items-center justify-between">
               <div>
                 <p className="text-3xl font-bold text-slate-900">
                   {formatPrice(property.price, property.currency)}
@@ -122,7 +122,7 @@ export default async function PropertyDetailPage({
             {specs.length > 0 && (
               <div className={`grid gap-3 ${specs.length >= 4 ? "grid-cols-4" : `grid-cols-${specs.length}`}`}>
                 {specs.map(({ label, value }) => (
-                  <div key={label} className="bg-white border border-slate-100 rounded-2xl p-4 text-center shadow-sm">
+                  <div key={label} className="bg-white border border-slate-200 rounded-xl p-4 text-center shadow-sm">
                     <p className="text-2xl font-bold text-slate-900">{value}</p>
                     <p className="text-xs text-slate-500 mt-0.5">{label}</p>
                   </div>
@@ -155,7 +155,7 @@ export default async function PropertyDetailPage({
           <div className="flex flex-col gap-4">
 
             {/* Price summary (mobile sticky) */}
-            <div className="hidden lg:block bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+            <div className="hidden lg:block bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
               <p className="text-2xl font-bold text-slate-900">
                 {formatPrice(property.price, property.currency)}
                 {property.listing_type === "rent" && (
@@ -170,7 +170,7 @@ export default async function PropertyDetailPage({
 
             {/* Agent contact */}
             {(property.agent_name || property.agent_phone || property.agent_email) && (
-              <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
                 <h3 className="font-semibold text-slate-800 mb-4 text-sm">Ansprechpartner</h3>
                 {property.agent_name && (
                   <div className="flex items-center gap-3 mb-4">
@@ -203,7 +203,7 @@ export default async function PropertyDetailPage({
             )}
 
             {/* Share */}
-            <div className="bg-white border border-slate-100 rounded-2xl p-4 text-center shadow-sm">
+            <div className="bg-white border border-slate-200 rounded-xl p-4 text-center shadow-sm">
               <p className="text-xs text-slate-400 mb-2">Inserat teilen</p>
               <CopyLinkButton />
             </div>

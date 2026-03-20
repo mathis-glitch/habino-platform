@@ -120,7 +120,7 @@ export default function MarketClient() {
       </div>
 
       {/* Usage type tabs */}
-      <div className="flex gap-1 bg-slate-100 rounded-2xl p-1 w-fit">
+      <div className="flex gap-1 bg-slate-100 rounded-xl p-1 w-fit">
         {USAGE_TYPES.map((u) => (
           <button key={u.key} onClick={() => setUsage(u.key)}
             className={`px-5 py-2 rounded-xl text-sm font-semibold transition-all ${
@@ -140,7 +140,7 @@ export default function MarketClient() {
             { label: "Gross Yield",         value: stats.yield, icon: "📈" },
             { label: "Price Trend (MoM)",   value: stats.trend, icon: stats.up ? "⬆️" : "⬇️", up: stats.up },
           ].map(({ label, value, icon, up }) => (
-            <div key={label} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+            <div key={label} className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
               <span className="text-2xl mb-2 block">{icon}</span>
               <p className={`text-2xl font-bold ${up !== undefined ? (up ? "text-emerald-600" : "text-red-500") : "text-slate-900"}`}>
                 {value}
@@ -153,12 +153,12 @@ export default function MarketClient() {
 
       {/* Charts */}
       <div className="grid md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
           <h2 className="font-semibold text-slate-800 mb-1">Price Trend — 12 months</h2>
           <p className="text-xs text-slate-400 mb-4">{city} · {district}</p>
           <PriceTrendChart usageType={usage} />
         </div>
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
           <h2 className="font-semibold text-slate-800 mb-1">Price by District</h2>
           <p className="text-xs text-slate-400 mb-4">{city} · {USAGE_TYPES.find(u => u.key === usage)?.label}</p>
           <DistrictChart usageType={usage} />
@@ -169,7 +169,7 @@ export default function MarketClient() {
       <div className="grid md:grid-cols-2 gap-6">
 
         {/* Micro-location scores */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
           <h2 className="font-semibold text-slate-800 mb-1">Micro-Location Score</h2>
           <p className="text-xs text-slate-400 mb-5">{district} · {city}</p>
           <div className="flex flex-col gap-3">
@@ -188,7 +188,7 @@ export default function MarketClient() {
         </div>
 
         {/* District comparison table */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="px-6 py-5 border-b border-slate-100">
             <h2 className="font-semibold text-slate-800">District Overview</h2>
             <p className="text-xs text-slate-400 mt-0.5">{city} · {USAGE_TYPES.find(u => u.key === usage)?.label}</p>
@@ -246,7 +246,7 @@ export default function MarketClient() {
             body: "Rents are up across all districts. Eimsbüttel and West End are seeing above-average increases.",
           },
         ].map(({ tag, tagColor, title, body }) => (
-          <div key={title} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+          <div key={title} className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
             <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-semibold mb-3 ${tagColor}`}>{tag}</span>
             <h3 className="font-semibold text-slate-800 mb-2">{title}</h3>
             <p className="text-sm text-slate-500 leading-relaxed">{body}</p>

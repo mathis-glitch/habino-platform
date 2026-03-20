@@ -26,7 +26,7 @@ export default async function LoginPage({
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-8">
           <form method="POST" action="/api/auth/login" className="flex flex-col gap-5">
             <input type="hidden" name="redirectTo" value={redirectTo} />
 

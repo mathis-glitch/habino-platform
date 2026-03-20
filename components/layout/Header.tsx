@@ -15,10 +15,10 @@ export default function Header() {
   const isProfile = pathname.startsWith("/profile");
 
   function navClass(active: boolean) {
-    return `flex items-center px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-150 ${
+    return `flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
       active
         ? "text-white"
-        : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+        : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
     }`;
   }
 
@@ -30,23 +30,23 @@ export default function Header() {
   ];
 
   return (
-    <header className="bg-white/80 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-40">
+    <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
       <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
 
-        {/* Logo */}
+        {/* Logo — black like Figma */}
         <Link href="/" className="flex items-center gap-2 shrink-0">
           {tenant?.logo_url ? (
             <Image src={tenant.logo_url} alt={tenant.name} width={120} height={36}
               className="h-7 w-auto object-contain" />
           ) : (
-            <span className="text-base font-black tracking-tight" style={{ color: "var(--color-primary)" }}>
-              {tenant?.name || "Habino"}
+            <span className="text-lg font-black tracking-tight text-slate-900">
+              {tenant?.name || "habino"}
             </span>
           )}
         </Link>
 
-        {/* Desktop tabs — hidden on mobile (BottomNav handles it) */}
-        <nav className="hidden md:flex items-center gap-1 bg-slate-100 rounded-2xl p-1">
+        {/* Desktop tabs — pill nav */}
+        <nav className="hidden md:flex items-center gap-0.5 bg-slate-100 rounded-xl p-1">
           {tabs.map((t) => (
             <Link key={t.href} href={t.href}
               className={navClass(t.active)}
@@ -58,9 +58,9 @@ export default function Header() {
 
         {/* Right actions */}
         <div className="flex items-center gap-2">
-          {/* Markt icon — mobile only shortcut */}
+          {/* Mobile: search shortcut */}
           <Link href="/markt"
-            className="md:hidden flex items-center justify-center w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 transition-colors"
+            className="md:hidden flex items-center justify-center w-9 h-9 rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors"
             title="Markt">
             <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -68,9 +68,19 @@ export default function Header() {
             </svg>
           </Link>
 
-          {/* Profile icon — desktop only */}
+          {/* Desktop: "+ Inserieren" CTA — matches Figma's "Create Listing" button */}
+          <Link href="/?q=Immobilie+inserieren"
+            className="hidden md:flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-95"
+            style={{ backgroundColor: "var(--color-primary)" }}>
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+            </svg>
+            Inserieren
+          </Link>
+
+          {/* Desktop: profile icon */}
           <Link href="/profile"
-            className="hidden md:flex items-center justify-center w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 transition-colors shrink-0"
+            className="hidden md:flex items-center justify-center w-9 h-9 rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors shrink-0"
             title="My Profile">
             <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}

@@ -88,7 +88,7 @@ export function ProfileClient() {
       <div className="max-w-2xl mx-auto px-4 -mt-10 pb-8">
 
         {/* ── Avatar card ─────────────────────────────────────────── */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 text-center mb-4">
+        <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200 text-center mb-4">
           <div className="flex justify-center mb-3">
             <div className="relative inline-block">
               <div
@@ -121,7 +121,7 @@ export function ProfileClient() {
           )}
           <Link
             href="/?wizard=profile"
-            className="mt-4 w-full h-11 rounded-xl text-white text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-[0.98]"
+            className="mt-4 w-full h-11 rounded-lg text-white text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-[0.98]"
             style={{ backgroundColor: "var(--color-primary)" }}
           >
             <span>✨</span>
@@ -131,8 +131,8 @@ export function ProfileClient() {
 
         {!hasProfile ? (
           /* ── Empty state ─────────────────────────────────────── */
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8 flex flex-col items-center text-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center text-3xl">🤖</div>
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-8 flex flex-col items-center text-center gap-4">
+            <div className="w-16 h-16 rounded-xl bg-slate-100 flex items-center justify-center text-3xl">🤖</div>
             <div>
               <h2 className="font-semibold text-slate-800 text-lg">No profile yet</h2>
               <p className="text-slate-400 text-sm mt-1 max-w-xs">
@@ -155,7 +155,7 @@ export function ProfileClient() {
           <div className="flex flex-col gap-4">
 
             {/* Personal info */}
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
               <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-4">Personal Information</h2>
               <div className="grid grid-cols-2 gap-4">
                 <ProfileField label="Full Name" value={profile.full_name} />
@@ -169,7 +169,7 @@ export function ProfileClient() {
             </div>
 
             {/* Contact */}
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
               <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-4">Contact Details</h2>
               <div className="grid grid-cols-2 gap-4">
                 <ProfileField label="Phone" value={profile.phone} empty="Not set" />
@@ -193,7 +193,7 @@ export function ProfileClient() {
             </div>
 
             {/* Identity */}
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
               <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Identity</h2>
               <p className="text-xs text-slate-300 mb-4">Used to pre-fill rental contracts</p>
               <ProfileField
@@ -204,7 +204,7 @@ export function ProfileClient() {
             </div>
 
             {/* Preferences */}
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
               <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-4">Preferences</h2>
               <ProfileField
                 label="Preferred Language"
@@ -214,7 +214,7 @@ export function ProfileClient() {
             </div>
 
             {/* Edit CTA */}
-            <div className="bg-slate-50 border border-slate-200 border-dashed rounded-2xl p-6 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+            <div className="bg-slate-50 border border-slate-200 border-dashed rounded-xl p-6 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
               <div className="text-2xl shrink-0">✨</div>
               <div className="flex-1">
                 <p className="text-sm font-semibold text-slate-700">Want to update anything?</p>
