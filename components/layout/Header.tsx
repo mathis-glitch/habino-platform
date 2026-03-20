@@ -16,7 +16,7 @@ export default function Header() {
   const isMarkt = pathname === "/markt";
 
   function navClass(active: boolean) {
-    return `flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-150 ${
+    return `flex items-center px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-150 ${
       active
         ? "text-white"
         : "text-slate-500 hover:text-slate-800 hover:bg-slate-100"
@@ -24,39 +24,9 @@ export default function Header() {
   }
 
   const tabs = [
-    {
-      href: "/",
-      label: "AI Agent",
-      active: isChat,
-      icon: (
-        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-            d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-        </svg>
-      ),
-    },
-    {
-      href: "/saved",
-      label: "Saved",
-      active: isSaved,
-      icon: (
-        <svg className="w-3.5 h-3.5" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-            d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-        </svg>
-      ),
-    },
-    {
-      href: "/markt",
-      label: "Market",
-      active: isMarkt,
-      icon: (
-        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-        </svg>
-      ),
-    },
+    { href: "/",      label: "AI Agent", active: isChat },
+    { href: "/saved", label: "Saved",    active: isSaved },
+    { href: "/markt", label: "Market",   active: isMarkt },
   ];
 
   return (
@@ -81,7 +51,6 @@ export default function Header() {
             <Link key={t.href} href={t.href}
               className={navClass(t.active)}
               style={t.active ? { backgroundColor: "var(--color-primary)" } : {}}>
-              {t.icon}
               {t.label}
             </Link>
           ))}
@@ -110,7 +79,6 @@ export default function Header() {
               className={`${navClass(t.active)} justify-start`}
               style={t.active ? { backgroundColor: "var(--color-primary)" } : {}}
               onClick={() => setMenuOpen(false)}>
-              {t.icon}
               {t.label}
             </Link>
           ))}
