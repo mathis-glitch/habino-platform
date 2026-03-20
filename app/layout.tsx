@@ -8,6 +8,7 @@ import { tenantCssVars } from "@/lib/tenant";
 import { Tenant } from "@/lib/types";
 import BottomNav from "@/components/layout/BottomNav";
 import InstallPrompt from "@/components/pwa/InstallPrompt";
+import OnboardingOverlay from "@/components/onboarding/OnboardingOverlay";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -103,6 +104,7 @@ export default async function RootLayout({
           </div>
           <BottomNav />
           <InstallPrompt />
+          <OnboardingOverlay />
         </TenantProvider>
       </body>
     </html>

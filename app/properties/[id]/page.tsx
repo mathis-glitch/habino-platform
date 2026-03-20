@@ -8,6 +8,7 @@ import { PropertyCard } from "@/components/properties/PropertyCard";
 import { ImageGallery } from "../../components/properties/ImageGallery";
 import { BookingForm } from "../../components/properties/BookingForm";
 import { CopyLinkButton } from "@/components/ui/CopyLinkButton";
+import { PhotoEditPanel } from "@/components/properties/PhotoEditPanel";
 import { Property } from "@/lib/types";
 import { formatPrice, formatArea } from "@/lib/utils";
 
@@ -79,6 +80,9 @@ export default async function PropertyDetailPage({
           <div className="lg:col-span-2 flex flex-col gap-6">
 
             <ImageGallery images={images} title={property.title} />
+
+            {/* Photo management — edit or add photos */}
+            <PhotoEditPanel propertyId={property.id} imageCount={images.length} />
 
             {/* Title + location */}
             <div>
