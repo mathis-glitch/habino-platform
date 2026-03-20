@@ -43,7 +43,7 @@ export function ListingForm({ property, tenantId }: Props) {
     listing_type:  property?.listing_type  || "rent",
     property_type: property?.property_type || "apartment",
     price:         property?.price?.toString()     || "",
-    currency:      property?.currency      || "EUR",
+    currency:      property?.currency      || "USD",
     bedrooms:      property?.bedrooms?.toString()  || "0",
     bathrooms:     property?.bathrooms?.toString() || "0",
     area_sqm:      property?.area_sqm?.toString()  || "",

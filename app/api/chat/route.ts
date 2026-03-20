@@ -140,10 +140,10 @@ export async function POST(request: NextRequest) {
         messages: [
           {
             role: "system",
-            content: `Du bist ein KI-Immobilienassistent für ${tenant?.name || "diese Plattform"}.
-Antworte auf Deutsch, kurz (1–2 Sätze). Die Suchergebnisse werden als Karten angezeigt — erwähne keine IDs oder Links.
-${isAnbieter ? "Der Nutzer ist ein Anbieter — weise ggf. auf Optimierungsmöglichkeiten hin." : ""}
-SUCHERGEBNISSE:
+            content: `You are an AI real estate assistant for ${tenant?.name || "this platform"}.
+Reply in English, briefly (1–2 sentences). Results are shown as cards — do not mention IDs or links.
+${isAnbieter ? "The user is an agent — mention optimisation tips if relevant." : ""}
+SEARCH RESULTS:
 ${propertyContext}`,
           },
           ...messages.slice(-6),
@@ -154,8 +154,8 @@ ${propertyContext}`,
 
       const reply = completion.choices[0].message.content || (
         properties.length
-          ? `Ich habe ${properties.length} passende Inserate gefunden:`
-          : "Leider habe ich keine passenden Inserate gefunden. Möchten Sie die Suchkriterien anpassen?"
+          ? `I found ${properties.length} matching properties:`
+          : "I couldn't find any matching properties. Would you like to adjust your search?"
       );
 
       return NextResponse.json({ reply, properties, filters });
@@ -169,9 +169,9 @@ ${propertyContext}`,
         messages: [
           {
             role: "system",
-            content: `Extrahiere Buchungsdetails aus der Konversation als JSON.
-Felder: name, email, phone, preferred_date, property_id, property_title, message.
-Wenn Details fehlen, antworte NICHT mit JSON sondern frage freundlich auf Deutsch nach den fehlenden Angaben (Name, E-Mail, Wunschdatum sind Pflicht).`,
+            content: `Extract booking details from the conversation as JSON.
+Fields: name, email, phone, preferred_date, property_id, property_title, message.
+If details are missing, do NOT return JSON — instead ask politely in English for the missing info (name, email, preferred date are required).`,
           },
           ...messages.slice(-8),
         ],
@@ -190,8 +190,8 @@ Wenn Details fehlen, antworte NICHT mit JSON sondern frage freundlich auf Deutsc
           const success = await saveAppointment(details, tenantId);
           return NextResponse.json({
             reply: success
-              ? `Perfekt, ${details.name}! Ihre Besichtigungsanfrage wurde gespeichert. Wir melden uns per E-Mail an ${details.email}.`
-              : "Es gab ein Problem beim Speichern. Bitte versuche es erneut.",
+              ? `Perfect, ${details.name}! Your viewing request has been saved. We'll be in touch by email at ${details.email}.`
+              : "There was a problem saving your request. Please try again.",
             appointment: { success },
           });
         }
@@ -204,16 +204,16 @@ Wenn Details fehlen, antworte NICHT mit JSON sondern frage freundlich auf Deutsc
 
     // ── CHAT (general conversation) ────────────────────────────────────────
     const systemPrompt = isAnbieter
-      ? `Du bist ein KI-Assistent für Immobilienanbieter auf ${tenant?.name || "dieser Plattform"}.
-Du hilfst Anbietern dabei: Inserate anzulegen, Fotos zu optimieren, Preise zu setzen und Besichtigungen zu verwalten.
-Verweise bei konkreten Aktionen auf das Admin-Dashboard unter /admin.
-Antworte auf Deutsch, professionell und präzise (2–4 Sätze).
+      ? `You are an AI assistant for property agents on ${tenant?.name || "this platform"}.
+You help agents: create listings, optimise photos, set prices and manage viewings.
+For specific actions, refer them to the admin dashboard at /admin.
+Reply in English, professionally and concisely (2–4 sentences).
 ${tenant?.contact_email ? `Support: ${tenant.contact_email}` : ""}`
-      : `Du bist ein freundlicher KI-Immobilienassistent für ${tenant?.name || "diese Plattform"}.
-Du hilfst Suchenden dabei: passende Immobilien zu finden, Besichtigungen zu buchen und Marktinformationen zu erhalten.
-Antworte auf Deutsch, kurz und hilfreich (2–3 Sätze).
-${tenant?.contact_email ? `Kontakt: ${tenant.contact_email}` : ""}
-${context?.currentProperty ? `Nutzer schaut sich Inserat ${context.currentProperty} an.` : ""}`;
+      : `You are a friendly AI real estate assistant for ${tenant?.name || "this platform"}.
+You help buyers and renters find properties, book viewings and get market information.
+Reply in English, briefly and helpfully (2–3 sentences).
+${tenant?.contact_email ? `Contact: ${tenant.contact_email}` : ""}
+${context?.currentProperty ? `User is viewing property ${context.currentProperty}.` : ""}`;
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",

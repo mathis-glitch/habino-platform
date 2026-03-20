@@ -16,7 +16,7 @@ interface ChatMessage {
   filters?: Record<string, unknown>;
 }
 
-// ── Inline property card ────────────────────────────────────────────────────
+// ── Inline property card ─────────────────────────────────────────────────────
 function ChatPropertyCard({ property }: { property: Property }) {
   const hero = getHeroImage(property.images);
   const { isSaved, toggle } = useSavedListings();
@@ -24,11 +24,9 @@ function ChatPropertyCard({ property }: { property: Property }) {
 
   return (
     <div className="relative bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group">
-      {/* Save button */}
       <button
         onClick={() => toggle(property.id)}
         className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-sm transition-all hover:scale-110"
-        title={saved ? "Gespeichert" : "Speichern"}
       >
         <svg className="w-3.5 h-3.5" fill={saved ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24"
           style={{ color: saved ? "#ef4444" : "#94a3b8" }}>
@@ -38,7 +36,6 @@ function ChatPropertyCard({ property }: { property: Property }) {
       </button>
 
       <Link href={`/properties/${property.id}`}>
-        {/* Image */}
         <div className="relative h-36 bg-slate-100 overflow-hidden">
           {hero ? (
             <Image src={hero} alt={property.title} fill
@@ -54,24 +51,22 @@ function ChatPropertyCard({ property }: { property: Property }) {
           <div className="absolute top-2 left-2">
             <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold text-white"
               style={{ backgroundColor: property.listing_type === "buy" ? "#3B82F6" : "var(--color-primary)" }}>
-              {property.listing_type === "buy" ? "Kaufen" : "Mieten"}
+              {property.listing_type === "buy" ? "For Sale" : "For Rent"}
             </span>
           </div>
         </div>
-
-        {/* Info */}
         <div className="p-3">
           <p className="font-bold text-slate-900 text-sm">
             {formatPrice(property.price, property.currency)}
-            {property.listing_type === "rent" && <span className="text-xs font-normal text-slate-400 ml-1">/Monat</span>}
+            {property.listing_type === "rent" && <span className="text-xs font-normal text-slate-400 ml-1">/mo</span>}
           </p>
           <p className="text-xs text-slate-600 mt-0.5 line-clamp-1">{property.title}</p>
           <p className="text-xs text-slate-400 mt-0.5">
             {property.neighbourhood ? `${property.neighbourhood}, ` : ""}{property.city}
           </p>
           <div className="flex items-center gap-2 mt-1.5 text-[10px] text-slate-400">
-            {property.bedrooms > 0 && <span>{property.bedrooms} Zi.</span>}
-            {property.bathrooms > 0 && <span>{property.bathrooms} Bad</span>}
+            {property.bedrooms > 0 && <span>{property.bedrooms} bd</span>}
+            {property.bathrooms > 0 && <span>{property.bathrooms} ba</span>}
             {property.area_sqm && <span>{property.area_sqm} m²</span>}
           </div>
         </div>
@@ -80,12 +75,12 @@ function ChatPropertyCard({ property }: { property: Property }) {
   );
 }
 
-// ── Appointment confirmation card ────────────────────────────────────────────
+// ── Appointment card ─────────────────────────────────────────────────────────
 function AppointmentCard({ result }: { result: { success: boolean; error?: string } }) {
   if (!result.success) {
     return (
       <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 text-sm text-red-700">
-        Termin konnte nicht gespeichert werden: {result.error || "Unbekannter Fehler"}
+        Could not save appointment: {result.error || "Unknown error"}
       </div>
     );
   }
@@ -97,37 +92,31 @@ function AppointmentCard({ result }: { result: { success: boolean; error?: strin
         </svg>
       </div>
       <div>
-        <p className="text-sm font-semibold text-emerald-800">Terminanfrage gesendet!</p>
-        <p className="text-xs text-emerald-600 mt-0.5">Wir melden uns per E-Mail zur Bestätigung.</p>
+        <p className="text-sm font-semibold text-emerald-800">Viewing request sent!</p>
+        <p className="text-xs text-emerald-600 mt-0.5">We&apos;ll confirm by email shortly.</p>
       </div>
     </div>
   );
 }
 
-// ── Follow-up suggestion chips ───────────────────────────────────────────────
+// ── Follow-up chips ──────────────────────────────────────────────────────────
 function FollowUpChips({ msg, onSend }: { msg: ChatMessage; onSend: (text: string) => void }) {
   const chips: string[] = [];
-
   if (msg.properties && msg.properties.length > 0) {
-    chips.push("Besichtigung anfragen");
-    chips.push("Günstigere Optionen zeigen");
-    chips.push("Größere Wohnungen zeigen");
+    chips.push("Schedule a viewing");
+    chips.push("Show cheaper options");
+    chips.push("Show larger properties");
   } else if (msg.properties && msg.properties.length === 0) {
-    chips.push("Alle Inserate zeigen");
-    chips.push("Budget erhöhen");
-    chips.push("Andere Stadt suchen");
+    chips.push("Show all listings");
+    chips.push("Increase budget");
+    chips.push("Try a different city");
   }
-
   if (!chips.length) return null;
-
   return (
     <div className="flex flex-wrap gap-2 mt-2">
       {chips.map((chip) => (
-        <button
-          key={chip}
-          onClick={() => onSend(chip)}
-          className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs text-slate-600 font-medium hover:border-slate-300 hover:bg-slate-50 transition-all"
-        >
+        <button key={chip} onClick={() => onSend(chip)}
+          className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs text-slate-600 font-medium hover:border-slate-300 hover:bg-slate-50 transition-all">
           {chip}
         </button>
       ))}
@@ -135,12 +124,11 @@ function FollowUpChips({ msg, onSend }: { msg: ChatMessage; onSend: (text: strin
   );
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
+// ── Main component ───────────────────────────────────────────────────────────
 export function AIChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput]       = useState("");
   const [loading, setLoading]   = useState(false);
-  const [role, setRole]         = useState<"sucher" | "anbieter">("sucher");
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef  = useRef<HTMLTextAreaElement>(null);
   const pathname  = usePathname();
@@ -149,11 +137,8 @@ export function AIChatPage() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
+  useEffect(() => { inputRef.current?.focus(); }, []);
 
-  // Auto-resize textarea
   function autoResize(el: HTMLTextAreaElement) {
     el.style.height = "auto";
     el.style.height = Math.min(el.scrollHeight, 120) + "px";
@@ -162,12 +147,8 @@ export function AIChatPage() {
   const sendMessage = useCallback(async (text?: string) => {
     const userText = (text || input).trim();
     if (!userText || loading) return;
-
     setInput("");
-    // Reset textarea height
-    if (inputRef.current) {
-      inputRef.current.style.height = "auto";
-    }
+    if (inputRef.current) inputRef.current.style.height = "auto";
 
     const newMessages: ChatMessage[] = [...messages, { role: "user", content: userText }];
     setMessages(newMessages);
@@ -178,26 +159,19 @@ export function AIChatPage() {
 
     try {
       const apiMessages = newMessages.map(({ role, content }) => ({ role, content }));
-
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: apiMessages,
-          role,
           context: currentProperty ? { currentProperty } : undefined,
         }),
       });
       const data = await res.json();
-
       if (!res.ok || data.error) {
-        setMessages([...newMessages, {
-          role: "assistant",
-          content: `⚠️ Fehler: ${data.error || `HTTP ${res.status}`}`,
-        }]);
+        setMessages([...newMessages, { role: "assistant", content: `⚠️ Error: ${data.error || `HTTP ${res.status}`}` }]);
         return;
       }
-
       setMessages([...newMessages, {
         role: "assistant",
         content: data.reply ?? "",
@@ -207,7 +181,7 @@ export function AIChatPage() {
       }]);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      setMessages([...newMessages, { role: "assistant", content: `⚠️ Verbindungsfehler: ${msg}` }]);
+      setMessages([...newMessages, { role: "assistant", content: `⚠️ Connection error: ${msg}` }]);
     } finally {
       setLoading(false);
     }
@@ -226,18 +200,11 @@ export function AIChatPage() {
     });
   }
 
-  const suggestions = role === "sucher" ? [
-    { icon: "🏠", text: "Wohnungen zur Miete zeigen" },
-    { icon: "💰", text: "Was gibt es unter 300.000 €?" },
-    { icon: "🛏️", text: "3-Zimmer-Wohnung gesucht" },
-    { icon: "📅", text: "Ich möchte eine Besichtigung buchen" },
-    { icon: "📊", text: "Wie ist die Marktlage gerade?", link: "/markt" },
-  ] : [
-    { icon: "📋", text: "Wie lege ich ein Inserat an?" },
-    { icon: "📸", text: "Welche Fotos sind wichtig?" },
-    { icon: "💶", text: "Wie setze ich den richtigen Preis?" },
-    { icon: "📊", text: "Marktbericht anzeigen", link: "/markt" },
-    { icon: "⚙️", text: "Zur Inseratsverwaltung", link: "/admin/listings" },
+  const suggestions = [
+    { icon: "🏠", text: "Show apartments for rent" },
+    { icon: "💰", text: "What's available under $300k?" },
+    { icon: "🛏️", text: "I need a 3-bedroom home" },
+    { icon: "📅", text: "Book a property viewing" },
   ];
 
   const hasMessages = messages.length > 0;
@@ -245,56 +212,70 @@ export function AIChatPage() {
   return (
     <main className="flex flex-col" style={{ minHeight: "calc(100vh - 64px - 60px)" }}>
 
-      {/* ── Empty state ── */}
+      {/* ── Empty / Hero state ── */}
       {!hasMessages && (
-        <div className="flex-1 flex flex-col items-center justify-center px-4 py-16 text-center">
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6 shadow-lg"
-            style={{ background: "linear-gradient(135deg, var(--color-primary), var(--color-secondary))" }}>
-            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
-          </div>
-          <h1 className="text-2xl md:text-3xl font-bold text-slate-800 mb-2">Ihr KI-Immobilienmakler</h1>
-          <p className="text-slate-500 text-base max-w-md mb-6">
-            Beschreiben Sie, was Sie suchen — oder legen Sie als Anbieter Inserate an.
-          </p>
+        <div className="flex-1 flex flex-col items-center justify-center px-4 py-12">
 
-          {/* Role toggle */}
-          <div className="flex items-center gap-1 bg-slate-100 rounded-2xl p-1 mb-8">
-            {(["sucher", "anbieter"] as const).map((r) => (
+          {/* Headline */}
+          <div className="text-center max-w-xl mb-10">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 text-slate-500 text-xs font-semibold mb-5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse" />
+              AI-Powered Real Estate
+            </div>
+            <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 leading-tight tracking-tight mb-4">
+              Find your perfect<br />
+              <span style={{ color: "var(--color-primary)" }}>home with AI</span>
+            </h1>
+            <p className="text-slate-500 text-lg">
+              Describe what you&apos;re looking for in plain language — I&apos;ll find matching properties and book viewings for you.
+            </p>
+          </div>
+
+          {/* Main input bar */}
+          <div className="w-full max-w-2xl mb-6">
+            <div className="flex items-end gap-3 bg-white border-2 border-slate-200 rounded-2xl px-5 py-4 focus-within:border-primary transition-all shadow-lg focus-within:shadow-xl">
+              <textarea
+                ref={inputRef}
+                value={input}
+                onChange={(e) => { setInput(e.target.value); autoResize(e.target); }}
+                onKeyDown={handleKeyDown}
+                placeholder="e.g. 3-bedroom apartment near the city centre under $400k..."
+                rows={1}
+                className="flex-1 bg-transparent text-base text-slate-800 placeholder-slate-400 resize-none focus:outline-none leading-relaxed"
+                style={{ maxHeight: "120px" }}
+              />
               <button
-                key={r}
-                onClick={() => { setRole(r); setMessages([]); }}
-                className={`flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-semibold transition-all ${
-                  role === r ? "bg-white text-slate-800 shadow-sm" : "text-slate-400 hover:text-slate-600"
-                }`}
+                onClick={() => sendMessage()}
+                disabled={!input.trim() || loading}
+                className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all disabled:opacity-30 hover:opacity-90 active:scale-95 shadow-sm"
+                style={{ backgroundColor: "var(--color-primary)" }}
               >
-                {r === "sucher" ? (
-                  <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg> Ich suche</>
-                ) : (
-                  <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg> Ich biete an</>
-                )}
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+            <p className="text-center text-xs text-slate-300 mt-2">Press Enter to send · Shift+Enter for new line</p>
+          </div>
+
+          {/* Suggestion chips */}
+          <div className="grid grid-cols-2 gap-2.5 max-w-lg w-full">
+            {suggestions.map((s) => (
+              <button key={s.text} onClick={() => sendMessage(s.text)}
+                className="flex items-center gap-3 text-left px-4 py-3 rounded-2xl border border-slate-200 bg-white hover:shadow-sm hover:border-slate-300 transition-all text-sm text-slate-600 font-medium">
+                <span className="text-base">{s.icon}</span>
+                {s.text}
               </button>
             ))}
           </div>
-          <div className="grid grid-cols-2 gap-3 max-w-lg w-full">
-            {suggestions.map((s) =>
-              s.link ? (
-                <Link key={s.text} href={s.link}
-                  className="flex items-center gap-3 text-left px-4 py-3.5 rounded-2xl border border-slate-200 bg-white hover:shadow-sm transition-all text-sm text-slate-700 font-medium hover:border-primary">
-                  <span className="text-lg">{s.icon}</span>
-                  {s.text}
-                </Link>
-              ) : (
-                <button key={s.text} onClick={() => sendMessage(s.text)}
-                  className="flex items-center gap-3 text-left px-4 py-3.5 rounded-2xl border border-slate-200 bg-white hover:shadow-sm transition-all text-sm text-slate-700 font-medium hover:border-primary">
-                  <span className="text-lg">{s.icon}</span>
-                  {s.text}
-                </button>
-              )
-            )}
-          </div>
+
+          {/* Subtle agent link */}
+          <p className="text-xs text-slate-300 mt-8">
+            Are you a property agent?{" "}
+            <Link href="/admin" className="underline hover:text-slate-500 transition-colors">
+              Go to dashboard →
+            </Link>
+          </p>
         </div>
       )}
 
@@ -304,40 +285,28 @@ export function AIChatPage() {
           <div className="max-w-2xl mx-auto px-4 py-8 flex flex-col gap-6">
             {messages.map((msg, i) => (
               <div key={i} className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
-
                 {msg.role === "assistant" && (
                   <div className="w-8 h-8 rounded-xl shrink-0 flex items-center justify-center text-white text-xs font-bold shadow-sm"
                     style={{ background: "linear-gradient(135deg, var(--color-primary), var(--color-secondary))" }}>
-                    KI
+                    AI
                   </div>
                 )}
-
                 <div className="flex flex-col gap-3 max-w-[85%]">
-                  {/* Text bubble */}
                   {msg.content && (
                     <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
                       msg.role === "user"
                         ? "text-white rounded-tr-sm"
                         : "bg-white border border-slate-200 text-slate-700 rounded-tl-sm shadow-sm"
-                    }`}
-                      style={msg.role === "user" ? { backgroundColor: "var(--color-primary)" } : {}}>
+                    }`} style={msg.role === "user" ? { backgroundColor: "var(--color-primary)" } : {}}>
                       {msg.role === "assistant" ? renderText(msg.content) : msg.content}
                     </div>
                   )}
-
-                  {/* Inline property cards */}
                   {msg.properties && msg.properties.length > 0 && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full" style={{ maxWidth: "520px" }}>
-                      {msg.properties.map((p) => (
-                        <ChatPropertyCard key={p.id} property={p} />
-                      ))}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" style={{ maxWidth: "520px" }}>
+                      {msg.properties.map((p) => <ChatPropertyCard key={p.id} property={p} />)}
                     </div>
                   )}
-
-                  {/* Appointment confirmation */}
                   {msg.appointment && <AppointmentCard result={msg.appointment} />}
-
-                  {/* Follow-up suggestion chips */}
                   {msg.role === "assistant" && i === messages.length - 1 && !loading && (
                     <FollowUpChips msg={msg} onSend={sendMessage} />
                   )}
@@ -345,12 +314,11 @@ export function AIChatPage() {
               </div>
             ))}
 
-            {/* Typing indicator */}
             {loading && (
               <div className="flex gap-3">
                 <div className="w-8 h-8 rounded-xl shrink-0 flex items-center justify-center text-white text-xs font-bold shadow-sm"
                   style={{ background: "linear-gradient(135deg, var(--color-primary), var(--color-secondary))" }}>
-                  KI
+                  AI
                 </div>
                 <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-slate-300 animate-bounce" style={{ animationDelay: "0ms" }} />
@@ -359,40 +327,38 @@ export function AIChatPage() {
                 </div>
               </div>
             )}
-
             <div ref={bottomRef} />
           </div>
         </div>
       )}
 
-      {/* ── Input bar ── */}
-      <div className="border-t border-slate-200 bg-white py-4 px-4">
-        <div className="max-w-2xl mx-auto">
-          <div className="flex items-end gap-3 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/10 transition-all shadow-sm">
-            <textarea
-              ref={inputRef}
-              value={input}
-              onChange={(e) => { setInput(e.target.value); autoResize(e.target); }}
-              onKeyDown={handleKeyDown}
-              placeholder="Was suchen Sie? z.B. 3-Zimmer-Wohnung unter 500 € ..."
-              rows={1}
-              className="flex-1 bg-transparent text-sm text-slate-800 placeholder-slate-400 resize-none focus:outline-none leading-relaxed"
-              style={{ maxHeight: "120px" }}
-            />
-            <button
-              onClick={() => sendMessage()}
-              disabled={!input.trim() || loading}
-              className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center transition-all disabled:opacity-30 hover:opacity-90 active:scale-95 shadow-sm"
-              style={{ backgroundColor: "var(--color-primary)" }}
-            >
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 12h14M12 5l7 7-7 7" />
-              </svg>
-            </button>
+      {/* ── Input bar (chat mode) ── */}
+      {hasMessages && (
+        <div className="border-t border-slate-200 bg-white py-4 px-4">
+          <div className="max-w-2xl mx-auto">
+            <div className="flex items-end gap-3 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/10 transition-all shadow-sm">
+              <textarea
+                ref={inputRef}
+                value={input}
+                onChange={(e) => { setInput(e.target.value); autoResize(e.target); }}
+                onKeyDown={handleKeyDown}
+                placeholder="Ask anything about properties..."
+                rows={1}
+                className="flex-1 bg-transparent text-sm text-slate-800 placeholder-slate-400 resize-none focus:outline-none leading-relaxed"
+                style={{ maxHeight: "120px" }}
+              />
+              <button onClick={() => sendMessage()} disabled={!input.trim() || loading}
+                className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center transition-all disabled:opacity-30 hover:opacity-90 active:scale-95 shadow-sm"
+                style={{ backgroundColor: "var(--color-primary)" }}>
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+            <p className="text-center text-[11px] text-slate-300 mt-2">Enter to send · Shift+Enter for new line</p>
           </div>
-          <p className="text-center text-[11px] text-slate-300 mt-2">Enter zum Senden · Shift+Enter für neue Zeile</p>
         </div>
-      </div>
+      )}
     </main>
   );
 }

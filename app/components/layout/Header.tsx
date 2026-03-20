@@ -82,31 +82,31 @@ export default function Header() {
         {/* Center: 2 main tabs */}
         <nav className="hidden md:flex items-center gap-1 bg-slate-100 rounded-2xl p-1">
 
-          {/* KI Agent */}
+          {/* AI Agent */}
           <Link href="/" className={navClass(isChat)} style={isChat ? { backgroundColor: "var(--color-primary)" } : {}}>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
             </svg>
-            KI Agent
+            AI Agent
           </Link>
 
-          {/* Merkliste */}
+          {/* Saved */}
           <Link href="/saved" className={navClass(isSaved)} style={isSaved ? { backgroundColor: "var(--color-primary)" } : {}}>
             <svg className="w-4 h-4" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
             </svg>
-            Merkliste
+            Saved
           </Link>
 
-          {/* Markt */}
+          {/* Market */}
           <Link href="/markt" className={navClass(isMarkt)} style={isMarkt ? { backgroundColor: "var(--color-primary)" } : {}}>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
-            Markt
+            Market
           </Link>
         </nav>
 
@@ -123,13 +123,13 @@ export default function Header() {
                 onClick={handleSignOut}
                 className="text-sm font-medium text-slate-500 hover:text-red-500 transition-colors"
               >
-                Abmelden
+                Sign out
               </button>
             </>
           ) : (
             <Link href="/auth/login" className="text-sm font-medium px-4 py-2 rounded-xl text-white transition-colors"
               style={{ backgroundColor: "var(--color-primary)" }}>
-              Anmelden
+              Sign in
             </Link>
           )}
         </div>
@@ -154,11 +154,11 @@ export default function Header() {
         <div className="md:hidden border-t border-slate-100 bg-white px-4 pb-4 pt-2 flex flex-col gap-1">
           <Link href="/" className={`${navClass(isChat)} justify-start`} style={isChat ? { backgroundColor: "var(--color-primary)" } : {}} onClick={() => setMenuOpen(false)}>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-            KI Agent
+            AI Agent
           </Link>
           <Link href="/saved" className={`${navClass(isSaved)} justify-start`} style={isSaved ? { backgroundColor: "var(--color-primary)" } : {}} onClick={() => setMenuOpen(false)}>
             <svg className="w-4 h-4" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
-            Merkliste
+            Saved
           </Link>
           <Link href="/markt" className={`${navClass(isMarkt)} justify-start`} style={isMarkt ? { backgroundColor: "var(--color-primary)" } : {}} onClick={() => setMenuOpen(false)}>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
@@ -168,12 +168,12 @@ export default function Header() {
           {isLoggedIn ? (
             <>
               {isAdmin && <Link href="/admin" className="py-2 px-2 text-sm font-medium text-slate-600" onClick={() => setMenuOpen(false)}>Dashboard</Link>}
-              <button onClick={handleSignOut} className="py-2 px-2 text-left text-sm font-medium text-red-500">Abmelden</button>
+              <button onClick={handleSignOut} className="py-2 px-2 text-left text-sm font-medium text-red-500">Sign out</button>
             </>
           ) : (
             <Link href="/auth/login" className="text-sm font-medium text-center px-4 py-2.5 rounded-xl text-white mt-1"
               style={{ backgroundColor: "var(--color-primary)" }} onClick={() => setMenuOpen(false)}>
-              Anmelden
+              Sign in
             </Link>
           )}
         </div>
