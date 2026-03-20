@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Property } from "@/lib/types";
@@ -214,15 +214,27 @@ export function AIChatPage() {
   const [input, setInput]           = useState("");
   const [loading, setLoading]       = useState(false);
   const [wizardState, setWizardState] = useState<WizardState>({ step: null, data: {} });
-  const bottomRef = useRef<HTMLDivElement>(null);
-  const inputRef  = useRef<HTMLTextAreaElement>(null);
-  const pathname  = usePathname();
+  const bottomRef    = useRef<HTMLDivElement>(null);
+  const inputRef     = useRef<HTMLTextAreaElement>(null);
+  const pathname     = usePathname();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
   useEffect(() => { inputRef.current?.focus(); }, []);
+
+  // Auto-send ?q= query param (e.g. from "Book a Viewing" in Saved drawer)
+  useEffect(() => {
+    const q = searchParams.get("q");
+    if (q && messages.length === 0) {
+      sendMessage(decodeURIComponent(q));
+      // Clean the URL without triggering navigation
+      window.history.replaceState(null, "", "/");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function autoResize(el: HTMLTextAreaElement) {
     el.style.height = "auto";
