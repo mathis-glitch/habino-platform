@@ -39,7 +39,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
       <Link href={`/properties/${property.id}`} className="block">
 
         {/* Image */}
-        <div className="relative h-32 bg-slate-100 overflow-hidden">
+        <div className="relative h-20 bg-slate-100 overflow-hidden">
           {hero ? (
             <Image
               src={hero}

@@ -36,7 +36,7 @@ function ChatPropertyCard({ property }: { property: Property }) {
       </button>
 
       <Link href={`/properties/${property.id}`}>
-        <div className="relative h-24 bg-slate-100 overflow-hidden">
+        <div className="relative h-16 bg-slate-100 overflow-hidden">
           {hero ? (
             <Image src={hero} alt={property.title} fill
               className="object-cover group-hover:scale-105 transition-transform duration-500"
