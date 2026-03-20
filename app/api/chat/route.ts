@@ -108,7 +108,8 @@ export async function POST(request: NextRequest) {
     }, { status: 500 });
   }
 
-  const { messages, context } = await request.json();
+  const { messages, context, role } = await request.json();
+  const isAnbieter = role === "anbieter";
   if (!messages?.length) return NextResponse.json({ error: "Keine Nachrichten" }, { status: 400 });
 
   const supabase = createServiceClient();
@@ -139,9 +140,9 @@ export async function POST(request: NextRequest) {
         messages: [
           {
             role: "system",
-            content: `Du bist ein freundlicher KI-Immobilienassistent für ${tenant?.name || "diese Plattform"}.
-Antworte auf Deutsch, kurz (1–2 Sätze). Die Suchergebnisse werden dem Nutzer als Karten angezeigt — erwähne keine IDs oder Links.
-
+            content: `Du bist ein KI-Immobilienassistent für ${tenant?.name || "diese Plattform"}.
+Antworte auf Deutsch, kurz (1–2 Sätze). Die Suchergebnisse werden als Karten angezeigt — erwähne keine IDs oder Links.
+${isAnbieter ? "Der Nutzer ist ein Anbieter — weise ggf. auf Optimierungsmöglichkeiten hin." : ""}
 SUCHERGEBNISSE:
 ${propertyContext}`,
           },
@@ -202,16 +203,22 @@ Wenn Details fehlen, antworte NICHT mit JSON sondern frage freundlich auf Deutsc
     }
 
     // ── CHAT (general conversation) ────────────────────────────────────────
+    const systemPrompt = isAnbieter
+      ? `Du bist ein KI-Assistent für Immobilienanbieter auf ${tenant?.name || "dieser Plattform"}.
+Du hilfst Anbietern dabei: Inserate anzulegen, Fotos zu optimieren, Preise zu setzen und Besichtigungen zu verwalten.
+Verweise bei konkreten Aktionen auf das Admin-Dashboard unter /admin.
+Antworte auf Deutsch, professionell und präzise (2–4 Sätze).
+${tenant?.contact_email ? `Support: ${tenant.contact_email}` : ""}`
+      : `Du bist ein freundlicher KI-Immobilienassistent für ${tenant?.name || "diese Plattform"}.
+Du hilfst Suchenden dabei: passende Immobilien zu finden, Besichtigungen zu buchen und Marktinformationen zu erhalten.
+Antworte auf Deutsch, kurz und hilfreich (2–3 Sätze).
+${tenant?.contact_email ? `Kontakt: ${tenant.contact_email}` : ""}
+${context?.currentProperty ? `Nutzer schaut sich Inserat ${context.currentProperty} an.` : ""}`;
+
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        {
-          role: "system",
-          content: `Du bist ein freundlicher KI-Immobilienassistent für ${tenant?.name || "diese Plattform"}.
-Antworte auf Deutsch, kurz und hilfreich (2–3 Sätze).
-${tenant?.contact_email ? `Kontakt: ${tenant.contact_email}` : ""}
-${context?.currentProperty ? `Nutzer schaut sich Inserat ${context.currentProperty} an.` : ""}`,
-        },
+        { role: "system", content: systemPrompt },
         ...messages.slice(-10),
       ],
       max_tokens: 300,

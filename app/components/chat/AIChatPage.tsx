@@ -140,6 +140,7 @@ export function AIChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput]       = useState("");
   const [loading, setLoading]   = useState(false);
+  const [role, setRole]         = useState<"sucher" | "anbieter">("sucher");
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef  = useRef<HTMLTextAreaElement>(null);
   const pathname  = usePathname();
@@ -183,6 +184,7 @@ export function AIChatPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: apiMessages,
+          role,
           context: currentProperty ? { currentProperty } : undefined,
         }),
       });
@@ -224,12 +226,18 @@ export function AIChatPage() {
     });
   }
 
-  const suggestions = [
+  const suggestions = role === "sucher" ? [
     { icon: "🏠", text: "Wohnungen zur Miete zeigen" },
     { icon: "💰", text: "Was gibt es unter 300.000 €?" },
     { icon: "🛏️", text: "3-Zimmer-Wohnung gesucht" },
     { icon: "📅", text: "Ich möchte eine Besichtigung buchen" },
     { icon: "📊", text: "Wie ist die Marktlage gerade?", link: "/markt" },
+  ] : [
+    { icon: "📋", text: "Wie lege ich ein Inserat an?" },
+    { icon: "📸", text: "Welche Fotos sind wichtig?" },
+    { icon: "💶", text: "Wie setze ich den richtigen Preis?" },
+    { icon: "📊", text: "Marktbericht anzeigen", link: "/markt" },
+    { icon: "⚙️", text: "Zur Inseratsverwaltung", link: "/admin/listings" },
   ];
 
   const hasMessages = messages.length > 0;
@@ -248,9 +256,28 @@ export function AIChatPage() {
             </svg>
           </div>
           <h1 className="text-2xl md:text-3xl font-bold text-slate-800 mb-2">Ihr KI-Immobilienmakler</h1>
-          <p className="text-slate-500 text-base max-w-md mb-10">
-            Beschreiben Sie, was Sie suchen — ich finde passende Inserate und buche Besichtigungen direkt für Sie.
+          <p className="text-slate-500 text-base max-w-md mb-6">
+            Beschreiben Sie, was Sie suchen — oder legen Sie als Anbieter Inserate an.
           </p>
+
+          {/* Role toggle */}
+          <div className="flex items-center gap-1 bg-slate-100 rounded-2xl p-1 mb-8">
+            {(["sucher", "anbieter"] as const).map((r) => (
+              <button
+                key={r}
+                onClick={() => { setRole(r); setMessages([]); }}
+                className={`flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-semibold transition-all ${
+                  role === r ? "bg-white text-slate-800 shadow-sm" : "text-slate-400 hover:text-slate-600"
+                }`}
+              >
+                {r === "sucher" ? (
+                  <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg> Ich suche</>
+                ) : (
+                  <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg> Ich biete an</>
+                )}
+              </button>
+            ))}
+          </div>
           <div className="grid grid-cols-2 gap-3 max-w-lg w-full">
             {suggestions.map((s) =>
               s.link ? (
