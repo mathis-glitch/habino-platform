@@ -27,6 +27,7 @@ export default function Footer() {
             </a>
           )}
           <Link href="/search" className="hover:text-slate-600 transition-colors">Alle Inserate</Link>
+          <Link href="/markt" className="hover:text-slate-600 transition-colors">Marktbericht</Link>
         </div>
       </div>
     </footer>

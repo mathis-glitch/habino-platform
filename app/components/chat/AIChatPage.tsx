@@ -229,6 +229,7 @@ export function AIChatPage() {
     { icon: "💰", text: "Was gibt es unter 300.000 €?" },
     { icon: "🛏️", text: "3-Zimmer-Wohnung gesucht" },
     { icon: "📅", text: "Ich möchte eine Besichtigung buchen" },
+    { icon: "📊", text: "Wie ist die Marktlage gerade?", link: "/markt" },
   ];
 
   const hasMessages = messages.length > 0;
@@ -251,13 +252,21 @@ export function AIChatPage() {
             Beschreiben Sie, was Sie suchen — ich finde passende Inserate und buche Besichtigungen direkt für Sie.
           </p>
           <div className="grid grid-cols-2 gap-3 max-w-lg w-full">
-            {suggestions.map((s) => (
-              <button key={s.text} onClick={() => sendMessage(s.text)}
-                className="flex items-center gap-3 text-left px-4 py-3.5 rounded-2xl border border-slate-200 bg-white hover:shadow-sm transition-all text-sm text-slate-700 font-medium hover:border-primary">
-                <span className="text-lg">{s.icon}</span>
-                {s.text}
-              </button>
-            ))}
+            {suggestions.map((s) =>
+              s.link ? (
+                <Link key={s.text} href={s.link}
+                  className="flex items-center gap-3 text-left px-4 py-3.5 rounded-2xl border border-slate-200 bg-white hover:shadow-sm transition-all text-sm text-slate-700 font-medium hover:border-primary">
+                  <span className="text-lg">{s.icon}</span>
+                  {s.text}
+                </Link>
+              ) : (
+                <button key={s.text} onClick={() => sendMessage(s.text)}
+                  className="flex items-center gap-3 text-left px-4 py-3.5 rounded-2xl border border-slate-200 bg-white hover:shadow-sm transition-all text-sm text-slate-700 font-medium hover:border-primary">
+                  <span className="text-lg">{s.icon}</span>
+                  {s.text}
+                </button>
+              )
+            )}
           </div>
         </div>
       )}
