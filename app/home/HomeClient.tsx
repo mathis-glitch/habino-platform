@@ -230,6 +230,21 @@ function NewContractForm({
   const [error, setError]   = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
+  // Pre-fill from profile
+  useEffect(() => {
+    fetch("/api/profile").then((r) => r.json()).then((d) => {
+      if (!d.profile) return;
+      const p = d.profile;
+      setForm((prev) => ({
+        ...prev,
+        landlord_name:    p.full_name    || prev.landlord_name,
+        landlord_email:   p.email        || prev.landlord_email,
+        landlord_address: p.address      ? `${p.address}, ${p.city ?? ""}`.trim().replace(/,\s*$/, "") : prev.landlord_address,
+        country_code:     p.country_code || prev.country_code,
+      }));
+    }).catch(() => {});
+  }, []);
+
   const [form, setForm] = useState({
     property_id:        "",
     contract_type:      "residential_rental" as ContractType,

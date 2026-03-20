@@ -254,16 +254,92 @@ function FollowUpChips({ msg, onSend }: { msg: ChatMessage; onSend: (text: strin
   );
 }
 
-// ── Voice languages ───────────────────────────────────────────────────────────
+// ── Voice languages (full list) ───────────────────────────────────────────────
 const VOICE_LANGS = [
-  { code: "en-US", flag: "🇺🇸", label: "EN" },
-  { code: "de-DE", flag: "🇩🇪", label: "DE" },
-  { code: "fr-FR", flag: "🇫🇷", label: "FR" },
-  { code: "es-ES", flag: "🇪🇸", label: "ES" },
-  { code: "ar-SA", flag: "🇸🇦", label: "AR" },
-  { code: "sw-KE", flag: "🇰🇪", label: "SW" },
-  { code: "pt-BR", flag: "🇧🇷", label: "PT" },
+  { code: "en-US", flag: "🇺🇸", label: "English (US)" },
+  { code: "en-GB", flag: "🇬🇧", label: "English (UK)" },
+  { code: "de-DE", flag: "🇩🇪", label: "Deutsch" },
+  { code: "fr-FR", flag: "🇫🇷", label: "Français" },
+  { code: "es-ES", flag: "🇪🇸", label: "Español (ES)" },
+  { code: "es-MX", flag: "🇲🇽", label: "Español (MX)" },
+  { code: "ar-SA", flag: "🇸🇦", label: "العربية" },
+  { code: "ar-EG", flag: "🇪🇬", label: "العربية (مصر)" },
+  { code: "sw-KE", flag: "🇰🇪", label: "Kiswahili" },
+  { code: "pt-BR", flag: "🇧🇷", label: "Português (BR)" },
+  { code: "pt-PT", flag: "🇵🇹", label: "Português (PT)" },
+  { code: "it-IT", flag: "🇮🇹", label: "Italiano" },
+  { code: "nl-NL", flag: "🇳🇱", label: "Nederlands" },
+  { code: "pl-PL", flag: "🇵🇱", label: "Polski" },
+  { code: "ru-RU", flag: "🇷🇺", label: "Русский" },
+  { code: "tr-TR", flag: "🇹🇷", label: "Türkçe" },
+  { code: "hi-IN", flag: "🇮🇳", label: "हिन्दी" },
+  { code: "bn-IN", flag: "🇧🇩", label: "বাংলা" },
+  { code: "zh-CN", flag: "🇨🇳", label: "普通话" },
+  { code: "zh-TW", flag: "🇹🇼", label: "繁體中文" },
+  { code: "ja-JP", flag: "🇯🇵", label: "日本語" },
+  { code: "ko-KR", flag: "🇰🇷", label: "한국어" },
+  { code: "vi-VN", flag: "🇻🇳", label: "Tiếng Việt" },
+  { code: "th-TH", flag: "🇹🇭", label: "ภาษาไทย" },
+  { code: "id-ID", flag: "🇮🇩", label: "Bahasa Indonesia" },
+  { code: "ms-MY", flag: "🇲🇾", label: "Bahasa Melayu" },
+  { code: "ha-NG", flag: "🇳🇬", label: "Hausa" },
+  { code: "yo-NG", flag: "🇳🇬", label: "Yorùbá" },
+  { code: "ig-NG", flag: "🇳🇬", label: "Igbo" },
+  { code: "am-ET", flag: "🇪🇹", label: "አማርኛ" },
+  { code: "zu-ZA", flag: "🇿🇦", label: "isiZulu" },
+  { code: "af-ZA", flag: "🇿🇦", label: "Afrikaans" },
 ];
+
+// ── Language picker dropdown ──────────────────────────────────────────────────
+function LangPicker({ lang, onChange }: { lang: typeof VOICE_LANGS[0]; onChange: (l: typeof VOICE_LANGS[0]) => void }) {
+  const [open,   setOpen]   = useState(false);
+  const [search, setSearch] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function onClickOut(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onClickOut);
+    return () => document.removeEventListener("mousedown", onClickOut);
+  }, []);
+
+  const filtered = search
+    ? VOICE_LANGS.filter((l) => l.label.toLowerCase().includes(search.toLowerCase()) || l.code.toLowerCase().includes(search.toLowerCase()))
+    : VOICE_LANGS;
+
+  return (
+    <div ref={ref} className="relative">
+      <button type="button" onClick={() => setOpen((o) => !o)} title="Voice language"
+        className="shrink-0 h-9 px-2 rounded-lg text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all flex items-center gap-1">
+        <span>{lang.flag}</span>
+        <span className="hidden sm:inline">{lang.code.split("-")[0].toUpperCase()}</span>
+        <svg className="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
+        </svg>
+      </button>
+      {open && (
+        <div className="absolute bottom-full mb-2 left-0 z-50 bg-white border border-slate-200 rounded-xl shadow-xl w-56 overflow-hidden">
+          <div className="p-2 border-b border-slate-100">
+            <input autoFocus type="text" value={search} onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search language…"
+              className="w-full text-xs px-2 py-1.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-1"/>
+          </div>
+          <div className="max-h-48 overflow-y-auto">
+            {filtered.map((l) => (
+              <button key={l.code} type="button"
+                onClick={() => { onChange(l); setOpen(false); setSearch(""); }}
+                className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-slate-50 transition-colors ${lang.code === l.code ? "bg-slate-50 font-semibold" : ""}`}>
+                <span>{l.flag}</span>
+                <span className="truncate">{l.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ── Mic button ────────────────────────────────────────────────────────────────
 function MicButton({ onResult, lang, size = "md" }: { onResult: (t: string) => void; lang: string; size?: "sm" | "md" }) {
@@ -329,8 +405,8 @@ export function AIChatPage() {
     setTimeout(() => inputRef.current?.focus(), 50);
   }
 
-  function cycleLang() {
-    setVoiceLangIdx((i) => (i + 1) % VOICE_LANGS.length);
+  function setVoiceLang(l: typeof VOICE_LANGS[0]) {
+    setVoiceLangIdx(VOICE_LANGS.findIndex((x) => x.code === l.code));
   }
 
   useEffect(() => {
@@ -469,11 +545,7 @@ export function AIChatPage() {
                 style={{ maxHeight: "120px" }}
               />
               {/* Language picker */}
-              <button type="button" onClick={cycleLang} title="Switch voice language"
-                className="shrink-0 h-10 px-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all flex items-center gap-1">
-                <span>{voiceLang.flag}</span>
-                <span>{voiceLang.label}</span>
-              </button>
+              <LangPicker lang={voiceLang} onChange={setVoiceLang} />
               {/* Mic */}
               <MicButton onResult={onVoiceResult} lang={voiceLang.code} />
               {/* Send */}
@@ -633,11 +705,7 @@ export function AIChatPage() {
                 style={{ maxHeight: "120px" }}
               />
               {/* Language picker */}
-              <button type="button" onClick={cycleLang} title="Switch voice language"
-                className="shrink-0 h-9 px-2 rounded-lg text-[11px] font-semibold bg-white border border-slate-200 hover:bg-slate-100 text-slate-500 transition-all flex items-center gap-1">
-                <span>{voiceLang.flag}</span>
-                <span>{voiceLang.label}</span>
-              </button>
+              <LangPicker lang={voiceLang} onChange={setVoiceLang} />
               {/* Mic */}
               <MicButton onResult={onVoiceResult} lang={voiceLang.code} size="sm" />
               {/* Send */}

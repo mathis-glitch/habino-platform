@@ -56,8 +56,12 @@ export default function Header() {
           ))}
         </nav>
 
-        {/* Spacer to keep nav centered */}
-        <div className="hidden md:block w-24" />
+        {/* Profile icon */}
+        <Link href="/profile" className="hidden md:flex items-center justify-center w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 transition-colors shrink-0" title="My Profile">
+          <svg className="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+          </svg>
+        </Link>
 
         {/* Mobile hamburger */}
         <button className="md:hidden p-2 rounded-lg hover:bg-slate-100"
@@ -82,6 +86,11 @@ export default function Header() {
               {t.label}
             </Link>
           ))}
+          <Link href="/profile" className={`${navClass(pathname === "/profile")} justify-start`}
+            style={pathname === "/profile" ? { backgroundColor: "var(--color-primary)" } : {}}
+            onClick={() => setMenuOpen(false)}>
+            Profile
+          </Link>
         </div>
       )}
     </header>
