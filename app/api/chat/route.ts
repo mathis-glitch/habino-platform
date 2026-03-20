@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
+import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 import { createServiceClient } from "@/lib/supabase/server";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -13,11 +14,18 @@ const SEARCH_KEYWORDS = [
   "preis", "€", "euro", "price", "kosten",
   "verfügbar", "angebot", "inserat",
 ];
-const BOOK_KEYWORDS = ["termin", "besichtigung", "buche", "besichtige", "appointment", "viewing", "treffen"];
+const BOOK_KEYWORDS    = ["termin", "besichtigung", "buche", "besichtige", "appointment", "viewing", "treffen"];
+const CREATE_KEYWORDS  = [
+  "list my", "list a", "sell my", "rent out my", "i have a property",
+  "add my property", "add a property", "create a listing", "new listing",
+  "ich möchte", "inserat", "anbieten", "einstellen", "meine wohnung",
+  "mein haus", "property to sell", "property to rent", "want to list",
+];
 
-function detectIntent(text: string): "search" | "book" | "chat" {
+function detectIntent(text: string): "search" | "book" | "create_listing" | "chat" {
   const lower = text.toLowerCase();
-  if (BOOK_KEYWORDS.some((k) => lower.includes(k))) return "book";
+  if (BOOK_KEYWORDS.some((k)   => lower.includes(k))) return "book";
+  if (CREATE_KEYWORDS.some((k) => lower.includes(k))) return "create_listing";
   if (SEARCH_KEYWORDS.some((k) => lower.includes(k))) return "search";
   return "chat";
 }
@@ -49,7 +57,6 @@ Return {} if no filters are clear. Return ONLY valid JSON, no explanation.`,
 
   try {
     const raw = res.choices[0].message.content?.trim() || "{}";
-    // Strip possible markdown code fences
     const json = raw.replace(/^```json?\n?/, "").replace(/\n?```$/, "");
     return JSON.parse(json);
   } catch {
@@ -57,7 +64,7 @@ Return {} if no filters are clear. Return ONLY valid JSON, no explanation.`,
   }
 }
 
-// ── Supabase search ──────────────────────────────────────────────────────────
+// ── Supabase property search ──────────────────────────────────────────────────
 async function searchProperties(filters: Record<string, unknown>, tenantId: string) {
   const supabase = createServiceClient();
   let query = supabase
@@ -68,19 +75,19 @@ async function searchProperties(filters: Record<string, unknown>, tenantId: stri
     .order("created_at", { ascending: false })
     .limit(6);
 
-  if (filters.listing_type)   query = query.eq("listing_type", filters.listing_type);
-  if (filters.property_type)  query = query.eq("property_type", filters.property_type);
-  if (filters.min_price)      query = query.gte("price", filters.min_price);
-  if (filters.max_price)      query = query.lte("price", filters.max_price);
-  if (filters.bedrooms)       query = query.gte("bedrooms", filters.bedrooms);
-  if (filters.city)           query = query.ilike("city", `%${filters.city}%`);
-  if (filters.neighbourhood)  query = query.ilike("neighbourhood", `%${filters.neighbourhood}%`);
+  if (filters.listing_type)  query = query.eq("listing_type", filters.listing_type);
+  if (filters.property_type) query = query.eq("property_type", filters.property_type);
+  if (filters.min_price)     query = query.gte("price", filters.min_price);
+  if (filters.max_price)     query = query.lte("price", filters.max_price);
+  if (filters.bedrooms)      query = query.gte("bedrooms", filters.bedrooms);
+  if (filters.city)          query = query.ilike("city", `%${filters.city}%`);
+  if (filters.neighbourhood) query = query.ilike("neighbourhood", `%${filters.neighbourhood}%`);
 
   const { data } = await query;
   return data || [];
 }
 
-// ── Book appointment ─────────────────────────────────────────────────────────
+// ── Book appointment ──────────────────────────────────────────────────────────
 async function saveAppointment(details: Record<string, unknown>, tenantId: string) {
   const supabase = createServiceClient();
   const { error } = await supabase.from("appointments").insert({
@@ -97,20 +104,132 @@ async function saveAppointment(details: Record<string, unknown>, tenantId: strin
   return !error;
 }
 
+// ── Create listing via AI ─────────────────────────────────────────────────────
+interface ListingData {
+  title?: string;
+  property_type?: "apartment" | "house" | "commercial" | "land";
+  listing_type?: "buy" | "rent";
+  price?: number;
+  currency?: string;
+  bedrooms?: number;
+  bathrooms?: number;
+  area_sqm?: number;
+  city?: string;
+  neighbourhood?: string;
+  description?: string;
+}
+
+async function extractListingData(
+  conversationMessages: Array<{ role: string; content: string }>
+): Promise<{ data: ListingData; missing: string[]; question?: string }> {
+
+  const res = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages: [
+      {
+        role: "system",
+        content: `You are collecting information to create a real estate listing.
+Extract whatever property details have been mentioned in the conversation.
+Return a JSON object with this structure:
+{
+  "extracted": {
+    "title": string or null,
+    "property_type": "apartment"|"house"|"commercial"|"land" or null,
+    "listing_type": "buy"|"rent" or null,
+    "price": number or null,
+    "currency": string (default "USD") or null,
+    "bedrooms": number or null,
+    "bathrooms": number or null,
+    "area_sqm": number or null,
+    "city": string or null,
+    "neighbourhood": string or null,
+    "description": string or null
+  },
+  "missing_required": ["field1", "field2"],
+  "next_question": "friendly question to ask for the next missing required field, or null if all required fields are present"
+}
+
+Required fields are: title (or generate one from available info), property_type, listing_type, price, city.
+Keep next_question short, friendly, and ask for only ONE field at a time.
+Return ONLY valid JSON.`,
+      },
+      ...(conversationMessages.slice(-12) as ChatCompletionMessageParam[]),
+    ],
+    max_tokens: 400,
+    temperature: 0,
+  });
+
+  try {
+    const raw = res.choices[0].message.content?.trim() || "{}";
+    const json = raw.replace(/^```json?\n?/, "").replace(/\n?```$/, "");
+    const parsed = JSON.parse(json);
+
+    const data: ListingData = {};
+    const extracted = parsed.extracted || {};
+    if (extracted.title)         data.title         = extracted.title;
+    if (extracted.property_type) data.property_type = extracted.property_type;
+    if (extracted.listing_type)  data.listing_type  = extracted.listing_type;
+    if (extracted.price)         data.price         = extracted.price;
+    if (extracted.currency)      data.currency      = extracted.currency || "USD";
+    if (extracted.bedrooms)      data.bedrooms      = extracted.bedrooms;
+    if (extracted.bathrooms)     data.bathrooms     = extracted.bathrooms;
+    if (extracted.area_sqm)      data.area_sqm      = extracted.area_sqm;
+    if (extracted.city)          data.city          = extracted.city;
+    if (extracted.neighbourhood) data.neighbourhood = extracted.neighbourhood;
+    if (extracted.description)   data.description   = extracted.description;
+
+    return {
+      data,
+      missing: parsed.missing_required || [],
+      question: parsed.next_question || undefined,
+    };
+  } catch {
+    return {
+      data: {},
+      missing: ["title", "property_type", "listing_type", "price", "city"],
+      question: "Let's get your listing set up! What type of property are you listing — apartment, house, commercial space, or land?",
+    };
+  }
+}
+
+async function saveListing(data: ListingData, tenantId: string) {
+  const supabase = createServiceClient();
+  const { data: created, error } = await supabase
+    .from("properties")
+    .insert({
+      tenant_id:     tenantId,
+      title:         data.title || "Untitled Property",
+      property_type: data.property_type || "apartment",
+      listing_type:  data.listing_type || "buy",
+      price:         data.price || 0,
+      currency:      data.currency || "USD",
+      bedrooms:      data.bedrooms || 0,
+      bathrooms:     data.bathrooms || 0,
+      area_sqm:      data.area_sqm || null,
+      city:          data.city || "",
+      neighbourhood: data.neighbourhood || null,
+      description:   data.description || null,
+      status:        "active",
+    })
+    .select("id, title, price, currency, listing_type, property_type, city, bedrooms, area_sqm")
+    .single();
+
+  return { created, error };
+}
+
 // ── Main route ────────────────────────────────────────────────────────────────
 export async function POST(request: NextRequest) {
   const tenantId = request.headers.get("x-tenant-id");
-  if (!tenantId) return NextResponse.json({ error: "Tenant nicht gefunden" }, { status: 404 });
+  if (!tenantId) return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
 
   if (!process.env.OPENAI_API_KEY) {
     return NextResponse.json({
-      error: "OPENAI_API_KEY fehlt. Bitte in Vercel unter Settings → Environment Variables eintragen.",
+      error: "OPENAI_API_KEY missing. Please add it in Vercel → Settings → Environment Variables.",
     }, { status: 500 });
   }
 
-  const { messages, context, role } = await request.json();
-  const isAnbieter = role === "anbieter";
-  if (!messages?.length) return NextResponse.json({ error: "Keine Nachrichten" }, { status: 400 });
+  const { messages, context } = await request.json();
+  if (!messages?.length) return NextResponse.json({ error: "No messages" }, { status: 400 });
 
   const supabase = createServiceClient();
   const { data: tenant } = await supabase
@@ -123,17 +242,45 @@ export async function POST(request: NextRequest) {
   const intent = detectIntent(lastUserMessage);
 
   try {
-    // ── SEARCH intent ──────────────────────────────────────────────────────
+
+    // ── CREATE LISTING intent ───────────────────────────────────────────────
+    if (intent === "create_listing") {
+      const { data, missing, question } = await extractListingData(messages);
+
+      // Still collecting required info
+      if (missing.length > 0 && question) {
+        return NextResponse.json({ reply: question, intent: "create_listing" });
+      }
+
+      // All required data present — save to DB
+      const { created, error } = await saveListing(data, tenantId);
+
+      if (error || !created) {
+        console.error("Listing save error:", error);
+        return NextResponse.json({
+          reply: "I couldn't save your listing — please try again or check the admin dashboard.",
+          intent: "create_listing",
+        });
+      }
+
+      return NextResponse.json({
+        reply: `Your listing is live! 🎉 "${created.title}" has been published successfully.`,
+        intent: "create_listing",
+        listing_created: created,
+      });
+    }
+
+    // ── SEARCH intent ───────────────────────────────────────────────────────
     if (intent === "search") {
       const filters = await extractFilters(lastUserMessage);
       const properties = await searchProperties(filters, tenantId);
 
       const propertyContext = properties.length
         ? properties.map((p: Record<string, unknown>) => {
-            const price = typeof p.price === "number" ? p.price.toLocaleString("de-DE") : p.price;
-            return `• ${p.title} | ${p.listing_type === "buy" ? "Kaufen" : "Mieten"} | ${p.currency} ${price} | ${p.bedrooms} Zi. | ${p.city} | ID: ${p.id}`;
+            const price = typeof p.price === "number" ? p.price.toLocaleString("en-US") : p.price;
+            return `• ${p.title} | ${p.listing_type === "buy" ? "For Sale" : "For Rent"} | ${p.currency} ${price} | ${p.bedrooms} bed | ${p.city} | ID: ${p.id}`;
           }).join("\n")
-        : "Keine passenden Inserate gefunden.";
+        : "No matching properties found.";
 
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
@@ -142,7 +289,6 @@ export async function POST(request: NextRequest) {
             role: "system",
             content: `You are an AI real estate assistant for ${tenant?.name || "this platform"}.
 Reply in English, briefly (1–2 sentences). Results are shown as cards — do not mention IDs or links.
-${isAnbieter ? "The user is an agent — mention optimisation tips if relevant." : ""}
 SEARCH RESULTS:
 ${propertyContext}`,
           },
@@ -161,9 +307,8 @@ ${propertyContext}`,
       return NextResponse.json({ reply, properties, filters });
     }
 
-    // ── BOOKING intent ─────────────────────────────────────────────────────
+    // ── BOOKING intent ──────────────────────────────────────────────────────
     if (intent === "book") {
-      // Use GPT to extract booking details
       const extractionRes = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
@@ -181,7 +326,6 @@ If details are missing, do NOT return JSON — instead ask politely in English f
 
       const extractedText = extractionRes.choices[0].message.content?.trim() || "";
 
-      // Try to parse as JSON — if it fails, it's a follow-up question
       try {
         const raw = extractedText.replace(/^```json?\n?/, "").replace(/\n?```$/, "");
         const details = JSON.parse(raw);
@@ -202,15 +346,10 @@ If details are missing, do NOT return JSON — instead ask politely in English f
       return NextResponse.json({ reply: extractedText });
     }
 
-    // ── CHAT (general conversation) ────────────────────────────────────────
-    const systemPrompt = isAnbieter
-      ? `You are an AI assistant for property agents on ${tenant?.name || "this platform"}.
-You help agents: create listings, optimise photos, set prices and manage viewings.
-For specific actions, refer them to the admin dashboard at /admin.
-Reply in English, professionally and concisely (2–4 sentences).
-${tenant?.contact_email ? `Support: ${tenant.contact_email}` : ""}`
-      : `You are a friendly AI real estate assistant for ${tenant?.name || "this platform"}.
-You help buyers and renters find properties, book viewings and get market information.
+    // ── GENERAL CHAT ────────────────────────────────────────────────────────
+    const systemPrompt = `You are a friendly AI real estate assistant for ${tenant?.name || "this platform"}.
+You help buyers, renters and property owners. For buyers/renters: find properties and book viewings.
+For owners: help them list their property by asking for details step by step.
 Reply in English, briefly and helpfully (2–3 sentences).
 ${tenant?.contact_email ? `Contact: ${tenant.contact_email}` : ""}
 ${context?.currentProperty ? `User is viewing property ${context.currentProperty}.` : ""}`;
@@ -225,7 +364,7 @@ ${context?.currentProperty ? `User is viewing property ${context.currentProperty
       temperature: 0.7,
     });
 
-    const reply = completion.choices[0].message.content || "Wie kann ich Ihnen helfen?";
+    const reply = completion.choices[0].message.content || "How can I help you?";
     return NextResponse.json({ reply });
 
   } catch (err: unknown) {

@@ -8,11 +8,24 @@ import { Property } from "@/lib/types";
 import { formatPrice, getHeroImage } from "@/lib/utils";
 import { useSavedListings } from "@/app/hooks/useSavedListings";
 
+interface ListingCreated {
+  id: string;
+  title: string;
+  price: number;
+  currency: string;
+  listing_type: string;
+  property_type: string;
+  city: string;
+  bedrooms: number;
+  area_sqm?: number;
+}
+
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   properties?: Property[];
   appointment?: { success: boolean; error?: string };
+  listing_created?: ListingCreated;
   filters?: Record<string, unknown>;
 }
 
@@ -99,10 +112,46 @@ function AppointmentCard({ result }: { result: { success: boolean; error?: strin
   );
 }
 
+// ── Listing created card ─────────────────────────────────────────────────────
+function ListingCreatedCard({ listing }: { listing: ListingCreated }) {
+  const price = new Intl.NumberFormat("en-US", {
+    style: "currency", currency: listing.currency, maximumFractionDigits: 0,
+  }).format(listing.price);
+
+  return (
+    <div className="bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-4 flex items-start gap-3">
+      <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
+        <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+        </svg>
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-emerald-800 mb-0.5">Listing published!</p>
+        <p className="text-sm font-medium text-slate-800 truncate">{listing.title}</p>
+        <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5 text-xs text-emerald-700">
+          <span>{price}</span>
+          <span className="capitalize">{listing.listing_type === "buy" ? "For Sale" : "For Rent"}</span>
+          <span className="capitalize">{listing.property_type}</span>
+          <span>{listing.city}</span>
+          {listing.bedrooms > 0 && <span>{listing.bedrooms} bed</span>}
+          {listing.area_sqm && <span>{listing.area_sqm} m²</span>}
+        </div>
+        <Link href={`/properties/${listing.id}`}
+          className="inline-block mt-2 text-xs font-semibold text-emerald-700 underline underline-offset-2 hover:text-emerald-900">
+          View listing →
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 // ── Follow-up chips ──────────────────────────────────────────────────────────
 function FollowUpChips({ msg, onSend }: { msg: ChatMessage; onSend: (text: string) => void }) {
   const chips: string[] = [];
-  if (msg.properties && msg.properties.length > 0) {
+  if (msg.listing_created) {
+    chips.push("List another property");
+    chips.push("Edit listing details");
+  } else if (msg.properties && msg.properties.length > 0) {
     chips.push("Schedule a viewing");
     chips.push("Show cheaper options");
     chips.push("Show larger properties");
@@ -177,6 +226,7 @@ export function AIChatPage() {
         content: data.reply ?? "",
         properties: data.properties !== undefined ? data.properties : undefined,
         appointment: data.appointment,
+        listing_created: data.listing_created,
         filters: data.filters,
       }]);
     } catch (err: unknown) {
@@ -204,7 +254,7 @@ export function AIChatPage() {
     { icon: "🏠", text: "Show apartments for rent" },
     { icon: "💰", text: "What's available under $300k?" },
     { icon: "🛏️", text: "I need a 3-bedroom home" },
-    { icon: "📅", text: "Book a property viewing" },
+    { icon: "📝", text: "I want to list my property" },
   ];
 
   const hasMessages = messages.length > 0;
@@ -227,7 +277,7 @@ export function AIChatPage() {
               <span style={{ color: "var(--color-primary)" }}>home with AI</span>
             </h1>
             <p className="text-slate-500 text-lg">
-              Describe what you&apos;re looking for in plain language — I&apos;ll find matching properties and book viewings for you.
+              Describe what you&apos;re looking for — I&apos;ll find matching properties and book viewings. Property owner? I can list your property too.
             </p>
           </div>
 
@@ -307,6 +357,7 @@ export function AIChatPage() {
                     </div>
                   )}
                   {msg.appointment && <AppointmentCard result={msg.appointment} />}
+                  {msg.listing_created && <ListingCreatedCard listing={msg.listing_created} />}
                   {msg.role === "assistant" && i === messages.length - 1 && !loading && (
                     <FollowUpChips msg={msg} onSend={sendMessage} />
                   )}
