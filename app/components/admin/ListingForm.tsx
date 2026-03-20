@@ -7,28 +7,46 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import Image from "next/image";
 
 interface Props {
-  property?: Property;    // if provided → edit mode, otherwise → create mode
+  property?: Property;
   tenantId: string;
 }
 
-const CURRENCIES = ["KES", "USD", "AED", "EUR", "GBP", "NGN", "ZAR", "GHS"];
+const CURRENCIES = ["EUR", "USD", "GBP", "CHF", "AED", "KES", "NGN", "ZAR"];
+
+const LISTING_TYPES = [
+  { value: "rent", label: "Zur Miete" },
+  { value: "buy",  label: "Zum Verkauf" },
+];
+
+const PROPERTY_TYPES = [
+  { value: "apartment",  label: "Wohnung" },
+  { value: "house",      label: "Haus" },
+  { value: "villa",      label: "Villa" },
+  { value: "studio",     label: "Studio" },
+  { value: "commercial", label: "Gewerbe" },
+  { value: "land",       label: "Grundstück" },
+];
+
+const STATUS_OPTIONS = [
+  { value: "draft",  label: "Entwurf speichern",  desc: "Nicht öffentlich sichtbar." },
+  { value: "active", label: "Veröffentlichen",     desc: "Sofort für alle sichtbar." },
+];
 
 export function ListingForm({ property, tenantId }: Props) {
   const router  = useRouter();
   const isEdit  = !!property;
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // Form state
   const [form, setForm] = useState({
     title:         property?.title         || "",
     description:   property?.description   || "",
     listing_type:  property?.listing_type  || "rent",
     property_type: property?.property_type || "apartment",
-    price:         property?.price?.toString()    || "",
-    currency:      property?.currency      || "KES",
-    bedrooms:      property?.bedrooms?.toString() || "0",
-    bathrooms:     property?.bathrooms?.toString()|| "0",
-    area_sqm:      property?.area_sqm?.toString() || "",
+    price:         property?.price?.toString()     || "",
+    currency:      property?.currency      || "EUR",
+    bedrooms:      property?.bedrooms?.toString()  || "0",
+    bathrooms:     property?.bathrooms?.toString() || "0",
+    area_sqm:      property?.area_sqm?.toString()  || "",
     city:          property?.city          || "",
     neighbourhood: property?.neighbourhood || "",
     address:       property?.address       || "",
@@ -38,10 +56,11 @@ export function ListingForm({ property, tenantId }: Props) {
     status:        property?.status        || "draft",
   });
 
-  const [uploading, setUploading] = useState(false);
-  const [saving,    setSaving]    = useState(false);
-  const [error,     setError]     = useState<string | null>(null);
-  const [previewUrls, setPreviewUrls] = useState<string[]>(
+  const [uploading,    setUploading]    = useState(false);
+  const [saving,       setSaving]       = useState(false);
+  const [error,        setError]        = useState<string | null>(null);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [previewUrls,  setPreviewUrls]  = useState<string[]>(
     property?.images?.map((i) => i.url) || []
   );
 
@@ -53,46 +72,34 @@ export function ListingForm({ property, tenantId }: Props) {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
     if (previewUrls.length + files.length > 10) {
-      setError("Maximum 10 images per listing.");
+      setError("Maximal 10 Fotos pro Inserat.");
       return;
     }
-
     setUploading(true);
     setError(null);
-
     try {
-      // If editing, upload immediately. If new, store files for upload after create.
       if (isEdit && property?.id) {
         const formData = new FormData();
         files.forEach((f) => formData.append("files", f));
-
-        const res = await fetch(`/api/properties/${property.id}/images`, {
-          method: "POST",
-          body: formData,
-        });
+        const res = await fetch(`/api/properties/${property.id}/images`, { method: "POST", body: formData });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error);
         setPreviewUrls((prev) => [...prev, ...data.urls]);
       } else {
-        // New listing — show local previews, store files for later
-        const urls = files.map((f) => URL.createObjectURL(f));
-        setPreviewUrls((prev) => [...prev, ...urls]);
+        setPreviewUrls((prev) => [...prev, ...files.map((f) => URL.createObjectURL(f))]);
         setPendingFiles((prev) => [...prev, ...files]);
       }
-    } catch (err: any) {
-      setError(err.message || "Upload failed.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Upload fehlgeschlagen.");
     } finally {
       setUploading(false);
     }
   }
 
-  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
     setError(null);
-
     try {
       const body = {
         ...form,
@@ -106,102 +113,88 @@ export function ListingForm({ property, tenantId }: Props) {
 
       if (isEdit) {
         const res = await fetch(`/api/properties/${propertyId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
+          method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
         });
-        if (!res.ok) {
-          const d = await res.json();
-          throw new Error(d.error);
-        }
+        if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
       } else {
         const res = await fetch("/api/properties", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
+          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error);
         propertyId = data.id;
-
-        // Upload pending images
         if (pendingFiles.length && propertyId) {
           const formData = new FormData();
           pendingFiles.forEach((f) => formData.append("files", f));
-          await fetch(`/api/properties/${propertyId}/images`, {
-            method: "POST",
-            body: formData,
-          });
+          await fetch(`/api/properties/${propertyId}/images`, { method: "POST", body: formData });
         }
       }
 
       router.push("/admin/listings");
       router.refresh();
-    } catch (err: any) {
-      setError(err.message || "Save failed.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Speichern fehlgeschlagen.");
       setSaving(false);
     }
   }
 
-  const inputClass = "w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:border-transparent bg-white";
+  const inputClass = "w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:border-transparent bg-white transition-all";
   const labelClass = "block text-sm font-medium text-slate-700 mb-1.5";
-  const sectionClass = "card p-5 flex flex-col gap-4";
+  const sectionClass = "bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col gap-4";
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-6 max-w-3xl">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-5 max-w-3xl">
 
-      {/* Basic info */}
+      {/* Grunddaten */}
       <div className={sectionClass}>
-        <h2 className="font-semibold text-slate-800">Basic Information</h2>
+        <h2 className="font-semibold text-slate-800">Grunddaten</h2>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className={labelClass}>Listing type</label>
+            <label className={labelClass}>Angebotstyp</label>
             <select value={form.listing_type} onChange={(e) => update("listing_type", e.target.value)} className={inputClass}>
-              <option value="rent">For Rent</option>
-              <option value="buy">For Sale</option>
+              {LISTING_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </div>
           <div>
-            <label className={labelClass}>Property type</label>
+            <label className={labelClass}>Immobilientyp</label>
             <select value={form.property_type} onChange={(e) => update("property_type", e.target.value)} className={inputClass}>
-              <option value="apartment">Apartment</option>
-              <option value="house">House</option>
-              <option value="commercial">Commercial</option>
-              <option value="land">Land</option>
+              {PROPERTY_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </div>
         </div>
 
         <div>
-          <label className={labelClass}>Title *</label>
+          <label className={labelClass}>Titel *</label>
           <input required type="text" value={form.title}
             onChange={(e) => update("title", e.target.value)}
-            placeholder="e.g. Modern 2BR Apartment — Westlands"
+            placeholder="z.B. Moderne 3-Zimmer-Wohnung mit Balkon"
             className={inputClass} />
         </div>
 
         <div>
-          <label className={labelClass}>Description</label>
+          <label className={labelClass}>Beschreibung</label>
           <textarea value={form.description}
             onChange={(e) => update("description", e.target.value)}
-            placeholder="Describe the property..."
+            placeholder="Beschreiben Sie die Immobilie ausführlich..."
             rows={4} className={`${inputClass} resize-none`} />
         </div>
       </div>
 
-      {/* Price */}
+      {/* Preis */}
       <div className={sectionClass}>
-        <h2 className="font-semibold text-slate-800">Pricing</h2>
+        <h2 className="font-semibold text-slate-800">Preis</h2>
         <div className="grid grid-cols-3 gap-4">
           <div className="col-span-2">
-            <label className={labelClass}>Price *</label>
+            <label className={labelClass}>
+              Preis *{form.listing_type === "rent" && <span className="text-slate-400 font-normal ml-1">(pro Monat)</span>}
+            </label>
             <input required type="number" min="0" value={form.price}
               onChange={(e) => update("price", e.target.value)}
-              placeholder="e.g. 95000" className={inputClass} />
+              placeholder="z.B. 1200" className={inputClass} />
           </div>
           <div>
-            <label className={labelClass}>Currency</label>
+            <label className={labelClass}>Währung</label>
             <select value={form.currency} onChange={(e) => update("currency", e.target.value)} className={inputClass}>
               {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
@@ -209,93 +202,92 @@ export function ListingForm({ property, tenantId }: Props) {
         </div>
       </div>
 
-      {/* Specs */}
+      {/* Ausstattung */}
       <div className={sectionClass}>
-        <h2 className="font-semibold text-slate-800">Property Specs</h2>
+        <h2 className="font-semibold text-slate-800">Ausstattung</h2>
         <div className="grid grid-cols-3 gap-4">
           <div>
-            <label className={labelClass}>Bedrooms</label>
+            <label className={labelClass}>Zimmer</label>
             <input type="number" min="0" value={form.bedrooms}
               onChange={(e) => update("bedrooms", e.target.value)} className={inputClass} />
           </div>
           <div>
-            <label className={labelClass}>Bathrooms</label>
+            <label className={labelClass}>Bäder</label>
             <input type="number" min="0" value={form.bathrooms}
               onChange={(e) => update("bathrooms", e.target.value)} className={inputClass} />
           </div>
           <div>
-            <label className={labelClass}>Floor area (m²)</label>
+            <label className={labelClass}>Fläche (m²)</label>
             <input type="number" min="0" value={form.area_sqm}
               onChange={(e) => update("area_sqm", e.target.value)}
-              placeholder="e.g. 72" className={inputClass} />
+              placeholder="z.B. 78" className={inputClass} />
           </div>
         </div>
       </div>
 
-      {/* Location */}
+      {/* Lage */}
       <div className={sectionClass}>
-        <h2 className="font-semibold text-slate-800">Location</h2>
+        <h2 className="font-semibold text-slate-800">Lage</h2>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className={labelClass}>City *</label>
+            <label className={labelClass}>Stadt *</label>
             <input required type="text" value={form.city}
               onChange={(e) => update("city", e.target.value)}
-              placeholder="e.g. Nairobi" className={inputClass} />
+              placeholder="z.B. Hamburg" className={inputClass} />
           </div>
           <div>
-            <label className={labelClass}>Neighbourhood</label>
+            <label className={labelClass}>Stadtteil</label>
             <input type="text" value={form.neighbourhood}
               onChange={(e) => update("neighbourhood", e.target.value)}
-              placeholder="e.g. Westlands" className={inputClass} />
+              placeholder="z.B. Eimsbüttel" className={inputClass} />
           </div>
         </div>
         <div>
-          <label className={labelClass}>Full address (optional)</label>
+          <label className={labelClass}>Vollständige Adresse (optional)</label>
           <input type="text" value={form.address}
             onChange={(e) => update("address", e.target.value)}
-            placeholder="e.g. 14 Riverside Drive" className={inputClass} />
+            placeholder="z.B. Musterstraße 12, 20095 Hamburg" className={inputClass} />
         </div>
       </div>
 
-      {/* Agent */}
+      {/* Ansprechpartner */}
       <div className={sectionClass}>
-        <h2 className="font-semibold text-slate-800">Agent / Contact</h2>
+        <h2 className="font-semibold text-slate-800">Ansprechpartner</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label className={labelClass}>Agent name</label>
+            <label className={labelClass}>Name</label>
             <input type="text" value={form.agent_name}
               onChange={(e) => update("agent_name", e.target.value)}
-              placeholder="Jane Mwangi" className={inputClass} />
+              placeholder="Max Mustermann" className={inputClass} />
           </div>
           <div>
-            <label className={labelClass}>Phone</label>
+            <label className={labelClass}>Telefon</label>
             <input type="tel" value={form.agent_phone}
               onChange={(e) => update("agent_phone", e.target.value)}
-              placeholder="+254 700 000 000" className={inputClass} />
+              placeholder="+49 40 000000" className={inputClass} />
           </div>
           <div>
-            <label className={labelClass}>Email</label>
+            <label className={labelClass}>E-Mail</label>
             <input type="email" value={form.agent_email}
               onChange={(e) => update("agent_email", e.target.value)}
-              placeholder="agent@example.com" className={inputClass} />
+              placeholder="makler@beispiel.de" className={inputClass} />
           </div>
         </div>
       </div>
 
-      {/* Images */}
+      {/* Fotos */}
       <div className={sectionClass}>
-        <h2 className="font-semibold text-slate-800">Photos</h2>
-        <p className="text-sm text-slate-500 -mt-2">Up to 10 photos. First image is the hero.</p>
+        <h2 className="font-semibold text-slate-800">Fotos</h2>
+        <p className="text-sm text-slate-400 -mt-2">Bis zu 10 Fotos. Das erste Bild wird als Titelbild verwendet.</p>
 
-        {/* Preview grid */}
         {previewUrls.length > 0 && (
           <div className="grid grid-cols-4 gap-2">
             {previewUrls.map((url, i) => (
-              <div key={i} className="relative h-20 rounded-lg overflow-hidden bg-slate-200">
+              <div key={i} className="relative h-20 rounded-xl overflow-hidden bg-slate-100">
                 <Image src={url} alt="" fill className="object-cover" sizes="120px" />
                 {i === 0 && (
-                  <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs text-center py-0.5">
-                    Hero
+                  <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] text-center py-0.5">
+                    Titelbild
                   </div>
                 )}
               </div>
@@ -304,49 +296,32 @@ export function ListingForm({ property, tenantId }: Props) {
         )}
 
         <div>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            multiple
-            className="hidden"
-            onChange={handleImageUpload}
-          />
-          <button
-            type="button"
-            disabled={uploading || previewUrls.length >= 10}
+          <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={handleImageUpload} />
+          <button type="button" disabled={uploading || previewUrls.length >= 10}
             onClick={() => fileRef.current?.click()}
-            className="btn-secondary px-5 py-2.5 rounded-lg text-sm flex items-center gap-2"
-          >
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50">
             {uploading && <LoadingSpinner className="h-4 w-4" />}
-            {uploading ? "Uploading..." : "Upload photos"}
+            {uploading ? "Wird hochgeladen..." : "Fotos hochladen"}
           </button>
         </div>
       </div>
 
-      {/* Status */}
+      {/* Sichtbarkeit */}
       <div className={sectionClass}>
-        <h2 className="font-semibold text-slate-800">Visibility</h2>
-        <div className="flex gap-3">
-          {(["draft", "active"] as const).map((s) => (
-            <button
-              key={s} type="button"
-              onClick={() => update("status", s)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors border-2 ${
-                form.status === s
-                  ? "text-white border-transparent"
-                  : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
+        <h2 className="font-semibold text-slate-800">Sichtbarkeit</h2>
+        <div className="flex gap-3 flex-wrap">
+          {STATUS_OPTIONS.map((s) => (
+            <button key={s.value} type="button" onClick={() => update("status", s.value)}
+              className={`px-5 py-2.5 rounded-xl text-sm font-medium transition-all border-2 ${
+                form.status === s.value ? "text-white border-transparent" : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
               }`}
-              style={form.status === s ? { backgroundColor: "var(--color-primary)", borderColor: "var(--color-primary)" } : {}}
-            >
-              {s === "draft" ? "Save as Draft" : "Publish (Active)"}
+              style={form.status === s.value ? { backgroundColor: "var(--color-primary)", borderColor: "var(--color-primary)" } : {}}>
+              {s.label}
             </button>
           ))}
         </div>
         <p className="text-xs text-slate-400">
-          {form.status === "draft"
-            ? "Draft listings are hidden from the public."
-            : "Active listings are visible to all visitors."}
+          {STATUS_OPTIONS.find((s) => s.value === form.status)?.desc}
         </p>
       </div>
 
@@ -356,21 +331,16 @@ export function ListingForm({ property, tenantId }: Props) {
         </div>
       )}
 
-      {/* Submit */}
       <div className="flex gap-3">
-        <button
-          type="submit" disabled={saving}
-          className="btn-primary px-8 py-2.5 rounded-lg flex items-center gap-2"
-        >
+        <button type="submit" disabled={saving}
+          className="flex items-center gap-2 px-8 py-2.5 rounded-xl text-white text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-50"
+          style={{ backgroundColor: "var(--color-primary)" }}>
           {saving && <LoadingSpinner className="h-4 w-4" />}
-          {isEdit ? "Save changes" : "Create listing"}
+          {isEdit ? "Änderungen speichern" : "Inserat erstellen"}
         </button>
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="px-6 py-2.5 rounded-lg text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
-        >
-          Cancel
+        <button type="button" onClick={() => router.back()}
+          className="px-6 py-2.5 rounded-xl text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">
+          Abbrechen
         </button>
       </div>
     </form>
