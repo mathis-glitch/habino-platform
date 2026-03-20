@@ -20,12 +20,20 @@ interface ListingCreated {
   area_sqm?: number;
 }
 
+interface WizardState {
+  step: string | null;
+  data: Record<string, unknown>;
+  lastCreatedId?: string;
+  editingField?: string;
+}
+
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   properties?: Property[];
   appointment?: { success: boolean; error?: string };
   listing_created?: ListingCreated;
+  wizard_chips?: string[];   // structured option chips for wizard steps
   filters?: Record<string, unknown>;
 }
 
@@ -150,13 +158,35 @@ function ListingCreatedCard({ listing }: { listing: ListingCreated }) {
   );
 }
 
+// ── Wizard option chips ───────────────────────────────────────────────────────
+// Larger, more prominent than follow-up chips — used for guided listing wizard steps
+function WizardChips({ chips, onSend }: { chips: string[]; onSend: (text: string) => void }) {
+  return (
+    <div className="flex flex-wrap gap-2 mt-3">
+      {chips.map((chip) => {
+        const isPublish = chip.toLowerCase().includes("publish");
+        return (
+          <button
+            key={chip}
+            onClick={() => onSend(chip)}
+            className={`px-4 py-2.5 rounded-xl text-sm font-semibold border-2 transition-all active:scale-95 ${
+              isPublish
+                ? "text-white border-transparent hover:opacity-90"
+                : "bg-white border-slate-200 text-slate-700 hover:border-slate-400 hover:bg-slate-50"
+            }`}
+            style={isPublish ? { backgroundColor: "var(--color-primary)", borderColor: "var(--color-primary)" } : {}}>
+            {chip}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Follow-up chips ──────────────────────────────────────────────────────────
 function FollowUpChips({ msg, onSend }: { msg: ChatMessage; onSend: (text: string) => void }) {
   const chips: string[] = [];
-  if (msg.listing_created) {
-    chips.push("List another property");
-    chips.push("Edit listing details");
-  } else if (msg.properties && msg.properties.length > 0) {
+  if (msg.properties && msg.properties.length > 0) {
     chips.push("Schedule a viewing");
     chips.push("Show cheaper options");
     chips.push("Show larger properties");
@@ -180,9 +210,10 @@ function FollowUpChips({ msg, onSend }: { msg: ChatMessage; onSend: (text: strin
 
 // ── Main component ───────────────────────────────────────────────────────────
 export function AIChatPage() {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [input, setInput]       = useState("");
-  const [loading, setLoading]   = useState(false);
+  const [messages, setMessages]     = useState<ChatMessage[]>([]);
+  const [input, setInput]           = useState("");
+  const [loading, setLoading]       = useState(false);
+  const [wizardState, setWizardState] = useState<WizardState>({ step: null, data: {} });
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef  = useRef<HTMLTextAreaElement>(null);
   const pathname  = usePathname();
@@ -219,6 +250,7 @@ export function AIChatPage() {
         body: JSON.stringify({
           messages: apiMessages,
           context: currentProperty ? { currentProperty } : undefined,
+          wizard: wizardState,
         }),
       });
       const data = await res.json();
@@ -226,12 +258,17 @@ export function AIChatPage() {
         setMessages([...newMessages, { role: "assistant", content: `⚠️ Error: ${data.error || `HTTP ${res.status}`}` }]);
         return;
       }
+      // Update wizard state if returned by API
+      if (data.wizard !== undefined) {
+        setWizardState(data.wizard);
+      }
       setMessages([...newMessages, {
         role: "assistant",
         content: data.reply ?? "",
         properties: data.properties !== undefined ? data.properties : undefined,
         appointment: data.appointment,
         listing_created: data.listing_created,
+        wizard_chips: data.chips,
         filters: data.filters,
       }]);
     } catch (err: unknown) {
@@ -364,7 +401,9 @@ export function AIChatPage() {
                   {msg.appointment && <AppointmentCard result={msg.appointment} />}
                   {msg.listing_created && <ListingCreatedCard listing={msg.listing_created} />}
                   {msg.role === "assistant" && i === messages.length - 1 && !loading && (
-                    <FollowUpChips msg={msg} onSend={sendMessage} />
+                    msg.wizard_chips
+                      ? <WizardChips chips={msg.wizard_chips} onSend={sendMessage} />
+                      : <FollowUpChips msg={msg} onSend={sendMessage} />
                   )}
                 </div>
               </div>
@@ -391,6 +430,39 @@ export function AIChatPage() {
       {/* ── Input bar (chat mode) ── */}
       {hasMessages && (
         <div className="border-t border-slate-200 bg-white py-4 px-4">
+          {/* Wizard progress bar */}
+          {wizardState.step && (() => {
+            const steps = ["listing_type","property_type","title","price","city","extras","confirm"];
+            const idx   = steps.indexOf(wizardState.step);
+            const total = steps.length;
+            const labels: Record<string, string> = {
+              listing_type: "Sale or Rent", property_type: "Property type",
+              title: "Title", price: "Price", city: "City",
+              extras: "Details", confirm: "Review & publish",
+              edit_field: "Editing", edit_value: "Editing",
+            };
+            return (
+              <div className="max-w-2xl mx-auto mb-3">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">
+                    Listing wizard · {labels[wizardState.step] || wizardState.step}
+                  </span>
+                  <span className="text-[11px] text-slate-300">
+                    Step {Math.max(idx + 1, 1)} of {total}
+                  </span>
+                </div>
+                <div className="h-1 bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: `${((Math.max(idx + 1, 1)) / total) * 100}%`,
+                      backgroundColor: "var(--color-primary)",
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          })()}
           <div className="max-w-2xl mx-auto">
             <div className="flex items-end gap-3 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/10 transition-all shadow-sm">
               <textarea
