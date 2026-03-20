@@ -10,8 +10,8 @@ export default async function LoginPage({
   const errorMsg   = params.error ? decodeURIComponent(params.error) : null;
 
   const inputClass =
-    "w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm " +
-    "focus:outline-none focus:ring-2 focus:border-transparent bg-white";
+    "w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm " +
+    "focus:outline-none focus:ring-2 focus:border-transparent bg-white transition-all";
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
@@ -20,33 +20,33 @@ export default async function LoginPage({
         {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/">
-            <span className="text-2xl font-bold text-primary">Habino</span>
+            <span className="text-2xl font-bold" style={{ color: "#00A884" }}>Habino</span>
           </Link>
-          <p className="text-slate-500 mt-1 text-sm">Sign in to your account</p>
+          <p className="text-slate-500 mt-1.5 text-sm">In Ihrem Admin-Bereich anmelden</p>
         </div>
 
         {/* Card */}
-        <div className="card p-8">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8">
           <form method="POST" action="/api/auth/login" className="flex flex-col gap-5">
             <input type="hidden" name="redirectTo" value={redirectTo} />
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                Email address
+                E-Mail-Adresse
               </label>
               <input
                 type="email"
                 name="email"
                 required
                 autoComplete="email"
-                placeholder="you@example.com"
+                placeholder="max@beispiel.de"
                 className={inputClass}
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                Password
+                Passwort
               </label>
               <input
                 type="password"
@@ -59,23 +59,24 @@ export default async function LoginPage({
             </div>
 
             {errorMsg && (
-              <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
+              <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
                 {errorMsg}
-              </p>
+              </div>
             )}
 
             <button
               type="submit"
-              className="btn-primary w-full py-2.5 rounded-lg font-medium"
+              className="w-full py-3 rounded-xl text-white font-semibold text-sm hover:opacity-90 transition-opacity"
+              style={{ background: "linear-gradient(135deg, #00A884, #0F1F3D)" }}
             >
-              Sign in
+              Anmelden
             </button>
           </form>
 
-          <p className="text-center text-sm text-slate-500 mt-6">
-            Don&apos;t have an account?{" "}
-            <Link href="/auth/register" className="text-primary font-medium hover:underline">
-              Register
+          <p className="text-center text-sm text-slate-400 mt-6">
+            Noch kein Konto?{" "}
+            <Link href="/auth/register" className="font-medium hover:underline" style={{ color: "#00A884" }}>
+              Kostenlos registrieren
             </Link>
           </p>
         </div>
