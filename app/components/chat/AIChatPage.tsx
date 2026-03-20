@@ -48,7 +48,7 @@ function ChatPropertyCard({ property }: { property: Property }) {
         </svg>
       </button>
 
-      <Link href={`/properties/${property.id}`}>
+      <div>
         <div className="relative h-16 bg-slate-100 overflow-hidden">
           {hero ? (
             <Image src={hero} alt={property.title} fill
@@ -82,8 +82,13 @@ function ChatPropertyCard({ property }: { property: Property }) {
             {property.bathrooms > 0 && <span>{property.bathrooms} ba</span>}
             {property.area_sqm && <span>{property.area_sqm} m²</span>}
           </div>
+          {saved && (
+            <p className="text-[10px] text-slate-400 mt-1.5">
+              Saved · <Link href="/saved" className="underline" style={{ color: "var(--color-primary)" }}>View details →</Link>
+            </p>
+          )}
         </div>
-      </Link>
+      </div>
     </div>
   );
 }
@@ -136,9 +141,9 @@ function ListingCreatedCard({ listing }: { listing: ListingCreated }) {
           {listing.bedrooms > 0 && <span>{listing.bedrooms} bed</span>}
           {listing.area_sqm && <span>{listing.area_sqm} m²</span>}
         </div>
-        <Link href={`/properties/${listing.id}`}
+        <Link href="/saved"
           className="inline-block mt-2 text-xs font-semibold text-emerald-700 underline underline-offset-2 hover:text-emerald-900">
-          View listing →
+          View in Saved →
         </Link>
       </div>
     </div>
