@@ -6,6 +6,10 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+// ContractType used in CONTRACT_TYPE_LABELS below — keep import
+
+// Chat redirect URL for starting the contract wizard
+const CONTRACT_CHAT_URL = "/?q=Create+a+contract";
 
 // ── Helpers ───────────────────────────────────────────────────
 function fmt(price: number, currency: string) {
@@ -209,289 +213,6 @@ function ContractModal({
   );
 }
 
-// ── New Contract Form ─────────────────────────────────────────
-function NewContractForm({
-  onCreated,
-  onClose,
-}: {
-  onCreated: () => void;
-  onClose: () => void;
-}) {
-  const COUNTRIES = [
-    { code: "KE", label: "Kenya" }, { code: "NG", label: "Nigeria" },
-    { code: "GH", label: "Ghana" }, { code: "ZA", label: "South Africa" },
-    { code: "AE", label: "UAE"   }, { code: "DE", label: "Germany" },
-    { code: "GB", label: "United Kingdom" }, { code: "FR", label: "France" },
-    { code: "ES", label: "Spain"  }, { code: "US", label: "United States" },
-  ];
-  const CURRENCIES = ["KES", "USD", "EUR", "GBP", "AED", "NGN", "ZAR", "GHS"];
-
-  const [step, setStep]     = useState<"details" | "generating">("details");
-  const [error, setError]   = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-
-  // Pre-fill from profile
-  useEffect(() => {
-    fetch("/api/profile").then((r) => r.json()).then((d) => {
-      if (!d.profile) return;
-      const p = d.profile;
-      setForm((prev) => ({
-        ...prev,
-        landlord_name:    p.full_name    || prev.landlord_name,
-        landlord_email:   p.email        || prev.landlord_email,
-        landlord_address: p.address      ? `${p.address}, ${p.city ?? ""}`.trim().replace(/,\s*$/, "") : prev.landlord_address,
-        country_code:     p.country_code || prev.country_code,
-      }));
-    }).catch(() => {});
-  }, []);
-
-  const [form, setForm] = useState({
-    property_id:        "",
-    contract_type:      "residential_rental" as ContractType,
-    landlord_name:      "",
-    landlord_email:     "",
-    landlord_address:   "",
-    tenant_name:        "",
-    tenant_email:       "",
-    tenant_address:     "",
-    tenant_id_number:   "",
-    start_date:         "",
-    end_date:           "",
-    notice_period_days: "30",
-    monthly_rent:       "",
-    deposit_amount:     "",
-    purchase_price:     "",
-    currency:           "USD",
-    payment_day:        "1",
-    country_code:       "KE",
-    language:           "en",
-    furnished:          false,
-    pets_allowed:       false,
-    subletting_allowed: false,
-    notes:              "",
-  });
-
-  function u(k: string, v: string | boolean) {
-    setForm((p) => ({ ...p, [k]: v }));
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setSaving(true);
-    setError(null);
-    try {
-      const payload = {
-        ...form,
-        notice_period_days: parseInt(form.notice_period_days),
-        payment_day:        parseInt(form.payment_day),
-        monthly_rent:       form.monthly_rent    ? parseFloat(form.monthly_rent)    : undefined,
-        deposit_amount:     form.deposit_amount  ? parseFloat(form.deposit_amount)  : undefined,
-        purchase_price:     form.purchase_price  ? parseFloat(form.purchase_price)  : undefined,
-        end_date:           form.end_date        || undefined,
-      };
-
-      // 1. Create contract record
-      const res = await fetch("/api/contracts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-
-      const contractId = data.contract.id;
-      setStep("generating");
-
-      // 2. Trigger AI generation
-      const genRes = await fetch(`/api/contracts/${contractId}/generate`, { method: "POST" });
-      if (!genRes.ok) {
-        const gd = await genRes.json();
-        throw new Error(gd.error ?? "Generation failed");
-      }
-
-      onCreated();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-      setStep("details");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  const isRental = ["residential_rental", "commercial_rental", "short_term_rental"].includes(form.contract_type);
-
-  const inputClass = "w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:border-transparent bg-white";
-  const labelClass = "block text-xs font-medium text-slate-600 mb-1";
-
-  if (step === "generating") {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-        <div className="bg-white rounded-2xl p-10 flex flex-col items-center gap-4 shadow-2xl">
-          <LoadingSpinner className="h-10 w-10" />
-          <p className="font-medium text-slate-800">Generating your contract…</p>
-          <p className="text-sm text-slate-400">Claude is drafting a jurisdiction-compliant agreement. This takes ~20 seconds.</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={onClose}>
-      <form
-        onClick={(e) => e.stopPropagation()}
-        onSubmit={handleSubmit}
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
-      >
-        <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between rounded-t-2xl">
-          <h2 className="font-semibold text-slate-800">New Contract</h2>
-          <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-600 text-2xl leading-none">×</button>
-        </div>
-
-        <div className="px-6 py-5 flex flex-col gap-5">
-
-          {/* Contract type + property */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={labelClass}>Contract Type</label>
-              <select value={form.contract_type} onChange={(e) => u("contract_type", e.target.value)} className={inputClass}>
-                <option value="residential_rental">Residential Rental</option>
-                <option value="commercial_rental">Commercial Lease</option>
-                <option value="purchase">Purchase Agreement</option>
-                <option value="short_term_rental">Short-Term Rental</option>
-                <option value="option_to_purchase">Option to Purchase</option>
-              </select>
-            </div>
-            <div>
-              <label className={labelClass}>Property ID</label>
-              <input required type="text" value={form.property_id}
-                onChange={(e) => u("property_id", e.target.value)}
-                placeholder="UUID of the property"
-                className={inputClass} />
-            </div>
-          </div>
-
-          {/* Parties */}
-          <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Landlord / Vendor</p>
-            <div className="grid grid-cols-2 gap-3">
-              <div><label className={labelClass}>Name *</label>
-                <input required value={form.landlord_name} onChange={(e) => u("landlord_name", e.target.value)} className={inputClass} /></div>
-              <div><label className={labelClass}>Email *</label>
-                <input required type="email" value={form.landlord_email} onChange={(e) => u("landlord_email", e.target.value)} className={inputClass} /></div>
-              <div className="col-span-2"><label className={labelClass}>Address</label>
-                <input value={form.landlord_address} onChange={(e) => u("landlord_address", e.target.value)} className={inputClass} /></div>
-            </div>
-          </div>
-
-          <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Tenant / Purchaser</p>
-            <div className="grid grid-cols-2 gap-3">
-              <div><label className={labelClass}>Name *</label>
-                <input required value={form.tenant_name} onChange={(e) => u("tenant_name", e.target.value)} className={inputClass} /></div>
-              <div><label className={labelClass}>Email *</label>
-                <input required type="email" value={form.tenant_email} onChange={(e) => u("tenant_email", e.target.value)} className={inputClass} /></div>
-              <div><label className={labelClass}>Address</label>
-                <input value={form.tenant_address} onChange={(e) => u("tenant_address", e.target.value)} className={inputClass} /></div>
-              <div><label className={labelClass}>ID / Passport No.</label>
-                <input value={form.tenant_id_number} onChange={(e) => u("tenant_id_number", e.target.value)} className={inputClass} /></div>
-            </div>
-          </div>
-
-          {/* Dates */}
-          <div className="grid grid-cols-3 gap-3">
-            <div><label className={labelClass}>Start Date *</label>
-              <input required type="date" value={form.start_date} onChange={(e) => u("start_date", e.target.value)} className={inputClass} /></div>
-            <div><label className={labelClass}>End Date</label>
-              <input type="date" value={form.end_date} onChange={(e) => u("end_date", e.target.value)} className={inputClass} /></div>
-            <div><label className={labelClass}>Notice Period (days)</label>
-              <input type="number" min="0" value={form.notice_period_days} onChange={(e) => u("notice_period_days", e.target.value)} className={inputClass} /></div>
-          </div>
-
-          {/* Financials */}
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className={labelClass}>Currency</label>
-              <select value={form.currency} onChange={(e) => u("currency", e.target.value)} className={inputClass}>
-                {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-            {isRental ? (
-              <>
-                <div><label className={labelClass}>Monthly Rent</label>
-                  <input type="number" min="0" value={form.monthly_rent} onChange={(e) => u("monthly_rent", e.target.value)} className={inputClass} /></div>
-                <div><label className={labelClass}>Deposit</label>
-                  <input type="number" min="0" value={form.deposit_amount} onChange={(e) => u("deposit_amount", e.target.value)} className={inputClass} /></div>
-              </>
-            ) : (
-              <div className="col-span-2"><label className={labelClass}>Purchase Price</label>
-                <input type="number" min="0" value={form.purchase_price} onChange={(e) => u("purchase_price", e.target.value)} className={inputClass} /></div>
-            )}
-          </div>
-
-          {/* Jurisdiction */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={labelClass}>Country / Jurisdiction *</label>
-              <select required value={form.country_code} onChange={(e) => u("country_code", e.target.value)} className={inputClass}>
-                {COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.label}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className={labelClass}>Contract Language</label>
-              <select value={form.language} onChange={(e) => u("language", e.target.value)} className={inputClass}>
-                <option value="en">English</option>
-                <option value="de">German</option>
-                <option value="fr">French</option>
-                <option value="es">Spanish</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Options */}
-          <div className="flex gap-6">
-            {[
-              { key: "furnished",          label: "Furnished" },
-              { key: "pets_allowed",       label: "Pets allowed" },
-              { key: "subletting_allowed", label: "Subletting allowed" },
-            ].map(({ key, label }) => (
-              <label key={key} className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
-                <input type="checkbox" checked={form[key as keyof typeof form] as boolean}
-                  onChange={(e) => u(key, e.target.checked)} className="w-4 h-4 accent-primary" />
-                {label}
-              </label>
-            ))}
-          </div>
-
-          {/* Notes */}
-          <div>
-            <label className={labelClass}>Special conditions / notes for AI</label>
-            <textarea value={form.notes} onChange={(e) => u("notes", e.target.value)}
-              rows={2} placeholder="Any special terms, restrictions, or conditions to include…"
-              className={`${inputClass} resize-none`} />
-          </div>
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-red-700 text-sm">{error}</div>
-          )}
-        </div>
-
-        <div className="sticky bottom-0 bg-white border-t border-slate-100 px-6 py-4 flex gap-3">
-          <button type="submit" disabled={saving}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-white text-sm font-medium disabled:opacity-50"
-            style={{ backgroundColor: "var(--color-primary)" }}>
-            {saving && <LoadingSpinner className="h-4 w-4" />}
-            Generate with AI ✨
-          </button>
-          <button type="button" onClick={onClose}
-            className="px-5 py-2.5 rounded-xl text-sm text-slate-600 bg-slate-100 hover:bg-slate-200">
-            Cancel
-          </button>
-        </div>
-      </form>
-    </div>
-  );
-}
-
 // ── Main HomeClient ───────────────────────────────────────────
 export function HomeClient() {
   const router = useRouter();
@@ -501,7 +222,6 @@ export function HomeClient() {
   const [contracts,     setContracts]     = useState<Contract[]>([]);
   const [loading,       setLoading]       = useState(true);
   const [selectedContract, setSelectedContract] = useState<Contract | null>(null);
-  const [showNewContract,  setShowNewContract]  = useState(false);
   const [generating,    setGenerating]    = useState(false);
 
   // ── Fetch saved properties ──────────────────────────────────
@@ -640,7 +360,7 @@ export function HomeClient() {
                 icon="🏠"
                 title="No active properties"
                 text="Properties linked to your active or signed rental/purchase contracts will appear here."
-                action={{ label: "Create a contract", onClick: () => setShowNewContract(true) }}
+                action={{ label: "Create a contract", href: CONTRACT_CHAT_URL }}
               />
             ) : (
               <div className="grid sm:grid-cols-2 gap-4">
@@ -662,21 +382,21 @@ export function HomeClient() {
           <div>
             <div className="flex justify-between items-center mb-4">
               <p className="text-sm text-slate-500">{contracts.length} contract{contracts.length !== 1 ? "s" : ""}</p>
-              <button
-                onClick={() => setShowNewContract(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-medium"
+              <Link
+                href={CONTRACT_CHAT_URL}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-medium hover:opacity-90 transition-opacity"
                 style={{ backgroundColor: "var(--color-primary)" }}
               >
-                + New Contract
-              </button>
+                <span>✨</span> New Contract via AI
+              </Link>
             </div>
 
             {contracts.length === 0 ? (
               <EmptyState
                 icon="📄"
                 title="No contracts yet"
-                text="Create an AI-generated rental or purchase contract for any property."
-                action={{ label: "Create contract", onClick: () => setShowNewContract(true) }}
+                text="Let the AI guide you through creating a rental or purchase contract — just talk to it."
+                action={{ label: "Create contract with AI ✨", href: CONTRACT_CHAT_URL }}
               />
             ) : (
               <div className="flex flex-col gap-3">
@@ -693,24 +413,13 @@ export function HomeClient() {
         )}
       </div>
 
-      {/* Modals */}
+      {/* Contract detail modal */}
       {selectedContract && (
         <ContractModal
           contract={selectedContract}
           onClose={() => setSelectedContract(null)}
           onGenerate={handleGenerate}
           generating={generating}
-        />
-      )}
-
-      {showNewContract && (
-        <NewContractForm
-          onClose={() => setShowNewContract(false)}
-          onCreated={() => {
-            setShowNewContract(false);
-            fetchContracts();
-            setTab("contracts");
-          }}
         />
       )}
     </main>

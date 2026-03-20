@@ -36,6 +36,17 @@ interface ContractCreated {
   start_date: string;
 }
 
+interface ProfileData {
+  full_name?: string;
+  phone?: string;
+  whatsapp?: string;
+  city?: string;
+  country_code?: string;
+  id_number?: string;
+  bio?: string;
+  preferred_lang?: string;
+}
+
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
@@ -43,6 +54,7 @@ interface ChatMessage {
   appointment?: { success: boolean; error?: string };
   listing_created?: ListingCreated;
   contract_created?: ContractCreated;
+  profile_saved?: { success: boolean; error?: string };
   wizard_chips?: string[];   // structured option chips for wizard steps
   filters?: Record<string, unknown>;
 }
@@ -186,6 +198,34 @@ function ContractCreatedCard({ contract }: { contract: ContractCreated }) {
         <Link href="/home"
           className="inline-block mt-2 text-xs font-semibold text-indigo-700 underline underline-offset-2 hover:text-indigo-900">
           View in Home → Contracts
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+// ── Profile saved card ────────────────────────────────────────────────────────
+function ProfileSavedCard({ result }: { result: { success: boolean; error?: string } }) {
+  if (!result.success) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3 flex items-start gap-3">
+        <div className="text-lg shrink-0">⚠️</div>
+        <div>
+          <p className="text-sm font-semibold text-red-700">Could not save profile</p>
+          <p className="text-xs text-red-500 mt-0.5">{result.error || "Please try again or visit the Profile page."}</p>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-4 flex items-start gap-3">
+      <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0 text-lg">✅</div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-emerald-800">Profile saved!</p>
+        <p className="text-xs text-emerald-600 mt-0.5">Your details will be used to pre-fill contracts and personalise your AI experience.</p>
+        <Link href="/profile"
+          className="inline-block mt-2 text-xs font-semibold text-emerald-700 underline underline-offset-2 hover:text-emerald-900">
+          View your profile →
         </Link>
       </div>
     </div>
@@ -416,12 +456,19 @@ export function AIChatPage() {
   useEffect(() => { inputRef.current?.focus(); }, []);
 
   // Auto-send ?q= query param (e.g. from "Book a Viewing" in Saved drawer)
+  // Also handle ?wizard=profile to start the profile setup interview
   useEffect(() => {
-    const q = searchParams.get("q");
-    if (q && messages.length === 0) {
-      sendMessage(decodeURIComponent(q));
-      // Clean the URL without triggering navigation
-      window.history.replaceState(null, "", "/");
+    const q      = searchParams.get("q");
+    const wizard = searchParams.get("wizard");
+
+    if (messages.length === 0) {
+      if (wizard === "profile") {
+        sendMessage("I want to set up my profile");
+        window.history.replaceState(null, "", "/");
+      } else if (q) {
+        sendMessage(decodeURIComponent(q));
+        window.history.replaceState(null, "", "/");
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -464,6 +511,25 @@ export function AIChatPage() {
       if (data.wizard !== undefined) {
         setWizardState(data.wizard);
       }
+
+      // If API returned profile_data, save it via the profile API (which handles auth)
+      let profileSaved: { success: boolean; error?: string } | undefined;
+      if (data.profile_data) {
+        try {
+          const saveRes = await fetch("/api/profile", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data.profile_data as ProfileData),
+          });
+          const saveData = await saveRes.json();
+          profileSaved = saveRes.ok
+            ? { success: true }
+            : { success: false, error: saveData.error ?? "Save failed" };
+        } catch (e: unknown) {
+          profileSaved = { success: false, error: e instanceof Error ? e.message : "Network error" };
+        }
+      }
+
       setMessages([...newMessages, {
         role: "assistant",
         content: data.reply ?? "",
@@ -471,6 +537,7 @@ export function AIChatPage() {
         appointment: data.appointment,
         listing_created: data.listing_created,
         contract_created: data.contract_created,
+        profile_saved: profileSaved,
         wizard_chips: data.chips,
         filters: data.filters,
       }]);
@@ -498,6 +565,7 @@ export function AIChatPage() {
   const quickActions = [
     { icon: "📝", text: "I want to list my property", label: "List a property" },
     { icon: "📄", text: "Create a contract",          label: "Create a contract" },
+    { icon: "👤", text: "I want to set up my profile", label: "Set up profile" },
   ];
 
   const suggestions = [
@@ -629,6 +697,7 @@ export function AIChatPage() {
                   {msg.appointment && <AppointmentCard result={msg.appointment} />}
                   {msg.listing_created && <ListingCreatedCard listing={msg.listing_created} />}
                   {msg.contract_created && <ContractCreatedCard contract={msg.contract_created} />}
+                  {msg.profile_saved && <ProfileSavedCard result={msg.profile_saved} />}
                   {msg.role === "assistant" && i === messages.length - 1 && !loading && (
                     msg.wizard_chips
                       ? <WizardChips chips={msg.wizard_chips} onSend={sendMessage} />
@@ -661,20 +730,36 @@ export function AIChatPage() {
         <div className="border-t border-slate-200 bg-white py-4 px-4">
           {/* Wizard progress bar */}
           {wizardState.step && (() => {
-            const steps = ["listing_type","property_type","title","price","city","extras","confirm"];
+            // Determine which wizard is active and its steps/labels
+            const isProfile  = wizardState.step.startsWith("profile_");
+            const isContract = wizardState.step.startsWith("contract_");
+
+            const steps = isProfile
+              ? ["profile_name","profile_contact","profile_location","profile_identity","profile_confirm"]
+              : isContract
+              ? ["contract_landlord","contract_property","contract_tenant","contract_terms","contract_jurisdiction","contract_confirm"]
+              : ["listing_type","property_type","title","price","city","extras","confirm"];
+
             const idx   = steps.indexOf(wizardState.step);
             const total = steps.length;
+            const wizardName = isProfile ? "Profile setup" : isContract ? "Contract wizard" : "Listing wizard";
             const labels: Record<string, string> = {
               listing_type: "Sale or Rent", property_type: "Property type",
               title: "Title", price: "Price", city: "City",
               extras: "Details", confirm: "Review & publish",
               edit_field: "Editing", edit_value: "Editing",
+              profile_name: "Your name", profile_contact: "Contact details",
+              profile_location: "Location", profile_identity: "Identity & language",
+              profile_confirm: "Review & save",
+              contract_landlord: "Landlord", contract_property: "Property",
+              contract_tenant: "Tenant", contract_terms: "Terms",
+              contract_jurisdiction: "Jurisdiction", contract_confirm: "Review & generate",
             };
             return (
               <div className="max-w-2xl mx-auto mb-3">
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">
-                    Listing wizard · {labels[wizardState.step] || wizardState.step}
+                    {wizardName} · {labels[wizardState.step] || wizardState.step}
                   </span>
                   <span className="text-[11px] text-slate-300">
                     Step {Math.max(idx + 1, 1)} of {total}

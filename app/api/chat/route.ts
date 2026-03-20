@@ -16,7 +16,13 @@ type WizardStep =
   | "confirm"        // Step 7: Summary + confirmation before saving
   | "edit_field"     // Edit: which field to change?
   | "edit_value"     // Edit: new value for that field
-  // ── Contract wizard ───────────────────────────────────────
+  // ── Profile wizard ────────────────────────────────────────────
+  | "profile_name"       // P1: Full name (+ optional bio)
+  | "profile_contact"    // P2: Phone + WhatsApp
+  | "profile_location"   // P3: City + country
+  | "profile_identity"   // P4: ID number + preferred language
+  | "profile_confirm"    // P5: Summary → return profile_data to frontend
+  // ── Contract wizard ───────────────────────────────────────────
   | "contract_landlord"      // C1: Landlord name + email
   | "contract_property"      // C2: Which property?
   | "contract_tenant"        // C3: Tenant name + email + ID
@@ -36,6 +42,16 @@ interface WizardData {
   bathrooms?:     number;
   area_sqm?:      number;
   description?:   string;
+  // Profile fields
+  p_full_name?:    string;
+  p_phone?:        string;
+  p_whatsapp?:     string;
+  p_address?:      string;
+  p_city?:         string;
+  p_country_code?: string;
+  p_id_number?:    string;
+  p_bio?:          string;
+  p_lang?:         string;
   // Contract fields
   c_landlord_name?:    string;
   c_landlord_email?:   string;
@@ -85,11 +101,19 @@ const CONTRACT_KEYWORDS = [
   "contract for", "generate contract", "make a contract", "need a contract",
   "i want a contract", "prepare a contract",
 ];
+const PROFILE_KEYWORDS = [
+  "update my profile", "set up my profile", "edit my profile", "change my profile",
+  "my profile", "setup profile", "profil einrichten", "mein profil",
+  "update my info", "update my details", "my name is", "my phone",
+  "change my name", "change my phone", "change my address",
+  "profile setup", "complete my profile",
+];
 
-function detectIntent(text: string): "search" | "book" | "create_listing" | "edit_listing" | "create_contract" | "chat" {
+function detectIntent(text: string): "search" | "book" | "create_listing" | "edit_listing" | "create_contract" | "setup_profile" | "chat" {
   const lower = text.toLowerCase();
   if (BOOK_KEYWORDS.some((k)     => lower.includes(k))) return "book";
   if (CONTRACT_KEYWORDS.some((k) => lower.includes(k))) return "create_contract";
+  if (PROFILE_KEYWORDS.some((k)  => lower.includes(k))) return "setup_profile";
   if (CREATE_KEYWORDS.some((k)   => lower.includes(k))) return "create_listing";
   if (EDIT_KEYWORDS.some((k)     => lower.includes(k))) return "edit_listing";
   if (SEARCH_KEYWORDS.some((k)   => lower.includes(k))) return "search";
@@ -165,6 +189,48 @@ Return ONLY valid JSON, no explanation.`,
   }
 }
 
+// ── Country code lookup ───────────────────────────────────────────────────────
+const COUNTRY_MAP: Record<string, { code: string; label: string }> = {
+  kenya: { code: "KE", label: "Kenya" }, ke: { code: "KE", label: "Kenya" },
+  germany: { code: "DE", label: "Germany" }, deutschland: { code: "DE", label: "Germany" }, de: { code: "DE", label: "Germany" },
+  uae: { code: "AE", label: "UAE" }, "united arab": { code: "AE", label: "UAE" }, ae: { code: "AE", label: "UAE" },
+  uk: { code: "GB", label: "United Kingdom" }, "united kingdom": { code: "GB", label: "United Kingdom" }, england: { code: "GB", label: "United Kingdom" }, gb: { code: "GB", label: "United Kingdom" },
+  usa: { code: "US", label: "USA" }, "united states": { code: "US", label: "USA" }, america: { code: "US", label: "USA" }, us: { code: "US", label: "USA" },
+  nigeria: { code: "NG", label: "Nigeria" }, ng: { code: "NG", label: "Nigeria" },
+  ghana: { code: "GH", label: "Ghana" }, gh: { code: "GH", label: "Ghana" },
+  "south africa": { code: "ZA", label: "South Africa" }, za: { code: "ZA", label: "South Africa" },
+  france: { code: "FR", label: "France" }, frankreich: { code: "FR", label: "France" }, fr: { code: "FR", label: "France" },
+  spain: { code: "ES", label: "Spain" }, spanien: { code: "ES", label: "Spain" }, es: { code: "ES", label: "Spain" },
+  ethiopia: { code: "ET", label: "Ethiopia" }, et: { code: "ET", label: "Ethiopia" },
+  tanzania: { code: "TZ", label: "Tanzania" }, tz: { code: "TZ", label: "Tanzania" },
+  brazil: { code: "BR", label: "Brazil" }, brasilien: { code: "BR", label: "Brazil" }, br: { code: "BR", label: "Brazil" },
+  india: { code: "IN", label: "India" }, indien: { code: "IN", label: "India" }, in: { code: "IN", label: "India" },
+};
+
+function detectCountry(text: string): { code: string; label: string } | null {
+  const lower = text.toLowerCase().replace(/[🇰🇪🇩🇪🇦🇪🇬🇧🇺🇸🇳🇬🇬🇭🇿🇦🇫🇷🇪🇸]/g, "").trim();
+  return Object.entries(COUNTRY_MAP).find(([k]) => lower.includes(k))?.[1] ?? null;
+}
+
+const LANG_MAP: Record<string, { code: string; label: string }> = {
+  english: { code: "en-US", label: "English (US)" }, "english us": { code: "en-US", label: "English (US)" },
+  "english uk": { code: "en-GB", label: "English (UK)" }, "englisch": { code: "en-US", label: "English (US)" },
+  deutsch: { code: "de-DE", label: "Deutsch" }, german: { code: "de-DE", label: "Deutsch" },
+  français: { code: "fr-FR", label: "Français" }, french: { code: "fr-FR", label: "Français" }, französisch: { code: "fr-FR", label: "Français" },
+  español: { code: "es-ES", label: "Español" }, spanish: { code: "es-ES", label: "Español" }, spanisch: { code: "es-ES", label: "Español" },
+  arabic: { code: "ar-SA", label: "العربية" }, arabisch: { code: "ar-SA", label: "العربية" },
+  swahili: { code: "sw-KE", label: "Kiswahili" }, kiswahili: { code: "sw-KE", label: "Kiswahili" },
+  portuguese: { code: "pt-BR", label: "Português" }, português: { code: "pt-BR", label: "Português" },
+  hindi: { code: "hi-IN", label: "हिन्दी" }, italian: { code: "it-IT", label: "Italiano" }, italiano: { code: "it-IT", label: "Italiano" },
+  chinese: { code: "zh-CN", label: "普通话" }, mandarin: { code: "zh-CN", label: "普通话" },
+  japanese: { code: "ja-JP", label: "日本語" }, korean: { code: "ko-KR", label: "한국어" },
+};
+
+function detectLang(text: string): { code: string; label: string } | null {
+  const lower = text.toLowerCase().trim();
+  return Object.entries(LANG_MAP).find(([k]) => lower.includes(k))?.[1] ?? null;
+}
+
 // ── Wizard state machine ──────────────────────────────────────────────────────
 async function processWizardStep(
   step:          WizardStep,
@@ -173,7 +239,7 @@ async function processWizardStep(
   tenantId:      string,
   lastCreatedId?: string,
   editingField?:  string,
-): Promise<{ reply: string; wizard: WizardState; chips?: string[]; listing_created?: Record<string, unknown>; contract_created?: Record<string, unknown> }> {
+): Promise<{ reply: string; wizard: WizardState; chips?: string[]; listing_created?: Record<string, unknown>; contract_created?: Record<string, unknown>; profile_data?: Record<string, unknown> }> {
 
   const lower = userMessage.toLowerCase().trim();
 
@@ -335,7 +401,7 @@ async function processWizardStep(
       }
 
       return {
-        reply: `Your listing is live! 🎉\n\nYou can add photos by finding it in the **Saved** tab. Want to change anything or list another property?`,
+        reply: `Your listing is live! 🎉\n\nYou can add photos by finding it in the **Home** tab. Want to change anything or list another property?`,
         wizard: { step: null, data: {}, lastCreatedId: created.id as string },
         listing_created: created,
         chips: ["Change something", "List another property"],
@@ -381,7 +447,6 @@ async function processWizardStep(
         };
       }
 
-      // Parse value based on field type
       let newValue: string | number = userMessage.trim();
       let newCurrency: string | undefined;
 
@@ -409,7 +474,6 @@ async function processWizardStep(
       const updatedData: WizardData = { ...data, [editingField]: newValue };
       if (newCurrency) updatedData.currency = newCurrency;
 
-      // ── Already published: update directly in DB ──────────────────────
       if (lastCreatedId) {
         const supabase = createServiceClient();
         const patch: Record<string, unknown> = {
@@ -441,7 +505,6 @@ async function processWizardStep(
         };
       }
 
-      // ── Not yet published: update local data, go back to confirm ─────
       const summary = buildSummary(updatedData);
       return {
         reply: `Updated! Here's the revised summary:\n\n${summary}\n\nShall I publish this now?`,
@@ -449,13 +512,166 @@ async function processWizardStep(
         chips: ["Publish now 🚀", "Edit details"],
       };
     }
-  }
-}
 
-    // ── Contract wizard ───────────────────────────────────────────────────────
+    // ── Profile wizard ────────────────────────────────────────────────────
+
+    case "profile_name": {
+      const name = userMessage.trim();
+      if (!name || name.length < 2) {
+        return {
+          reply: "What's your **full name**? (You can also add a short bio if you'd like.)",
+          wizard: { step: "profile_name", data },
+        };
+      }
+      // Check if they also included a bio (after a comma or newline)
+      const parts = name.split(/[,\n]/);
+      const fullName = parts[0].trim();
+      const bio = parts.slice(1).join(",").trim() || undefined;
+
+      return {
+        reply: `Nice to meet you, **${fullName}**! 👋\n\nWhat's your **phone number**? And your WhatsApp number if it's different.`,
+        wizard: { step: "profile_contact", data: { ...data, p_full_name: fullName, p_bio: bio } },
+      };
+    }
+
+    case "profile_contact": {
+      const phones = userMessage.match(/[+\d][\d\s\-().+]{6,}/g) ?? [];
+      const phone = phones[0]?.replace(/\s/g, "") || null;
+      const whatsapp = phones[1]?.replace(/\s/g, "") || null;
+      const isSkip = /^(skip|same|same as phone|no whatsapp|nein|gleich)/i.test(lower);
+
+      if (!phone && !isSkip) {
+        return {
+          reply: "Please share your **phone number**. If your WhatsApp is the same, just say \"same\".",
+          wizard: { step: "profile_contact", data },
+        };
+      }
+
+      const finalPhone = phone ?? undefined;
+      const finalWhatsApp = whatsapp ?? (isSkip ? finalPhone : undefined);
+
+      return {
+        reply: `Got it! Now — what's your **city and country**?\n\n*e.g. Nairobi, Kenya · Berlin, Germany*`,
+        wizard: {
+          step: "profile_location",
+          data: { ...data, p_phone: finalPhone, p_whatsapp: finalWhatsApp },
+        },
+      };
+    }
+
+    case "profile_location": {
+      const countryEntry = detectCountry(userMessage);
+      const isSkip = /^(skip|nein|weiter)/i.test(lower);
+
+      if (!isSkip && !countryEntry) {
+        return {
+          reply: "I couldn't identify a country in that. Please tell me your **city and country** — e.g. *Nairobi, Kenya* or *Hamburg, Germany*.",
+          wizard: { step: "profile_location", data },
+          chips: ["Kenya 🇰🇪", "Germany 🇩🇪", "UAE 🇦🇪", "UK 🇬🇧", "USA 🇺🇸", "Nigeria 🇳🇬"],
+        };
+      }
+
+      // Try to extract city (anything before the country name in the message)
+      const cleanText = userMessage.replace(new RegExp(countryEntry?.label ?? "", "gi"), "").replace(/[,;]/g, " ").trim();
+      const city = cleanText.split(/\s+/).filter(w => w.length > 1).slice(0, 3).join(" ").trim() || undefined;
+
+      return {
+        reply: `Great! One more thing — do you have an **ID or passport number** you'd like to store? (Used to pre-fill rental contracts)\n\nAlso, what's your **preferred language** for AI interactions?\n\n*You can share both, or tap Skip for now.*`,
+        wizard: {
+          step: "profile_identity",
+          data: {
+            ...data,
+            p_city: city,
+            p_country_code: countryEntry?.code,
+          },
+        },
+        chips: ["Skip", "English 🇺🇸", "Deutsch 🇩🇪", "Français 🇫🇷", "Español 🇪🇸"],
+      };
+    }
+
+    case "profile_identity": {
+      const isSkip = /^(skip|nein|weiter|no|none)/i.test(lower);
+
+      let idNumber: string | undefined;
+      let lang: string | undefined;
+
+      if (!isSkip) {
+        // Try to extract ID number (alphanumeric, no spaces)
+        const idMatch = userMessage.match(/(?:id|passport|pass|number|no)[:\s#]*([a-zA-Z0-9]{5,})/i)
+          ?? userMessage.match(/\b([A-Z]{1,3}\d{5,}|\d{7,})\b/);
+        idNumber = idMatch?.[1] ?? undefined;
+
+        // Try to detect language
+        const langEntry = detectLang(userMessage);
+        lang = langEntry?.code ?? undefined;
+      }
+
+      // Build profile summary
+      const d = { ...data, p_id_number: idNumber, p_lang: lang ?? data.p_lang ?? "en-US" };
+      const LANG_LABELS: Record<string, string> = {
+        "en-US": "English (US)", "en-GB": "English (UK)", "de-DE": "Deutsch",
+        "fr-FR": "Français", "es-ES": "Español", "ar-SA": "العربية",
+        "sw-KE": "Kiswahili", "pt-BR": "Português",
+      };
+
+      const summary = [
+        `👤  **${d.p_full_name ?? "—"}**`,
+        d.p_bio ? `📝  ${d.p_bio}` : "",
+        `📱  Phone: ${d.p_phone ?? "—"}${d.p_whatsapp && d.p_whatsapp !== d.p_phone ? ` · WhatsApp: ${d.p_whatsapp}` : ""}`,
+        `📍  ${[d.p_city, d.p_country_code].filter(Boolean).join(", ") || "—"}`,
+        d.p_id_number ? `🪪  ID: ${d.p_id_number}` : "",
+        `🌐  Language: ${LANG_LABELS[d.p_lang ?? "en-US"] ?? d.p_lang ?? "English (US)"}`,
+      ].filter(Boolean).join("\n");
+
+      return {
+        reply: `Here's your **profile summary**:\n\n${summary}\n\nShall I save this?`,
+        wizard: { step: "profile_confirm", data: d },
+        chips: ["Save profile ✅", "Edit something"],
+      };
+    }
+
+    case "profile_confirm": {
+      const isCancel = /cancel|edit|ändern|no|nein|back/i.test(lower);
+      const isConfirm = /yes|save|confirm|go ahead|ok|ja|speichern|perfect/i.test(lower);
+
+      if (isCancel) {
+        return {
+          reply: "No problem — what would you like to change? (name, phone, location, ID, or language)",
+          wizard: { step: "profile_name", data },
+          chips: ["Name", "Phone", "Location", "Language"],
+        };
+      }
+      if (!isConfirm) {
+        return {
+          reply: "Ready to save your profile? Tap **Save profile** or say yes.",
+          wizard: { step: "profile_confirm", data },
+          chips: ["Save profile ✅", "Edit something"],
+        };
+      }
+
+      // Return profile_data to frontend — frontend calls /api/profile to save (needs auth)
+      const profileData = {
+        full_name:      data.p_full_name,
+        phone:          data.p_phone,
+        whatsapp:       data.p_whatsapp,
+        city:           data.p_city,
+        country_code:   data.p_country_code,
+        id_number:      data.p_id_number,
+        bio:            data.p_bio,
+        preferred_lang: data.p_lang ?? "en-US",
+      };
+
+      return {
+        reply: `Profile saved! ✅\n\nYour details will be used to pre-fill contracts and personalise your AI experience. You can update them anytime by saying "update my profile".\n\nWhat would you like to do next?`,
+        wizard: { step: null, data: {} },
+        profile_data: profileData,
+        chips: ["Search for properties", "Create a contract", "List a property"],
+      };
+    }
+
+    // ── Contract wizard ───────────────────────────────────────────────────
 
     case "contract_landlord": {
-      // Parse "Name, email" from message
       const emailMatch = userMessage.match(/[\w.+-]+@[\w-]+\.[a-zA-Z]{2,}/);
       const email      = emailMatch?.[0] ?? null;
       const name       = userMessage.replace(email ?? "", "").replace(/[,;|]+/g, " ").trim();
@@ -467,7 +683,6 @@ async function processWizardStep(
         };
       }
 
-      // Load properties for this tenant to show as chips
       const supabase = createServiceClient();
       const { data: props } = await supabase
         .from("properties")
@@ -496,7 +711,6 @@ async function processWizardStep(
         .order("created_at", { ascending: false })
         .limit(20);
 
-      // Try to match user input to a property
       const lower2  = userMessage.toLowerCase();
       const matched = (props ?? []).find((p: { id: string; title: string; city: string }) =>
         lower2.includes(p.title.toLowerCase()) ||
@@ -545,7 +759,6 @@ async function processWizardStep(
     }
 
     case "contract_terms": {
-      // Extract date, price, deposit via GPT-mini
       const extraction = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
@@ -592,24 +805,10 @@ Use null for anything not mentioned. Infer currency from symbols (€=EUR, £=GB
     }
 
     case "contract_jurisdiction": {
-      const COUNTRY_MAP: Record<string, { code: string; label: string }> = {
-        kenya: { code: "KE", label: "Kenya" }, ke: { code: "KE", label: "Kenya" },
-        germany: { code: "DE", label: "Germany" }, deutschland: { code: "DE", label: "Germany" }, de: { code: "DE", label: "Germany" },
-        uae: { code: "AE", label: "UAE" }, "united arab": { code: "AE", label: "UAE" }, ae: { code: "AE", label: "UAE" },
-        uk: { code: "GB", label: "United Kingdom" }, "united kingdom": { code: "GB", label: "United Kingdom" }, gb: { code: "GB", label: "United Kingdom" },
-        usa: { code: "US", label: "USA" }, "united states": { code: "US", label: "USA" }, us: { code: "US", label: "USA" },
-        nigeria: { code: "NG", label: "Nigeria" }, ng: { code: "NG", label: "Nigeria" },
-        ghana: { code: "GH", label: "Ghana" }, gh: { code: "GH", label: "Ghana" },
-        "south africa": { code: "ZA", label: "South Africa" }, za: { code: "ZA", label: "South Africa" },
-        france: { code: "FR", label: "France" }, fr: { code: "FR", label: "France" },
-        spain: { code: "ES", label: "Spain" }, es: { code: "ES", label: "Spain" },
-      };
-
       const lower3  = userMessage.toLowerCase().replace(/[🇰🇪🇩🇪🇦🇪🇬🇧🇺🇸🇳🇬🇬🇭🇿🇦]/g, "").trim();
       let countryEntry = Object.entries(COUNTRY_MAP).find(([k]) => lower3.includes(k))?.[1];
       if (!countryEntry) countryEntry = { code: "US", label: "Unknown (defaulting to US law)" };
 
-      // Build summary
       const d2 = { ...data, c_country_code: countryEntry.code };
       const rentFmt = d2.c_rent ? new Intl.NumberFormat("en-US", { style: "currency", currency: d2.c_currency ?? "USD", maximumFractionDigits: 0 }).format(d2.c_rent) : "—";
       const depositFmt = d2.c_deposit ? new Intl.NumberFormat("en-US", { style: "currency", currency: d2.c_currency ?? "USD", maximumFractionDigits: 0 }).format(d2.c_deposit) : "None";
@@ -648,7 +847,6 @@ Use null for anything not mentioned. Infer currency from symbols (€=EUR, £=GB
         };
       }
 
-      // Create contract record using service client
       const supabase3 = createServiceClient();
       const { data: created, error: createErr } = await supabase3
         .from("contracts")
@@ -687,13 +885,12 @@ Use null for anything not mentioned. Infer currency from symbols (€=EUR, £=GB
         };
       }
 
-      // Trigger AI generation async
       try {
         await fetch(`${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/api/contracts/${created.id}/generate`, {
           method: "POST",
           headers: { "x-internal-service": "true" },
         });
-      } catch { /* non-blocking — user can regenerate from /home */ }
+      } catch { /* non-blocking */ }
 
       return {
         reply: `Your contract is being generated! ✨\n\nOnce ready it will appear in **Home → Contracts**. You can review all clauses, sign it, and send it to the tenant from there.`,
@@ -836,6 +1033,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         reply: "Let's draft a contract together! I'll ask you a few questions and then generate a full, jurisdiction-compliant agreement.\n\nFirst — what's **your name and email address** as the landlord/vendor?\n\n*e.g. John Müller, john@example.com*",
         wizard: { step: "contract_landlord", data: {} },
+      });
+    }
+
+    // ── Start profile wizard ──────────────────────────────────────────────
+    if (intent === "setup_profile") {
+      return NextResponse.json({
+        reply: "Let's set up your profile! I'll ask you a few quick questions — it takes about a minute and helps me pre-fill contracts and personalise your experience.\n\nWhat's your **full name**?",
+        wizard: { step: "profile_name", data: {} },
       });
     }
 
