@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -13,6 +13,7 @@ interface ChatMessage {
   content: string;
   properties?: Property[];
   appointment?: { success: boolean; error?: string };
+  filters?: Record<string, unknown>;
 }
 
 // ── Inline property card ────────────────────────────────────────────────────
@@ -27,6 +28,7 @@ function ChatPropertyCard({ property }: { property: Property }) {
       <button
         onClick={() => toggle(property.id)}
         className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-sm transition-all hover:scale-110"
+        title={saved ? "Gespeichert" : "Speichern"}
       >
         <svg className="w-3.5 h-3.5" fill={saved ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24"
           style={{ color: saved ? "#ef4444" : "#94a3b8" }}>
@@ -61,7 +63,7 @@ function ChatPropertyCard({ property }: { property: Property }) {
         <div className="p-3">
           <p className="font-bold text-slate-900 text-sm">
             {formatPrice(property.price, property.currency)}
-            {property.listing_type === "rent" && <span className="text-xs font-normal text-slate-400 ml-1">/mo</span>}
+            {property.listing_type === "rent" && <span className="text-xs font-normal text-slate-400 ml-1">/Monat</span>}
           </p>
           <p className="text-xs text-slate-600 mt-0.5 line-clamp-1">{property.title}</p>
           <p className="text-xs text-slate-400 mt-0.5">
@@ -95,9 +97,40 @@ function AppointmentCard({ result }: { result: { success: boolean; error?: strin
         </svg>
       </div>
       <div>
-        <p className="text-sm font-semibold text-emerald-800">Termin angefragt!</p>
+        <p className="text-sm font-semibold text-emerald-800">Terminanfrage gesendet!</p>
         <p className="text-xs text-emerald-600 mt-0.5">Wir melden uns per E-Mail zur Bestätigung.</p>
       </div>
+    </div>
+  );
+}
+
+// ── Follow-up suggestion chips ───────────────────────────────────────────────
+function FollowUpChips({ msg, onSend }: { msg: ChatMessage; onSend: (text: string) => void }) {
+  const chips: string[] = [];
+
+  if (msg.properties && msg.properties.length > 0) {
+    chips.push("Besichtigung anfragen");
+    chips.push("Günstigere Optionen zeigen");
+    chips.push("Größere Wohnungen zeigen");
+  } else if (msg.properties && msg.properties.length === 0) {
+    chips.push("Alle Inserate zeigen");
+    chips.push("Budget erhöhen");
+    chips.push("Andere Stadt suchen");
+  }
+
+  if (!chips.length) return null;
+
+  return (
+    <div className="flex flex-wrap gap-2 mt-2">
+      {chips.map((chip) => (
+        <button
+          key={chip}
+          onClick={() => onSend(chip)}
+          className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs text-slate-600 font-medium hover:border-slate-300 hover:bg-slate-50 transition-all"
+        >
+          {chip}
+        </button>
+      ))}
     </div>
   );
 }
@@ -119,11 +152,22 @@ export function AIChatPage() {
     inputRef.current?.focus();
   }, []);
 
-  async function sendMessage(text?: string) {
+  // Auto-resize textarea
+  function autoResize(el: HTMLTextAreaElement) {
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 120) + "px";
+  }
+
+  const sendMessage = useCallback(async (text?: string) => {
     const userText = (text || input).trim();
     if (!userText || loading) return;
 
     setInput("");
+    // Reset textarea height
+    if (inputRef.current) {
+      inputRef.current.style.height = "auto";
+    }
+
     const newMessages: ChatMessage[] = [...messages, { role: "user", content: userText }];
     setMessages(newMessages);
     setLoading(true);
@@ -132,7 +176,6 @@ export function AIChatPage() {
       ? pathname.replace("/properties/", "") : undefined;
 
     try {
-      // Send only role+content to the API (strip UI-only fields)
       const apiMessages = newMessages.map(({ role, content }) => ({ role, content }));
 
       const res = await fetch("/api/chat", {
@@ -145,7 +188,6 @@ export function AIChatPage() {
       });
       const data = await res.json();
 
-      // Surface real error message so we can debug
       if (!res.ok || data.error) {
         setMessages([...newMessages, {
           role: "assistant",
@@ -157,8 +199,9 @@ export function AIChatPage() {
       setMessages([...newMessages, {
         role: "assistant",
         content: data.reply ?? "",
-        properties: data.properties?.length ? data.properties : undefined,
+        properties: data.properties !== undefined ? data.properties : undefined,
         appointment: data.appointment,
+        filters: data.filters,
       }]);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -166,7 +209,7 @@ export function AIChatPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [input, loading, messages, pathname]);
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
@@ -248,7 +291,7 @@ export function AIChatPage() {
 
                   {/* Inline property cards */}
                   {msg.properties && msg.properties.length > 0 && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full" style={{ maxWidth: "520px" }}>
                       {msg.properties.map((p) => (
                         <ChatPropertyCard key={p.id} property={p} />
                       ))}
@@ -257,6 +300,11 @@ export function AIChatPage() {
 
                   {/* Appointment confirmation */}
                   {msg.appointment && <AppointmentCard result={msg.appointment} />}
+
+                  {/* Follow-up suggestion chips */}
+                  {msg.role === "assistant" && i === messages.length - 1 && !loading && (
+                    <FollowUpChips msg={msg} onSend={sendMessage} />
+                  )}
                 </div>
               </div>
             ))}
@@ -288,7 +336,7 @@ export function AIChatPage() {
             <textarea
               ref={inputRef}
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(e) => { setInput(e.target.value); autoResize(e.target); }}
               onKeyDown={handleKeyDown}
               placeholder="Was suchen Sie? z.B. 3-Zimmer-Wohnung unter 500 € ..."
               rows={1}

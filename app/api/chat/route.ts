@@ -37,6 +37,7 @@ min_price: number
 max_price: number
 bedrooms: number (minimum)
 city: string
+neighbourhood: string
 
 Return {} if no filters are clear. Return ONLY valid JSON, no explanation.`,
       },
@@ -67,12 +68,13 @@ async function searchProperties(filters: Record<string, unknown>, tenantId: stri
     .order("created_at", { ascending: false })
     .limit(6);
 
-  if (filters.listing_type)  query = query.eq("listing_type", filters.listing_type);
-  if (filters.property_type) query = query.eq("property_type", filters.property_type);
-  if (filters.min_price)     query = query.gte("price", filters.min_price);
-  if (filters.max_price)     query = query.lte("price", filters.max_price);
-  if (filters.bedrooms)      query = query.gte("bedrooms", filters.bedrooms);
-  if (filters.city)          query = query.ilike("city", `%${filters.city}%`);
+  if (filters.listing_type)   query = query.eq("listing_type", filters.listing_type);
+  if (filters.property_type)  query = query.eq("property_type", filters.property_type);
+  if (filters.min_price)      query = query.gte("price", filters.min_price);
+  if (filters.max_price)      query = query.lte("price", filters.max_price);
+  if (filters.bedrooms)       query = query.gte("bedrooms", filters.bedrooms);
+  if (filters.city)           query = query.ilike("city", `%${filters.city}%`);
+  if (filters.neighbourhood)  query = query.ilike("neighbourhood", `%${filters.neighbourhood}%`);
 
   const { data } = await query;
   return data || [];
@@ -152,10 +154,10 @@ ${propertyContext}`,
       const reply = completion.choices[0].message.content || (
         properties.length
           ? `Ich habe ${properties.length} passende Inserate gefunden:`
-          : "Leider habe ich keine passenden Inserate gefunden. Möchten Sie die Suche anpassen?"
+          : "Leider habe ich keine passenden Inserate gefunden. Möchten Sie die Suchkriterien anpassen?"
       );
 
-      return NextResponse.json({ reply, properties });
+      return NextResponse.json({ reply, properties, filters });
     }
 
     // ── BOOKING intent ─────────────────────────────────────────────────────
