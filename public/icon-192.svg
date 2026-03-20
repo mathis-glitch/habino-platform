@@ -1,4 +1,17 @@
 <svg xmlns='http://www.w3.org/2000/svg' width='192' height='192' viewBox='0 0 192 192'>
-  <rect width='192' height='192' rx='40' fill='#00A884'/>
-  <text x='50%' y='54%' dominant-baseline='middle' text-anchor='middle' font-family='system-ui,sans-serif' font-weight='800' font-size='80' fill='white'>H</text>
+  <!-- Background: forest green rounded square -->
+  <rect width='192' height='192' rx='44' fill='#2E7D46'/>
+  <!-- Subtle inner gradient overlay -->
+  <rect width='192' height='192' rx='44' fill='url(#g)'/>
+  <defs>
+    <linearGradient id='g' x1='0' y1='0' x2='192' y2='192' gradientUnits='userSpaceOnUse'>
+      <stop offset='0' stop-color='#fff' stop-opacity='0.08'/>
+      <stop offset='1' stop-color='#000' stop-opacity='0.08'/>
+    </linearGradient>
+  </defs>
+  <!-- Lowercase "h" — bold, matching Figma brand -->
+  <text x='96' y='122' dominant-baseline='middle' text-anchor='middle'
+    font-family='system-ui,-apple-system,sans-serif'
+    font-weight='800' font-size='100' letter-spacing='-4'
+    fill='white'>h</text>
 </svg>

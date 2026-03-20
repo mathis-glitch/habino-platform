@@ -1,4 +1,14 @@
 <svg xmlns='http://www.w3.org/2000/svg' width='512' height='512' viewBox='0 0 512 512'>
-  <rect width='512' height='512' rx='40' fill='#00A884'/>
-  <text x='50%' y='54%' dominant-baseline='middle' text-anchor='middle' font-family='system-ui,sans-serif' font-weight='2100' font-size='80' fill='white'>H</text>
+  <rect width='512' height='512' rx='116' fill='#2E7D46'/>
+  <rect width='512' height='512' rx='116' fill='url(#g)'/>
+  <defs>
+    <linearGradient id='g' x1='0' y1='0' x2='512' y2='512' gradientUnits='userSpaceOnUse'>
+      <stop offset='0' stop-color='#fff' stop-opacity='0.08'/>
+      <stop offset='1' stop-color='#000' stop-opacity='0.08'/>
+    </linearGradient>
+  </defs>
+  <text x='256' y='322' dominant-baseline='middle' text-anchor='middle'
+    font-family='system-ui,-apple-system,sans-serif'
+    font-weight='800' font-size='268' letter-spacing='-10'
+    fill='white'>h</text>
 </svg>
