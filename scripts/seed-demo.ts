@@ -1,11 +1,17 @@
 /**
- * seed-demo.ts
- * Populates the database with realistic demo listings for Habino.
+ * seed-demo.ts — Habino bulk demo data generator
+ *
+ * Generates 10,000+ realistic listings across Africa & the Middle East.
+ * No photos required — fast batch inserts.
  *
  * Usage:
- *   npx tsx scripts/seed-demo.ts
+ *   npx tsx scripts/seed-demo.ts [--count=10000] [--clear]
  *
- * Requires .env.local with:
+ * Flags:
+ *   --count=N   Number of listings to generate (default: 10000)
+ *   --clear     Delete all existing demo listings first
+ *
+ * Requires .env.local:
  *   NEXT_PUBLIC_SUPABASE_URL
  *   SUPABASE_SERVICE_ROLE_KEY
  */
@@ -21,544 +27,472 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// ── Photo sets (Unsplash, royalty-free) ───────────────────────
-const PHOTOS = {
+// ── CLI args ──────────────────────────────────────────────────
+const args    = process.argv.slice(2);
+const COUNT   = parseInt(args.find(a => a.startsWith("--count="))?.split("=")[1] ?? "10000");
+const CLEAR   = args.includes("--clear");
+const BATCH   = 100; // Supabase batch insert size
+
+// ── Helper: seeded random ─────────────────────────────────────
+let seed = 42;
+function rand(min: number, max: number): number {
+  seed = (seed * 1664525 + 1013904223) & 0xffffffff;
+  const t = (seed >>> 0) / 0xffffffff;
+  return Math.floor(t * (max - min + 1)) + min;
+}
+function pick<T>(arr: readonly T[]): T { return arr[rand(0, arr.length - 1)]; }
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = rand(0, i);
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ══════════════════════════════════════════════════════════════
+// DATA TABLES
+// ══════════════════════════════════════════════════════════════
+
+const CITIES: {
+  name: string; country: string; currency: string;
+  neighbourhoods: string[];
+  priceBase: { apartment: number; house: number; villa: number; commercial: number; land: number; office: number; hall: number; production: number; plot: number };
+  priceUnit: "monthly_rent" | "sqm" | "total";
+}[] = [
+  // ── Kenya ────────────────────────────────────────────────
+  { name: "Nairobi", country: "KE", currency: "KES",
+    neighbourhoods: ["Kilimani","Westlands","Karen","Lavington","Parklands","Upper Hill","Kileleshwa","Runda","Gigiri","Muthaiga","South C","Rongai","Ngong","Kitengela","Syokimau","Kasarani","Githurai","Ruaka","Ruiru"],
+    priceBase: { apartment:75000, house:180000, villa:350000, commercial:150000, land:8000000, office:120000, hall:200000, production:180000, plot:5000000 },
+    priceUnit: "monthly_rent" },
+  { name: "Mombasa", country: "KE", currency: "KES",
+    neighbourhoods: ["Nyali","Bamburi","Shanzu","Mtwapa","Likoni","Tudor","Kisauni","Changamwe","Diani","Ukunda"],
+    priceBase: { apartment:40000, house:120000, villa:250000, commercial:80000, land:5000000, office:60000, hall:150000, production:120000, plot:3000000 },
+    priceUnit: "monthly_rent" },
+  { name: "Nakuru", country: "KE", currency: "KES",
+    neighbourhoods: ["Section 58","London","Milimani","Kiamunyi","Pipeline","Pangani","Free Area","Lanet"],
+    priceBase: { apartment:25000, house:60000, villa:150000, commercial:50000, land:2000000, office:40000, hall:80000, production:70000, plot:1500000 },
+    priceUnit: "monthly_rent" },
+  { name: "Kisumu", country: "KE", currency: "KES",
+    neighbourhoods: ["Milimani","Nyalenda","Kondele","Migosi","Mamboleo","Riat","Lolwe","Obunga"],
+    priceBase: { apartment:20000, house:50000, villa:120000, commercial:40000, land:1500000, office:30000, hall:70000, production:60000, plot:1200000 },
+    priceUnit: "monthly_rent" },
+
+  // ── Ethiopia ─────────────────────────────────────────────
+  { name: "Addis Ababa", country: "ET", currency: "USD",
+    neighbourhoods: ["Bole","Kazanchis","CMC","Old Airport","Sarbet","Megenagna","Gerji","Ayat","Summit","Wello Sefer","Lideta","Merkato","Piassa","Gofa","Kality"],
+    priceBase: { apartment:1200, house:3000, villa:6000, commercial:2500, land:200000, office:2000, hall:4000, production:3500, plot:150000 },
+    priceUnit: "monthly_rent" },
+  { name: "Dire Dawa", country: "ET", currency: "ETB",
+    neighbourhoods: ["Sabian","Kezira","Ganda","Legehare","Megala","Addis Ketema"],
+    priceBase: { apartment:8000, house:20000, villa:50000, commercial:15000, land:500000, office:12000, hall:30000, production:25000, plot:300000 },
+    priceUnit: "monthly_rent" },
+
+  // ── South Africa ─────────────────────────────────────────
+  { name: "Cape Town", country: "ZA", currency: "ZAR",
+    neighbourhoods: ["Sea Point","Green Point","De Waterkant","Woodstock","Observatory","Claremont","Rondebosch","Newlands","Constantia","Hout Bay","Camps Bay","Clifton","Stellenbosch","Somerset West","Bellville","Parow","Brackenfell","Goodwood"],
+    priceBase: { apartment:18000, house:35000, villa:80000, commercial:30000, land:3000000, office:25000, hall:60000, production:50000, plot:2000000 },
+    priceUnit: "monthly_rent" },
+  { name: "Johannesburg", country: "ZA", currency: "ZAR",
+    neighbourhoods: ["Sandton","Rosebank","Parktown","Greenside","Melville","Bryanston","Fourways","Midrand","Centurion","Soweto","Alexandra","Randburg","Roodepoort","Boksburg","Germiston","Edenvale","Bedfordview","Northcliff","Craighall"],
+    priceBase: { apartment:14000, house:28000, villa:70000, commercial:25000, land:2500000, office:22000, hall:55000, production:45000, plot:1800000 },
+    priceUnit: "monthly_rent" },
+  { name: "Durban", country: "ZA", currency: "ZAR",
+    neighbourhoods: ["Umhlanga","Ballito","La Lucia","Morningside","Berea","Glenwood","Musgrave","Westville","Pinetown","Hillcrest","Amanzimtoti"],
+    priceBase: { apartment:12000, house:22000, villa:55000, commercial:20000, land:2000000, office:18000, hall:45000, production:38000, plot:1500000 },
+    priceUnit: "monthly_rent" },
+  { name: "Pretoria", country: "ZA", currency: "ZAR",
+    neighbourhoods: ["Hatfield","Arcadia","Sunnyside","Waterkloof","Menlo Park","Brooklyn","Lynnwood","Garsfontein","Moreleta Park","Faerie Glen"],
+    priceBase: { apartment:11000, house:20000, villa:50000, commercial:18000, land:1800000, office:16000, hall:40000, production:35000, plot:1300000 },
+    priceUnit: "monthly_rent" },
+
+  // ── Tanzania ─────────────────────────────────────────────
+  { name: "Dar es Salaam", country: "TZ", currency: "USD",
+    neighbourhoods: ["Masaki","Oyster Bay","Msasani","Mikocheni","Kinondoni","Kariakoo","Ilala","Ubungo","Temeke","Mbagala","Kigamboni"],
+    priceBase: { apartment:1000, house:2500, villa:5000, commercial:2000, land:150000, office:1800, hall:3500, production:3000, plot:120000 },
+    priceUnit: "monthly_rent" },
+  { name: "Arusha", country: "TZ", currency: "USD",
+    neighbourhoods: ["Njiro","Sakina","Kijenge","Sekei","Themi","Kaloleni","Dodoma Road","Sinoni"],
+    priceBase: { apartment:700, house:1800, villa:4000, commercial:1500, land:100000, office:1200, hall:2500, production:2000, plot:80000 },
+    priceUnit: "monthly_rent" },
+
+  // ── Uganda ───────────────────────────────────────────────
+  { name: "Kampala", country: "UG", currency: "USD",
+    neighbourhoods: ["Kololo","Naguru","Muyenga","Bugolobi","Ntinda","Bukoto","Nakasero","Makindye","Kira","Naalya","Najeera","Kirinya","Bweyogerere"],
+    priceBase: { apartment:800, house:2000, villa:4500, commercial:1800, land:120000, office:1500, hall:3000, production:2500, plot:90000 },
+    priceUnit: "monthly_rent" },
+  { name: "Entebbe", country: "UG", currency: "USD",
+    neighbourhoods: ["Kitooro","Katabi","Abaita Ababiri","Nakiwogo","Bugonga"],
+    priceBase: { apartment:600, house:1500, villa:3500, commercial:1300, land:80000, office:1100, hall:2200, production:2000, plot:60000 },
+    priceUnit: "monthly_rent" },
+
+  // ── Rwanda ───────────────────────────────────────────────
+  { name: "Kigali", country: "RW", currency: "USD",
+    neighbourhoods: ["Kiyovu","Nyarutarama","Kimihurura","Gacuriro","Remera","Kabeza","Kacyiru","Gisozi","Kanombe","Masaka","Rebero","Kibagabaga"],
+    priceBase: { apartment:900, house:2200, villa:5000, commercial:2000, land:130000, office:1700, hall:3200, production:2800, plot:100000 },
+    priceUnit: "monthly_rent" },
+
+  // ── Nigeria ──────────────────────────────────────────────
+  { name: "Lagos", country: "NG", currency: "NGN",
+    neighbourhoods: ["Victoria Island","Lekki Phase 1","Lekki Phase 2","Ikoyi","Banana Island","Yaba","Surulere","Ikeja","Maryland","Ojota","Ajah","Sangotedo","Epe","Badagry","Apapa","Ogba","Magodo","Gbagada","Festac"],
+    priceBase: { apartment:3000000, house:8000000, villa:20000000, commercial:6000000, land:300000000, office:5000000, hall:12000000, production:10000000, plot:200000000 },
+    priceUnit: "monthly_rent" },
+  { name: "Abuja", country: "NG", currency: "NGN",
+    neighbourhoods: ["Maitama","Asokoro","Wuse 2","Gwarinpa","Jabi","Utako","Garki","Central Business District","Apo","Katampe","Lokogoma","Kubwa"],
+    priceBase: { apartment:2500000, house:7000000, villa:18000000, commercial:5000000, land:250000000, office:4500000, hall:10000000, production:9000000, plot:180000000 },
+    priceUnit: "monthly_rent" },
+  { name: "Port Harcourt", country: "NG", currency: "NGN",
+    neighbourhoods: ["GRA Phase 1","GRA Phase 2","Old GRA","New GRA","Rumuola","Rumuomasi","Trans-Amadi","Rumuola","Woji","Eliozu"],
+    priceBase: { apartment:2000000, house:5000000, villa:14000000, commercial:4000000, land:180000000, office:3500000, hall:8000000, production:7000000, plot:140000000 },
+    priceUnit: "monthly_rent" },
+
+  // ── Ghana ────────────────────────────────────────────────
+  { name: "Accra", country: "GH", currency: "USD",
+    neighbourhoods: ["East Legon","Airport Residential","Cantonments","Labone","Trasacco","Spintex","Achimota","Adenta","Tema","Kasoa","Dansoman","Osu","Labadi","Teshie"],
+    priceBase: { apartment:1500, house:3500, villa:8000, commercial:2800, land:200000, office:2500, hall:5000, production:4500, plot:150000 },
+    priceUnit: "monthly_rent" },
+  { name: "Kumasi", country: "GH", currency: "USD",
+    neighbourhoods: ["Ahodwo","Nhyiaeso","Asokwa","Bantama","Suame","Tafo","Oforikrom","Kwadaso","Subin"],
+    priceBase: { apartment:800, house:2000, villa:5000, commercial:1800, land:120000, office:1500, hall:3000, production:2800, plot:90000 },
+    priceUnit: "monthly_rent" },
+
+  // ── Egypt ────────────────────────────────────────────────
+  { name: "Cairo", country: "EG", currency: "EGP",
+    neighbourhoods: ["Zamalek","Maadi","Heliopolis","New Cairo","Nasr City","Mohandessin","Dokki","Garden City","Fifth Settlement","Sheikh Zayed","6th October","Rehab City","Shorouk"],
+    priceBase: { apartment:20000, house:45000, villa:100000, commercial:35000, land:5000000, office:30000, hall:70000, production:60000, plot:3000000 },
+    priceUnit: "monthly_rent" },
+  { name: "Alexandria", country: "EG", currency: "EGP",
+    neighbourhoods: ["Gleem","Sidi Gaber","Smouha","Stanley","Roushdy","Kafr Abdo","Laurent","Sporting","Agami","Borg El Arab"],
+    priceBase: { apartment:15000, house:35000, villa:80000, commercial:28000, land:3500000, office:22000, hall:55000, production:48000, plot:2500000 },
+    priceUnit: "monthly_rent" },
+
+  // ── Morocco ──────────────────────────────────────────────
+  { name: "Casablanca", country: "MA", currency: "MAD",
+    neighbourhoods: ["Anfa","Maarif","Ain Diab","CIL","Hay Riad","Sidi Maarouf","Ain Sebaa","Hay Hassani","Bernoussi","Sidi Bernoussi"],
+    priceBase: { apartment:8000, house:18000, villa:50000, commercial:15000, land:2000000, office:12000, hall:30000, production:25000, plot:1500000 },
+    priceUnit: "monthly_rent" },
+  { name: "Marrakech", country: "MA", currency: "MAD",
+    neighbourhoods: ["Gueliz","Hivernage","Medina","Palmeraie","Amelkis","Route de Fes","Targa","Massira"],
+    priceBase: { apartment:7000, house:15000, villa:45000, commercial:12000, land:1500000, office:10000, hall:25000, production:22000, plot:1200000 },
+    priceUnit: "monthly_rent" },
+  { name: "Rabat", country: "MA", currency: "MAD",
+    neighbourhoods: ["Agdal","Hassan","Souissi","Hay Riad","Ocean","Medina","Akkari","Takaddoum"],
+    priceBase: { apartment:7500, house:16000, villa:40000, commercial:13000, land:1600000, office:11000, hall:28000, production:24000, plot:1300000 },
+    priceUnit: "monthly_rent" },
+
+  // ── UAE ──────────────────────────────────────────────────
+  { name: "Dubai", country: "AE", currency: "AED",
+    neighbourhoods: ["Dubai Marina","JBR","Palm Jumeirah","Downtown Dubai","Business Bay","DIFC","JVC","Jumeirah","Mirdif","Silicon Oasis","Al Quoz","Dubai Investment Park","Jebel Ali"],
+    priceBase: { apartment:8000, house:20000, villa:50000, commercial:15000, land:3000000, office:12000, hall:30000, production:25000, plot:2500000 },
+    priceUnit: "monthly_rent" },
+  { name: "Abu Dhabi", country: "AE", currency: "AED",
+    neighbourhoods: ["Corniche","Al Reem Island","Yas Island","Saadiyat Island","Khalidiyah","Tourist Club Area","Al Mushrif","Muroor","Mussafah"],
+    priceBase: { apartment:7000, house:18000, villa:45000, commercial:13000, land:2500000, office:10000, hall:28000, production:22000, plot:2000000 },
+    priceUnit: "monthly_rent" },
+];
+
+// ── Property type configs ─────────────────────────────────────
+const PROP_TYPES = [
+  { type: "apartment", label: "Wohnung",          bedroomsRange: [0,4], bathroomsRange: [1,3], areaRange: [35,200], listingTypes: ["rent","buy"] as const, weight: 35 },
+  { type: "house",     label: "Einfamilienhaus",   bedroomsRange: [2,6], bathroomsRange: [1,4], areaRange: [100,500], listingTypes: ["rent","buy"] as const, weight: 20 },
+  { type: "villa",     label: "Villa",             bedroomsRange: [3,7], bathroomsRange: [2,5], areaRange: [200,800], listingTypes: ["rent","buy"] as const, weight: 10 },
+  { type: "commercial",label: "Gewerbe",           bedroomsRange: [0,0], bathroomsRange: [1,4], areaRange: [50,2000], listingTypes: ["rent","buy"] as const, weight: 10 },
+  { type: "office",    label: "Büro",              bedroomsRange: [0,0], bathroomsRange: [1,6], areaRange: [30,1000], listingTypes: ["rent","buy"] as const, weight: 8 },
+  { type: "hall",      label: "Halle",             bedroomsRange: [0,0], bathroomsRange: [1,4], areaRange: [200,5000], listingTypes: ["rent","buy"] as const, weight: 5 },
+  { type: "production",label: "Produktionsfläche", bedroomsRange: [0,0], bathroomsRange: [1,6], areaRange: [500,10000], listingTypes: ["rent","buy"] as const, weight: 4 },
+  { type: "land",      label: "Grundstück",        bedroomsRange: [0,0], bathroomsRange: [0,0], areaRange: [200,20000], listingTypes: ["buy"] as const, weight: 5 },
+  { type: "plot",      label: "Baugrundstück",     bedroomsRange: [0,0], bathroomsRange: [0,0], areaRange: [200,5000], listingTypes: ["buy","rent"] as const, weight: 3 },
+];
+
+// Weighted pick for property type
+function pickPropType() {
+  const total = PROP_TYPES.reduce((s, p) => s + p.weight, 0);
+  let r = rand(0, total - 1);
+  for (const p of PROP_TYPES) {
+    if (r < p.weight) return p;
+    r -= p.weight;
+  }
+  return PROP_TYPES[0];
+}
+
+// ── Title templates ───────────────────────────────────────────
+const ADJECTIVES = ["Modern","Spacious","Elegant","Bright","Quiet","Prime","Newly Built","Renovated","Stunning","Executive","Cozy","Stylish","Luxury","Contemporary","Comfortable","Well-maintained","Premium","Exclusive","Charming","Exceptional"];
+
+const CONDITION = ["— Move-in Ready","","","","— Available Now","— Negotiable","— Long-term","","— Short-term Available",""];
+
+function makeTitle(propLabel: string, bedrooms: number, neighbourhood: string, listingType: string): string {
+  const adj  = pick(ADJECTIVES);
+  const cond = pick(CONDITION);
+  if (bedrooms > 0) {
+    return `${adj} ${bedrooms}BR ${propLabel} — ${neighbourhood}${cond}`;
+  }
+  return `${adj} ${propLabel} — ${neighbourhood}${cond}`;
+}
+
+// ── Description templates ─────────────────────────────────────
+const DESC_PARTS = {
   apartment: [
-    "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800",
-    "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800",
-    "https://images.unsplash.com/photo-1560184897-ae75f418493e?w=800",
+    "Well-designed apartment with natural light and modern finishes.",
+    "Open-plan living area, fitted kitchen, and private balcony.",
+    "Located in a secure compound with 24-hour security.",
+    "High-speed internet connection and backup power.",
+    "Walking distance to shops, restaurants, and public transport.",
+    "Available for immediate occupation.",
   ],
   house: [
-    "https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=800",
-    "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800",
-    "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800",
+    "Spacious family home on a quiet residential street.",
+    "Large compound with mature garden and perimeter wall.",
+    "Modern kitchen, dining area, and generous living spaces.",
+    "Domestic quarters, double garage, and ample parking.",
+    "Close to international schools and shopping centres.",
+    "Ideal for families seeking space and security.",
   ],
   villa: [
-    "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800",
-    "https://images.unsplash.com/photo-1613977257363-707ba9348227?w=800",
-    "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=800",
-  ],
-  modern: [
-    "https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?w=800",
-    "https://images.unsplash.com/photo-1600210492493-0946911123ea?w=800",
-    "https://images.unsplash.com/photo-1583608205776-bfd35f0d9f83?w=800",
+    "Exceptional villa offering the finest in luxury living.",
+    "Private swimming pool, landscaped garden, and outdoor entertaining area.",
+    "High-quality finishes, smart home features, and premium appliances.",
+    "Staff quarters, multiple garages, and a private entrance.",
+    "Nestled in a prestigious neighbourhood with 24-hour security.",
+    "A rare opportunity in one of the city's most sought-after areas.",
   ],
   commercial: [
-    "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800",
-    "https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=800",
-    "https://images.unsplash.com/photo-1462826303086-329426d1aef5?w=800",
+    "Prime commercial space in a high-footfall location.",
+    "Ground-floor retail unit with wide shopfront and excellent visibility.",
+    "Suitable for retail, food and beverage, or service businesses.",
+    "Three-phase power, loading bay access, and ample storage.",
+    "Flexible lease terms available for qualified tenants.",
+  ],
+  office: [
+    "Modern grade-A office space in a premium business address.",
+    "Open-plan layout with raised floors, suspended ceilings, and fibre connectivity.",
+    "Air-conditioned throughout with backup generator and UPS.",
+    "Dedicated parking allocation and 24-hour access control.",
+    "Ideal for corporates, NGOs, embassies, or professional firms.",
+  ],
+  hall: [
+    "Large warehouse and logistics hall with high clearance height.",
+    "Roller-shutter access doors, loading docks, and concrete flooring.",
+    "Three-phase industrial power supply and fire suppression system.",
+    "Secure perimeter fencing, CCTV, and 24-hour guard service.",
+    "Suitable for storage, distribution, light manufacturing, or events.",
+  ],
+  production: [
+    "Purpose-built production facility with heavy-duty infrastructure.",
+    "High-bay structure with overhead crane rails and industrial power.",
+    "Fully equipped with drainage, ventilation, and fire protection.",
+    "Extensive yard area for truck turning and container handling.",
+    "Excellent access to main arterial roads and industrial zones.",
   ],
   land: [
-    "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800",
-    "https://images.unsplash.com/photo-1471194402529-8e0f5a675de6?w=800",
+    "Prime land parcel with clean title deed and all utilities available.",
+    "Flat topography ideal for residential, commercial, or mixed-use development.",
+    "Road frontage with easy access from main road.",
+    "Located in a high-growth area with strong development potential.",
+    "Suitable for immediate construction — no encumbrances.",
   ],
-  luxury: [
-    "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800",
-    "https://images.unsplash.com/photo-1616137466211-f939a420be84?w=800",
-    "https://images.unsplash.com/photo-1615529328331-f8917597711f?w=800",
+  plot: [
+    "Serviced residential plot in an established neighbourhood.",
+    "Water, electricity, and drainage connections available at boundary.",
+    "Flat terrain suitable for bungalow or multi-storey construction.",
+    "Title deed available and transfer can be completed within 30 days.",
+    "Excellent investment opportunity in a rapidly appreciating area.",
   ],
 };
 
-// ── All demo listings ─────────────────────────────────────────
-const DEMO_LISTINGS = [
+function makeDescription(type: string): string {
+  const parts = DESC_PARTS[type as keyof typeof DESC_PARTS] ?? DESC_PARTS.apartment;
+  const shuffled = shuffle(parts);
+  return shuffled.slice(0, rand(3, Math.min(5, parts.length))).join(" ");
+}
 
-  // ══════════════════════════════════════════════
-  // KENYA — Nairobi
-  // ══════════════════════════════════════════════
-  {
-    title: "Modern 3BR Apartment — Kilimani",
-    description: "Spacious 3-bedroom apartment in the heart of Kilimani with stunning city views. Open-plan living area, modern kitchen, ensuite master bedroom, and secure parking. Walking distance to Junction Mall and top restaurants.",
-    listing_type: "rent", property_type: "apartment",
-    price: 85000, currency: "KES",
-    bedrooms: 3, bathrooms: 2, area_sqm: 120,
-    city: "Nairobi", neighbourhood: "Kilimani", address: "Kirichwa Road, Kilimani",
-    agent_name: "James Mwangi", agent_phone: "+254 712 345 678", agent_email: "james@habino.io",
-    features: ["Balcony", "Parking", "Security", "Gym", "Swimming Pool", "Backup Generator"],
-    floor: 5, parking: 1, photos: PHOTOS.apartment,
-  },
-  {
-    title: "Executive 4BR Townhouse — Karen",
-    description: "Stunning executive townhouse in a quiet Karen estate. Features a private garden, staff quarters, double garage, and high-quality finishes throughout. Ideal for families seeking space and tranquility close to Karen Hub.",
-    listing_type: "buy", property_type: "house",
-    price: 28500000, currency: "KES",
-    bedrooms: 4, bathrooms: 3, area_sqm: 280,
-    city: "Nairobi", neighbourhood: "Karen", address: "Karen Hardy, Karen",
-    agent_name: "Grace Njoroge", agent_phone: "+254 722 987 654", agent_email: "grace@habino.io",
-    features: ["Garden", "Staff Quarters", "Double Garage", "Borehole", "Solar Water Heater"],
-    floor: null, parking: 2, photos: PHOTOS.house,
-  },
-  {
-    title: "Studio Apartment — Westlands",
-    description: "Compact and fully furnished studio apartment ideal for young professionals. Located minutes from Sarit Centre and Westgate Mall. High-speed WiFi included in rent. Available immediately.",
-    listing_type: "rent", property_type: "apartment",
-    price: 35000, currency: "KES",
-    bedrooms: 0, bathrooms: 1, area_sqm: 38,
-    city: "Nairobi", neighbourhood: "Westlands", address: "Mpaka Road, Westlands",
-    agent_name: "Peter Kamau", agent_phone: "+254 733 111 222", agent_email: "peter@habino.io",
-    features: ["Furnished", "WiFi Included", "Security", "Rooftop Access"],
-    floor: 3, parking: 0, photos: PHOTOS.modern,
-  },
-  {
-    title: "2BR Apartment — Lavington",
-    description: "Well-maintained 2-bedroom apartment in a serene Lavington compound. Large windows, wooden floors, private balcony. Minutes from Lavington Green Mall and international schools.",
-    listing_type: "rent", property_type: "apartment",
-    price: 65000, currency: "KES",
-    bedrooms: 2, bathrooms: 2, area_sqm: 95,
-    city: "Nairobi", neighbourhood: "Lavington", address: "James Gichuru Road, Lavington",
-    agent_name: "Sarah Otieno", agent_phone: "+254 700 555 333", agent_email: "sarah@habino.io",
-    features: ["Wooden Floors", "Balcony", "Parking", "Compound", "CCTV"],
-    floor: 2, parking: 1, photos: PHOTOS.apartment,
-  },
-  {
-    title: "Office Space — Upper Hill",
-    description: "Prime grade-A office space on the 14th floor of a modern tower in Upper Hill CBD. Open-plan layout with glass partitions, high-speed fibre, backup generator, and underground parking.",
-    listing_type: "rent", property_type: "commercial",
-    price: 120000, currency: "KES",
-    bedrooms: 0, bathrooms: 2, area_sqm: 200,
-    city: "Nairobi", neighbourhood: "Upper Hill", address: "Upper Hill Road",
-    agent_name: "David Kariuki", agent_phone: "+254 721 999 000", agent_email: "david@habino.io",
-    features: ["Fibre Internet", "Generator", "Underground Parking", "Reception", "AC"],
-    floor: 14, parking: 4, photos: PHOTOS.commercial,
-  },
+// ── Agents per country ────────────────────────────────────────
+const AGENTS: Record<string, { name: string; phone: string; email: string }[]> = {
+  KE: [
+    { name: "James Mwangi",    phone: "+254 712 345 678", email: "james@habino.io" },
+    { name: "Grace Njoroge",   phone: "+254 722 987 654", email: "grace@habino.io" },
+    { name: "Sarah Otieno",    phone: "+254 700 555 333", email: "sarah@habino.io" },
+    { name: "Peter Kamau",     phone: "+254 733 111 222", email: "peter@habino.io" },
+    { name: "Alice Wanjiku",   phone: "+254 721 888 000", email: "alice@habino.io" },
+    { name: "David Kariuki",   phone: "+254 729 000 111", email: "david@habino.io" },
+  ],
+  ET: [
+    { name: "Selamawit Tadesse", phone: "+251 911 234 567", email: "selamawit@habino.io" },
+    { name: "Yohannes Bekele",   phone: "+251 912 345 678", email: "yohannes@habino.io" },
+    { name: "Hiwot Girma",       phone: "+251 913 456 789", email: "hiwot@habino.io" },
+    { name: "Dawit Alemu",       phone: "+251 914 567 890", email: "dawit@habino.io" },
+  ],
+  ZA: [
+    { name: "Nadia van der Berg", phone: "+27 82 345 6789", email: "nadia@habino.io" },
+    { name: "Sipho Nkosi",        phone: "+27 72 678 9012", email: "sipho@habino.io" },
+    { name: "Thandi Dlamini",     phone: "+27 84 567 8901", email: "thandi@habino.io" },
+    { name: "Pieter Venter",      phone: "+27 83 456 7890", email: "pieter@habino.io" },
+    { name: "Lerato Molefe",      phone: "+27 73 789 0123", email: "lerato@habino.io" },
+  ],
+  TZ: [
+    { name: "Ibrahim Juma",   phone: "+255 712 345 678", email: "ibrahim@habino.io" },
+    { name: "Rose Mkumba",    phone: "+255 754 222 333", email: "rose@habino.io" },
+    { name: "Zuwena Omar",    phone: "+255 777 888 999", email: "zuwena@habino.io" },
+  ],
+  UG: [
+    { name: "Ronald Ssekandi",   phone: "+256 774 123 456", email: "ronald@habino.io" },
+    { name: "Patricia Namutebi", phone: "+256 782 234 567", email: "patricia@habino.io" },
+  ],
+  RW: [
+    { name: "Amina Uwimana",       phone: "+250 788 123 456", email: "amina@habino.io" },
+    { name: "Jean-Pierre Habimana",phone: "+250 722 234 567", email: "jp@habino.io" },
+  ],
+  NG: [
+    { name: "Emeka Okafor",   phone: "+234 803 456 789", email: "emeka@habino.io" },
+    { name: "Chinwe Adeyemi", phone: "+234 806 111 222", email: "chinwe@habino.io" },
+    { name: "Tunde Fashola",  phone: "+234 807 333 444", email: "tunde@habino.io" },
+  ],
+  GH: [
+    { name: "Kwame Asante", phone: "+233 24 567 890", email: "kwame@habino.io" },
+    { name: "Ama Boateng",  phone: "+233 20 123 456", email: "ama@habino.io" },
+  ],
+  EG: [
+    { name: "Mohamed El-Sayed", phone: "+20 100 234 5678", email: "mohamed@habino.io" },
+    { name: "Yasmine Hassan",   phone: "+20 101 345 6789", email: "yasmine@habino.io" },
+  ],
+  MA: [
+    { name: "Rachid Benali",  phone: "+212 661 234 567", email: "rachid@habino.io" },
+    { name: "Fatima Zahra",   phone: "+212 662 345 678", email: "fatima@habino.io" },
+  ],
+  AE: [
+    { name: "Omar Al-Farsi", phone: "+971 50 123 4567", email: "omar@habino.io" },
+    { name: "Layla Al-Mansoori", phone: "+971 52 234 5678", email: "layla@habino.io" },
+  ],
+};
 
-  // ══════════════════════════════════════════════
-  // KENYA — Mombasa
-  // ══════════════════════════════════════════════
-  {
-    title: "Beachfront Villa — Nyali",
-    description: "Rare beachfront 5-bedroom villa in Nyali offering direct ocean access. Infinity pool, lush tropical garden, and panoramic ocean views. Perfect as primary residence or holiday rental investment.",
-    listing_type: "buy", property_type: "house",
-    price: 65000000, currency: "KES",
-    bedrooms: 5, bathrooms: 5, area_sqm: 450,
-    city: "Mombasa", neighbourhood: "Nyali", address: "Nyali Beach Road",
-    agent_name: "Ali Hassan", agent_phone: "+254 741 888 999", agent_email: "ali@habino.io",
-    features: ["Beachfront", "Infinity Pool", "Tropical Garden", "Staff Quarters", "Generator"],
-    floor: null, parking: 3, photos: PHOTOS.villa,
-  },
-  {
-    title: "2BR Apartment — Bamburi Beach",
-    description: "Contemporary 2-bedroom apartment with ocean glimpses in a gated community. Shared pool and BBQ area. 5 minutes walk to Bamburi Beach. Great for holiday letting.",
-    listing_type: "rent", property_type: "apartment",
-    price: 45000, currency: "KES",
-    bedrooms: 2, bathrooms: 2, area_sqm: 85,
-    city: "Mombasa", neighbourhood: "Bamburi", address: "Bamburi Beach Road",
-    agent_name: "Fatuma Salim", agent_phone: "+254 722 444 555", agent_email: "fatuma@habino.io",
-    features: ["Pool", "BBQ Area", "Beach Access", "Parking", "Security"],
-    floor: 2, parking: 1, photos: PHOTOS.apartment,
-  },
+// ── Price generator ───────────────────────────────────────────
+function generatePrice(
+  city: typeof CITIES[0],
+  propType: string,
+  listingType: string,
+  areaSqm: number
+): number {
+  const base = city.priceBase[propType as keyof typeof city.priceBase] ?? city.priceBase.apartment;
+  // Add ±40% variation
+  const variation = 0.6 + (rand(0, 80) / 100);
+  let price = Math.round(base * variation);
 
-  // ══════════════════════════════════════════════
-  // ETHIOPIA — Addis Ababa
-  // ══════════════════════════════════════════════
-  {
-    title: "Luxury 3BR Apartment — Bole",
-    description: "Beautifully finished 3-bedroom apartment in Bole's most desirable residential tower. Floor-to-ceiling windows, Italian kitchen, marble bathrooms, and rooftop infinity pool with views of the Entoto Hills.",
-    listing_type: "rent", property_type: "apartment",
-    price: 2500, currency: "USD",
-    bedrooms: 3, bathrooms: 2, area_sqm: 130,
-    city: "Addis Ababa", neighbourhood: "Bole", address: "Bole Road, Bole Sub-city",
-    agent_name: "Selamawit Tadesse", agent_phone: "+251 911 234 567", agent_email: "selamawit@habino.io",
-    features: ["Rooftop Pool", "Generator", "Parking", "Concierge", "Gym", "AC"],
-    floor: 10, parking: 2, photos: PHOTOS.luxury,
-  },
-  {
-    title: "Family Villa — Old Airport Area",
-    description: "Spacious 5-bedroom villa on a large compound in the sought-after Old Airport neighbourhood. Two living rooms, dining room, modern kitchen, staff quarters, and a landscaped garden. Walking distance to major embassies.",
-    listing_type: "rent", property_type: "house",
-    price: 4500, currency: "USD",
-    bedrooms: 5, bathrooms: 4, area_sqm: 400,
-    city: "Addis Ababa", neighbourhood: "Old Airport", address: "Old Airport Road, Nifas Silk Lafto",
-    agent_name: "Yohannes Bekele", agent_phone: "+251 912 345 678", agent_email: "yohannes@habino.io",
-    features: ["Large Compound", "Staff Quarters", "Generator", "Borehole", "Satellite TV"],
-    floor: null, parking: 3, photos: PHOTOS.villa,
-  },
-  {
-    title: "Modern 2BR Apartment — Kazanchis",
-    description: "Contemporary apartment in Kazanchis diplomatic quarter, ideal for expats. Recently renovated with modern finishes, fitted kitchen, and secure parking. Close to UN offices and major hotels.",
-    listing_type: "rent", property_type: "apartment",
-    price: 1800, currency: "USD",
-    bedrooms: 2, bathrooms: 2, area_sqm: 90,
-    city: "Addis Ababa", neighbourhood: "Kazanchis", address: "Ras Desta Damtew Street",
-    agent_name: "Hiwot Girma", agent_phone: "+251 913 456 789", agent_email: "hiwot@habino.io",
-    features: ["Furnished", "Generator", "Security", "Parking", "Fibre Internet"],
-    floor: 5, parking: 1, photos: PHOTOS.modern,
-  },
-  {
-    title: "Commercial Plot — CMC Area",
-    description: "Prime 800 sqm commercial plot on CMC Road with direct road access. All utilities connected. Suitable for retail, hotel, or mixed-use development. Title deed available.",
-    listing_type: "buy", property_type: "land",
-    price: 8500000, currency: "ETB",
-    bedrooms: 0, bathrooms: 0, area_sqm: 800,
-    city: "Addis Ababa", neighbourhood: "CMC", address: "CMC Road, Yeka Sub-city",
-    agent_name: "Dawit Alemu", agent_phone: "+251 914 567 890", agent_email: "dawit@habino.io",
-    features: ["Title Deed", "Road Frontage", "All Utilities", "Commercial Zoning"],
-    floor: null, parking: 0, photos: PHOTOS.land,
-  },
+  // Buy prices = rent * 120-180x multiplier
+  if (listingType === "buy" && !["land","plot"].includes(propType)) {
+    price = price * rand(120, 180);
+  }
 
-  // ══════════════════════════════════════════════
-  // SOUTH AFRICA — Cape Town
-  // ══════════════════════════════════════════════
-  {
-    title: "Atlantic Seaboard Apartment — Sea Point",
-    description: "Stylish 2-bedroom apartment with direct Atlantic Ocean views in the heart of Sea Point. Open-plan living, designer kitchen, underfloor heating, and a private balcony. Walk to the promenade and top restaurants.",
-    listing_type: "rent", property_type: "apartment",
-    price: 25000, currency: "ZAR",
-    bedrooms: 2, bathrooms: 2, area_sqm: 95,
-    city: "Cape Town", neighbourhood: "Sea Point", address: "Beach Road, Sea Point",
-    agent_name: "Nadia van der Berg", agent_phone: "+27 82 345 6789", agent_email: "nadia@habino.io",
-    features: ["Ocean Views", "Balcony", "Underfloor Heating", "Secure Parking", "Fibre"],
-    floor: 6, parking: 1, photos: PHOTOS.luxury,
-  },
-  {
-    title: "Cape Winelands Farm — Stellenbosch",
-    description: "Magnificent 6-bedroom wine farm estate on 12 hectares of Stellenbosch vineyards. Cellar, tasting room, guest cottages, and a historic Cape Dutch manor house. Exceptional investment opportunity.",
-    listing_type: "buy", property_type: "house",
-    price: 45000000, currency: "ZAR",
-    bedrooms: 6, bathrooms: 5, area_sqm: 650,
-    city: "Cape Town", neighbourhood: "Stellenbosch", address: "R44, Stellenbosch",
-    agent_name: "Pieter Venter", agent_phone: "+27 83 456 7890", agent_email: "pieter@habino.io",
-    features: ["Vineyard", "Wine Cellar", "Guest Cottages", "Tasting Room", "Staff Quarters"],
-    floor: null, parking: 6, photos: PHOTOS.villa,
-  },
-  {
-    title: "3BR House — Claremont",
-    description: "Well-appointed 3-bedroom family home in sought-after Claremont. Large garden, renovated kitchen, double garage, and excellent proximity to top schools including Bishops and SACS.",
-    listing_type: "buy", property_type: "house",
-    price: 6800000, currency: "ZAR",
-    bedrooms: 3, bathrooms: 2, area_sqm: 220,
-    city: "Cape Town", neighbourhood: "Claremont", address: "Main Road, Claremont",
-    agent_name: "Thandi Dlamini", agent_phone: "+27 84 567 8901", agent_email: "thandi@habino.io",
-    features: ["Garden", "Double Garage", "Alarm System", "Solar Panels", "Irrigation"],
-    floor: null, parking: 2, photos: PHOTOS.house,
-  },
+  // Scale commercial/industrial by area
+  if (["hall","production","land","plot"].includes(propType)) {
+    price = Math.round((price / 1000) * (areaSqm / 100)) * 100;
+    if (price < 1) price = base;
+  }
 
-  // ══════════════════════════════════════════════
-  // SOUTH AFRICA — Johannesburg
-  // ══════════════════════════════════════════════
-  {
-    title: "1BR Apartment — Sandton CBD",
-    description: "Modern 1-bedroom apartment in a premium Sandton tower with gym, pool, and concierge. Walking distance to Sandton City Mall and Gautrain station. Ideal for professionals.",
-    listing_type: "rent", property_type: "apartment",
-    price: 16500, currency: "ZAR",
-    bedrooms: 1, bathrooms: 1, area_sqm: 65,
-    city: "Johannesburg", neighbourhood: "Sandton", address: "Rivonia Road, Sandton",
-    agent_name: "Sipho Nkosi", agent_phone: "+27 72 678 9012", agent_email: "sipho@habino.io",
-    features: ["Gym", "Pool", "Concierge", "Gautrain Access", "Secure Parking", "Generator"],
-    floor: 18, parking: 1, photos: PHOTOS.modern,
-  },
-  {
-    title: "5BR Cluster Home — Fourways",
-    description: "Spacious 5-bedroom cluster home in a prestigious Fourways estate. Guest suite, entertainment area with built-in braai, solar system, and 3-car garage. Top security estate with 24hr guards.",
-    listing_type: "buy", property_type: "house",
-    price: 5200000, currency: "ZAR",
-    bedrooms: 5, bathrooms: 4, area_sqm: 380,
-    city: "Johannesburg", neighbourhood: "Fourways", address: "William Nicol Drive, Fourways",
-    agent_name: "Lerato Molefe", agent_phone: "+27 73 789 0123", agent_email: "lerato@habino.io",
-    features: ["Solar System", "Built-in Braai", "3-Car Garage", "Guest Suite", "Estate Security"],
-    floor: null, parking: 3, photos: PHOTOS.house,
-  },
+  // Round to clean numbers
+  if (price > 1000000) return Math.round(price / 100000) * 100000;
+  if (price > 100000)  return Math.round(price / 10000) * 10000;
+  if (price > 10000)   return Math.round(price / 1000) * 1000;
+  return Math.round(price / 500) * 500;
+}
 
-  // ══════════════════════════════════════════════
-  // TANZANIA — Dar es Salaam
-  // ══════════════════════════════════════════════
-  {
-    title: "3BR Apartment — Masaki Peninsula",
-    description: "Luxuriously appointed apartment in the prestigious Masaki Peninsula. High-end finishes, sea views, 24-hour concierge, and underground parking. Walking distance to fine dining and embassies.",
-    listing_type: "rent", property_type: "apartment",
-    price: 2800, currency: "USD",
-    bedrooms: 3, bathrooms: 3, area_sqm: 140,
-    city: "Dar es Salaam", neighbourhood: "Masaki", address: "Haile Selassie Road, Masaki",
-    agent_name: "Ibrahim Juma", agent_phone: "+255 712 345 678", agent_email: "ibrahim@habino.io",
-    features: ["Sea Views", "Concierge", "Underground Parking", "Gym", "Generator"],
-    floor: 8, parking: 2, photos: PHOTOS.luxury,
-  },
-  {
-    title: "Family Home — Mikocheni",
-    description: "Spacious 4-bedroom family home in quiet Mikocheni B. Large compound with garden, domestic quarters, and double garage. Close to international schools and Slipway shopping centre.",
-    listing_type: "buy", property_type: "house",
-    price: 320000, currency: "USD",
-    bedrooms: 4, bathrooms: 3, area_sqm: 320,
-    city: "Dar es Salaam", neighbourhood: "Mikocheni", address: "Mikocheni B",
-    agent_name: "Rose Mkumba", agent_phone: "+255 754 222 333", agent_email: "rose@habino.io",
-    features: ["Garden", "Staff Quarters", "Double Garage", "Borehole", "Security"],
-    floor: null, parking: 2, photos: PHOTOS.house,
-  },
-  {
-    title: "Beach Cottage — Zanzibar Stone Town",
-    description: "Charming 2-bedroom restored Swahili cottage steps from the Indian Ocean in Zanzibar Stone Town. Original coral architecture, rooftop terrace, and modern amenities. UNESCO World Heritage location.",
-    listing_type: "buy", property_type: "house",
-    price: 185000, currency: "USD",
-    bedrooms: 2, bathrooms: 2, area_sqm: 110,
-    city: "Dar es Salaam", neighbourhood: "Zanzibar Stone Town", address: "Hurumzi Street, Stone Town",
-    agent_name: "Zuwena Omar", agent_phone: "+255 777 888 999", agent_email: "zuwena@habino.io",
-    features: ["Rooftop Terrace", "Historic Architecture", "Ocean Views", "UNESCO Area"],
-    floor: null, parking: 0, photos: PHOTOS.villa,
-  },
+// ── Generate one listing ──────────────────────────────────────
+function generateListing(tenantId: string) {
+  const city     = pick(CITIES);
+  const propConf = pickPropType();
+  const listingType = pick(propConf.listingTypes);
+  const neighbourhood = pick(city.neighbourhoods);
+  const agents   = AGENTS[city.country] ?? AGENTS["KE"];
+  const agent    = pick(agents);
 
-  // ══════════════════════════════════════════════
-  // UGANDA — Kampala
-  // ══════════════════════════════════════════════
-  {
-    title: "3BR Apartment — Kololo Hill",
-    description: "Premium 3-bedroom apartment on the prestigious Kololo Hill with panoramic views of Kampala. Spacious living areas, modern kitchen, backup power, and security. Minutes from international schools and embassies.",
-    listing_type: "rent", property_type: "apartment",
-    price: 2200, currency: "USD",
-    bedrooms: 3, bathrooms: 2, area_sqm: 125,
-    city: "Kampala", neighbourhood: "Kololo", address: "Acacia Avenue, Kololo",
-    agent_name: "Ronald Ssekandi", agent_phone: "+256 774 123 456", agent_email: "ronald@habino.io",
-    features: ["City Views", "Generator", "Security", "Parking", "Fibre Internet"],
-    floor: 5, parking: 2, photos: PHOTOS.modern,
-  },
-  {
-    title: "Commercial Building — Nakasero",
-    description: "Fully tenanted 6-storey commercial building in Nakasero CBD generating strong rental income. Mix of offices, retail on ground floor. Well-maintained with generator and parking. Ideal institutional investment.",
-    listing_type: "buy", property_type: "commercial",
-    price: 2800000, currency: "USD",
-    bedrooms: 0, bathrooms: 8, area_sqm: 1800,
-    city: "Kampala", neighbourhood: "Nakasero", address: "Kampala Road, Nakasero",
-    agent_name: "Patricia Namutebi", agent_phone: "+256 782 234 567", agent_email: "patricia@habino.io",
-    features: ["Fully Tenanted", "Generator", "Parking", "Retail Ground Floor", "Title Deed"],
-    floor: null, parking: 20, photos: PHOTOS.commercial,
-  },
+  const bedrooms  = rand(propConf.bedroomsRange[0], propConf.bedroomsRange[1]);
+  const bathrooms = rand(propConf.bathroomsRange[0], propConf.bathroomsRange[1]);
+  const area_sqm  = rand(propConf.areaRange[0], propConf.areaRange[1]);
+  const price     = generatePrice(city, propConf.type, listingType, area_sqm);
 
-  // ══════════════════════════════════════════════
-  // RWANDA — Kigali
-  // ══════════════════════════════════════════════
-  {
-    title: "2BR Apartment — Kiyovu",
-    description: "Modern 2-bedroom apartment in Kiyovu, Kigali's premier residential neighbourhood. City and valley views, fitted kitchen, backup power, and 24-hour security. Close to major business districts.",
-    listing_type: "rent", property_type: "apartment",
-    price: 1500, currency: "USD",
-    bedrooms: 2, bathrooms: 2, area_sqm: 90,
-    city: "Kigali", neighbourhood: "Kiyovu", address: "KN 5 Road, Kiyovu",
-    agent_name: "Amina Uwimana", agent_phone: "+250 788 123 456", agent_email: "amina@habino.io",
-    features: ["City Views", "Generator", "Security", "Parking", "DSTV"],
-    floor: 4, parking: 1, photos: PHOTOS.apartment,
-  },
-  {
-    title: "Smart Home — Rebero",
-    description: "Contemporary 4-bedroom smart home on Rebero hill with spectacular panoramic views of Kigali. Solar energy, rainwater harvesting, smart home automation, landscaped garden and double garage.",
-    listing_type: "buy", property_type: "house",
-    price: 480000, currency: "USD",
-    bedrooms: 4, bathrooms: 3, area_sqm: 300,
-    city: "Kigali", neighbourhood: "Rebero", address: "KG 9 Avenue, Rebero",
-    agent_name: "Jean-Pierre Habimana", agent_phone: "+250 722 234 567", agent_email: "jp@habino.io",
-    features: ["Smart Home", "Solar Energy", "Rainwater Harvesting", "Panoramic Views", "Garden"],
-    floor: null, parking: 2, photos: PHOTOS.modern,
-  },
-
-  // ══════════════════════════════════════════════
-  // NIGERIA — Lagos
-  // ══════════════════════════════════════════════
-  {
-    title: "2BR Apartment — Victoria Island",
-    description: "Sleek 2-bedroom apartment on Victoria Island with Atlantic Ocean views. Open-plan living, modern kitchen, 24-hour security, and rooftop terrace access. Ideal for executives.",
-    listing_type: "rent", property_type: "apartment",
-    price: 4500000, currency: "NGN",
-    bedrooms: 2, bathrooms: 2, area_sqm: 100,
-    city: "Lagos", neighbourhood: "Victoria Island", address: "Adeola Odeku Street, VI",
-    agent_name: "Emeka Okafor", agent_phone: "+234 803 456 789", agent_email: "emeka@habino.io",
-    features: ["Ocean Views", "Rooftop Terrace", "24hr Security", "Gym", "Backup Power"],
-    floor: 12, parking: 1, photos: PHOTOS.luxury,
-  },
-  {
-    title: "5BR Detached House — Lekki Phase 1",
-    description: "Magnificent 5-bedroom fully detached house in Lekki Phase 1. Private pool, home cinema, modern kitchen, boys' quarters, and 3-car garage. Perfect for upscale family living.",
-    listing_type: "buy", property_type: "house",
-    price: 380000000, currency: "NGN",
-    bedrooms: 5, bathrooms: 5, area_sqm: 500,
-    city: "Lagos", neighbourhood: "Lekki Phase 1", address: "Admiralty Way, Lekki Phase 1",
-    agent_name: "Chinwe Adeyemi", agent_phone: "+234 806 111 222", agent_email: "chinwe@habino.io",
-    features: ["Pool", "Home Cinema", "Boys Quarters", "3-Car Garage", "Smart Home"],
-    floor: null, parking: 3, photos: PHOTOS.villa,
-  },
-  {
-    title: "Studio — Yaba Tech Hub",
-    description: "Compact furnished studio in the heart of Yaba, Lagos's tech hub. Walking distance to co-working spaces, tech companies, and the University of Lagos. Fast WiFi, 24hr power, and rooftop terrace.",
-    listing_type: "rent", property_type: "apartment",
-    price: 950000, currency: "NGN",
-    bedrooms: 0, bathrooms: 1, area_sqm: 35,
-    city: "Lagos", neighbourhood: "Yaba", address: "Herbert Macaulay Way, Yaba",
-    agent_name: "Tunde Fashola", agent_phone: "+234 807 333 444", agent_email: "tunde@habino.io",
-    features: ["Furnished", "24hr Power", "Fast WiFi", "Rooftop Terrace", "Co-working Nearby"],
-    floor: 3, parking: 0, photos: PHOTOS.modern,
-  },
-
-  // ══════════════════════════════════════════════
-  // GHANA — Accra
-  // ══════════════════════════════════════════════
-  {
-    title: "3BR Apartment — East Legon",
-    description: "Stylish 3-bedroom apartment in East Legon's most sought-after estate. Contemporary finishes, fitted kitchen, covered parking, and 24/7 security. Walking distance to East Legon Mall.",
-    listing_type: "rent", property_type: "apartment",
-    price: 3200, currency: "USD",
-    bedrooms: 3, bathrooms: 2, area_sqm: 130,
-    city: "Accra", neighbourhood: "East Legon", address: "American House, East Legon",
-    agent_name: "Kwame Asante", agent_phone: "+233 24 567 890", agent_email: "kwame@habino.io",
-    features: ["Fitted Kitchen", "Parking", "24hr Security", "Generator", "Swimming Pool"],
-    floor: 4, parking: 2, photos: PHOTOS.apartment,
-  },
-  {
-    title: "4BR Villa — Airport Residential",
-    description: "Elegant 4-bedroom villa in Accra's prestigious Airport Residential area. Private pool, landscaped garden, boys' quarters, and double garage. Close to Kotoka International Airport and top international schools.",
-    listing_type: "buy", property_type: "house",
-    price: 850000, currency: "USD",
-    bedrooms: 4, bathrooms: 4, area_sqm: 380,
-    city: "Accra", neighbourhood: "Airport Residential", address: "Liberation Road, Airport Residential",
-    agent_name: "Ama Boateng", agent_phone: "+233 20 123 456", agent_email: "ama@habino.io",
-    features: ["Private Pool", "Garden", "Boys Quarters", "Double Garage", "Title Deed"],
-    floor: null, parking: 2, photos: PHOTOS.villa,
-  },
-
-  // ══════════════════════════════════════════════
-  // EGYPT — Cairo
-  // ══════════════════════════════════════════════
-  {
-    title: "3BR Apartment — New Cairo",
-    description: "Contemporary 3-bedroom apartment in the prestigious Fifth Settlement, New Cairo. Compound living with pool, gym, and tennis court. Close to Cairo Festival City Mall and AUC campus.",
-    listing_type: "rent", property_type: "apartment",
-    price: 25000, currency: "EGP",
-    bedrooms: 3, bathrooms: 2, area_sqm: 150,
-    city: "Cairo", neighbourhood: "New Cairo", address: "Fifth Settlement, New Cairo",
-    agent_name: "Mohamed El-Sayed", agent_phone: "+20 100 234 5678", agent_email: "mohamed@habino.io",
-    features: ["Compound", "Pool", "Gym", "Tennis Court", "Covered Parking", "24hr Security"],
-    floor: 3, parking: 1, photos: PHOTOS.modern,
-  },
-  {
-    title: "Penthouse — Zamalek Island",
-    description: "Exceptional penthouse on Zamalek Island with sweeping Nile views and panoramic views of Cairo's skyline. 4 bedrooms, wraparound terrace, private jacuzzi, and premium finishes. The ultimate Cairo address.",
-    listing_type: "buy", property_type: "apartment",
-    price: 18000000, currency: "EGP",
-    bedrooms: 4, bathrooms: 3, area_sqm: 280,
-    city: "Cairo", neighbourhood: "Zamalek", address: "26th of July Street, Zamalek",
-    agent_name: "Yasmine Hassan", agent_phone: "+20 101 345 6789", agent_email: "yasmine@habino.io",
-    features: ["Nile Views", "Wraparound Terrace", "Jacuzzi", "Premium Finishes", "Doorman"],
-    floor: 12, parking: 2, photos: PHOTOS.luxury,
-  },
-
-  // ══════════════════════════════════════════════
-  // MOROCCO — Casablanca & Marrakech
-  // ══════════════════════════════════════════════
-  {
-    title: "2BR Apartment — Casablanca Anfa",
-    description: "Elegant 2-bedroom apartment in Casablanca's Anfa neighbourhood, overlooking the Atlantic. High-end building with concierge, gym, and rooftop pool. Prime location near the iconic Hassan II Mosque.",
-    listing_type: "rent", property_type: "apartment",
-    price: 18000, currency: "MAD",
-    bedrooms: 2, bathrooms: 2, area_sqm: 100,
-    city: "Casablanca", neighbourhood: "Anfa", address: "Boulevard d'Anfa",
-    agent_name: "Rachid Benali", agent_phone: "+212 661 234 567", agent_email: "rachid@habino.io",
-    features: ["Ocean Views", "Concierge", "Rooftop Pool", "Gym", "Secured Parking"],
-    floor: 8, parking: 1, photos: PHOTOS.luxury,
-  },
-  {
-    title: "Riad — Marrakech Medina",
-    description: "Exquisite 5-bedroom riad in the heart of the Marrakech Medina. Fully restored with traditional zellige tilework, central fountain courtyard, rooftop terrace, plunge pool, and a working hammam. Turnkey rental income.",
-    listing_type: "buy", property_type: "house",
-    price: 4200000, currency: "MAD",
-    bedrooms: 5, bathrooms: 5, area_sqm: 350,
-    city: "Marrakech", neighbourhood: "Medina", address: "Derb Chorfa, Medina",
-    agent_name: "Fatima Zahra", agent_phone: "+212 662 345 678", agent_email: "fatima@habino.io",
-    features: ["Courtyard", "Plunge Pool", "Hammam", "Rooftop Terrace", "Historic Architecture"],
-    floor: null, parking: 0, photos: PHOTOS.villa,
-  },
-
-  // ══════════════════════════════════════════════
-  // UAE — Dubai (for diaspora/international)
-  // ══════════════════════════════════════════════
-  {
-    title: "1BR Studio — Dubai Marina",
-    description: "Bright 1-bedroom apartment with marina views in a premium Dubai Marina tower. Access to beach, infinity pool, and gym. Close to the Walk and Bluewaters Island. Ideal for professionals and investors.",
-    listing_type: "rent", property_type: "apartment",
-    price: 7500, currency: "AED",
-    bedrooms: 1, bathrooms: 1, area_sqm: 65,
-    city: "Dubai", neighbourhood: "Dubai Marina", address: "Marina Walk, Dubai Marina",
-    agent_name: "Omar Al-Farsi", agent_phone: "+971 50 123 4567", agent_email: "omar@habino.io",
-    features: ["Marina Views", "Beach Access", "Infinity Pool", "Gym", "Concierge"],
-    floor: 22, parking: 1, photos: PHOTOS.luxury,
-  },
-];
+  return {
+    tenant_id:     tenantId,
+    title:         makeTitle(propConf.label, bedrooms, neighbourhood, listingType),
+    description:   makeDescription(propConf.type),
+    listing_type:  listingType,
+    property_type: propConf.type,
+    price,
+    currency:      city.currency,
+    bedrooms,
+    bathrooms,
+    area_sqm,
+    city:          city.name,
+    neighbourhood,
+    address:       null,
+    agent_name:    agent.name,
+    agent_phone:   agent.phone,
+    agent_email:   agent.email,
+    status:        "active",
+  };
+}
 
 // ── Main ──────────────────────────────────────────────────────
 async function main() {
-  console.log("🌱 Starting Habino demo seed...\n");
-  console.log(`📦 Total listings to seed: ${DEMO_LISTINGS.length}\n`);
+  console.log(`\n🌱 Habino Demo Seed — generating ${COUNT.toLocaleString()} listings\n`);
 
-  // 1. Get or create a default tenant
+  // Find tenant
   let { data: tenant } = await supabase
     .from("tenants")
     .select("id, name")
-    .eq("slug", "demo")
     .single();
 
   if (!tenant) {
-    const { data: newTenant, error } = await supabase
-      .from("tenants")
-      .insert({ name: "Habino Demo", slug: "demo", is_active: true })
-      .select("id, name")
-      .single();
+    console.error("❌ No tenant found. Create one first.");
+    process.exit(1);
+  }
+  console.log(`✅ Tenant: ${tenant.name} (${tenant.id})\n`);
+
+  // Optionally clear existing demo listings
+  if (CLEAR) {
+    console.log("🗑  Clearing existing listings...");
+    const { count } = await supabase
+      .from("properties")
+      .select("*", { count: "exact", head: true })
+      .eq("tenant_id", tenant.id);
+    await supabase.from("properties").delete().eq("tenant_id", tenant.id);
+    console.log(`   Deleted ${count ?? 0} listings\n`);
+  }
+
+  // Generate and insert in batches
+  let totalCreated = 0;
+  let totalFailed  = 0;
+  const batches    = Math.ceil(COUNT / BATCH);
+
+  for (let b = 0; b < batches; b++) {
+    const batchSize = Math.min(BATCH, COUNT - totalCreated);
+    const rows = Array.from({ length: batchSize }, () => generateListing(tenant.id));
+
+    const { data, error } = await supabase
+      .from("properties")
+      .insert(rows)
+      .select("id");
 
     if (error) {
-      console.error("❌ Could not create tenant:", error.message);
-      console.log("💡 Make sure SUPABASE_SERVICE_ROLE_KEY is set in .env.local");
-      process.exit(1);
+      console.error(`  ❌ Batch ${b + 1} failed:`, error.message);
+      totalFailed += batchSize;
+    } else {
+      totalCreated += data?.length ?? 0;
     }
-    tenant = newTenant!;
-    console.log(`✅ Created tenant: ${tenant.name} (${tenant.id})\n`);
-  } else {
-    console.log(`✅ Using existing tenant: ${tenant.name} (${tenant.id})\n`);
+
+    // Progress every 10 batches
+    if ((b + 1) % 10 === 0 || b === batches - 1) {
+      const pct = Math.round(((b + 1) / batches) * 100);
+      process.stdout.write(`\r  Progress: ${totalCreated.toLocaleString()} / ${COUNT.toLocaleString()} listings (${pct}%)`);
+    }
   }
 
-  // 2. Seed properties
-  let created = 0;
-  let skipped = 0;
-  let failed  = 0;
-
-  for (const listing of DEMO_LISTINGS) {
-    const { photos, ...data } = listing as typeof listing & { photos: string[] };
-
-    // Check if already exists (by title)
-    const { data: existing } = await supabase
-      .from("properties")
-      .select("id")
-      .eq("tenant_id", tenant.id)
-      .eq("title", data.title)
-      .single();
-
-    if (existing) {
-      console.log(`  ⏭  Skip: ${data.title}`);
-      skipped++;
-      continue;
-    }
-
-    // Insert property
-    const { data: property, error } = await supabase
-      .from("properties")
-      .insert({ ...data, tenant_id: tenant.id, status: "active" })
-      .select("id")
-      .single();
-
-    if (error || !property) {
-      console.error(`  ❌ Failed: ${data.title}`, error?.message);
-      failed++;
-      continue;
-    }
-
-    // Insert photos
-    for (let i = 0; i < photos.length; i++) {
-      await supabase.from("property_images").insert({
-        property_id: property.id,
-        url:         photos[i],
-        sort_order:  i,
-      });
-    }
-
-    console.log(`  ✅ ${data.city} — ${data.title}`);
-    created++;
+  console.log(`\n\n${"─".repeat(50)}`);
+  console.log(`🎉 Done!`);
+  console.log(`   ✅ Created : ${totalCreated.toLocaleString()}`);
+  console.log(`   ❌ Failed  : ${totalFailed.toLocaleString()}`);
+  if (totalFailed > 0) {
+    console.log(`\n💡 Failed listings are usually caused by missing DB columns.`);
+    console.log(`   Run: npx tsx scripts/seed-demo.ts --clear to retry with a clean slate.`);
   }
-
-  console.log(`\n${"─".repeat(50)}`);
-  console.log(`🎉 Done! ${created} created · ${skipped} skipped · ${failed} failed`);
-  console.log(`\n💡 Open your Habino app — the Markt page should now be full.`);
+  console.log(`\n🔗 Open your Habino app — Markt should now have ${totalCreated.toLocaleString()} listings.`);
 }
 
-main().catch((e) => { console.error("Fatal error:", e); process.exit(1); });
+main().catch((e) => { console.error("\nFatal error:", e); process.exit(1); });

@@ -28,7 +28,7 @@ export interface HabinoUser {
 
 // ── Property ──────────────────────────────────────────────────
 export type ListingType    = "buy" | "rent";
-export type PropertyType   = "apartment" | "house" | "commercial" | "land";
+export type PropertyType   = "apartment" | "house" | "commercial" | "land" | "villa" | "office" | "hall" | "production" | "plot";
 export type PropertyStatus = "draft" | "active" | "archived";
 
 export interface Property {
