@@ -33,10 +33,10 @@ export function truncate(text: string, max: number): string {
  * Returns the hero image URL for a property (first image with sort_order 0).
  * Falls back to a placeholder.
  */
-export function getHeroImage(images?: { url: string; sort_order: number }[]): string {
-  if (!images || images.length === 0) return "/placeholder-property.jpg";
-  const hero = images.find((img) => img.sort_order === 0) || images[0];
-  return hero.url;
+export function getHeroImage(images?: { url: string; sort_order: number }[]): string | null {
+  if (!images || images.length === 0) return null;
+  const hero = images.find((img) => img.sort_order === 0) ?? images[0];
+  return hero?.url ?? null;
 }
 
 /**

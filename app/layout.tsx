@@ -6,6 +6,7 @@ import { TenantProvider } from "./tenant-provider";
 import { createServiceClient } from "@/lib/supabase/server";
 import { tenantCssVars } from "@/lib/tenant";
 import { Tenant } from "@/lib/types";
+import BottomNav from "@/components/layout/BottomNav";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -54,9 +55,13 @@ export default async function RootLayout({
 
   return (
     <html lang="en" style={{ cssText: cssVars } as React.CSSProperties}>
-      <body className={inter.className}>
+      <body className={`${inter.className} pb-safe`}>
         <TenantProvider tenant={tenant}>
-          {children}
+          {/* Main content — extra bottom padding on mobile for BottomNav */}
+          <div className="md:pb-0 pb-16">
+            {children}
+          </div>
+          <BottomNav />
         </TenantProvider>
       </body>
     </html>
