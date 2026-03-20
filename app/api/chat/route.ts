@@ -15,7 +15,14 @@ type WizardStep =
   | "extras"         // Step 6: Optional details (bedrooms, m², description)
   | "confirm"        // Step 7: Summary + confirmation before saving
   | "edit_field"     // Edit: which field to change?
-  | "edit_value";    // Edit: new value for that field
+  | "edit_value"     // Edit: new value for that field
+  // ── Contract wizard ───────────────────────────────────────
+  | "contract_landlord"      // C1: Landlord name + email
+  | "contract_property"      // C2: Which property?
+  | "contract_tenant"        // C3: Tenant name + email + ID
+  | "contract_terms"         // C4: Start date + rent/price + deposit
+  | "contract_jurisdiction"  // C5: Country + contract type
+  | "contract_confirm";      // C6: Summary → create + generate
 
 interface WizardData {
   listing_type?:  "buy" | "rent";
@@ -29,6 +36,22 @@ interface WizardData {
   bathrooms?:     number;
   area_sqm?:      number;
   description?:   string;
+  // Contract fields
+  c_landlord_name?:    string;
+  c_landlord_email?:   string;
+  c_property_id?:      string;
+  c_property_title?:   string;
+  c_tenant_name?:      string;
+  c_tenant_email?:     string;
+  c_tenant_id?:        string;
+  c_start_date?:       string;
+  c_end_date?:         string;
+  c_rent?:             number;
+  c_deposit?:          number;
+  c_currency?:         string;
+  c_contract_type?:    string;
+  c_country_code?:     string;
+  c_language?:         string;
 }
 
 interface WizardState {
@@ -56,13 +79,20 @@ const CREATE_KEYWORDS = [
   "meine wohnung", "mein haus", "property to sell", "property to rent",
 ];
 const EDIT_KEYWORDS = ["edit", "change", "update", "wrong", "fix", "modify", "incorrect", "alter", "different"];
+const CONTRACT_KEYWORDS = [
+  "create a contract", "new contract", "draft a contract", "vertrag erstellen",
+  "mietvertrag", "kaufvertrag", "lease agreement", "rental agreement",
+  "contract for", "generate contract", "make a contract", "need a contract",
+  "i want a contract", "prepare a contract",
+];
 
-function detectIntent(text: string): "search" | "book" | "create_listing" | "edit_listing" | "chat" {
+function detectIntent(text: string): "search" | "book" | "create_listing" | "edit_listing" | "create_contract" | "chat" {
   const lower = text.toLowerCase();
-  if (BOOK_KEYWORDS.some((k)   => lower.includes(k))) return "book";
-  if (CREATE_KEYWORDS.some((k) => lower.includes(k))) return "create_listing";
-  if (EDIT_KEYWORDS.some((k)   => lower.includes(k))) return "edit_listing";
-  if (SEARCH_KEYWORDS.some((k) => lower.includes(k))) return "search";
+  if (BOOK_KEYWORDS.some((k)     => lower.includes(k))) return "book";
+  if (CONTRACT_KEYWORDS.some((k) => lower.includes(k))) return "create_contract";
+  if (CREATE_KEYWORDS.some((k)   => lower.includes(k))) return "create_listing";
+  if (EDIT_KEYWORDS.some((k)     => lower.includes(k))) return "edit_listing";
+  if (SEARCH_KEYWORDS.some((k)   => lower.includes(k))) return "search";
   return "chat";
 }
 
@@ -143,7 +173,7 @@ async function processWizardStep(
   tenantId:      string,
   lastCreatedId?: string,
   editingField?:  string,
-): Promise<{ reply: string; wizard: WizardState; chips?: string[]; listing_created?: Record<string, unknown> }> {
+): Promise<{ reply: string; wizard: WizardState; chips?: string[]; listing_created?: Record<string, unknown>; contract_created?: Record<string, unknown> }> {
 
   const lower = userMessage.toLowerCase().trim();
 
@@ -422,6 +452,266 @@ async function processWizardStep(
   }
 }
 
+    // ── Contract wizard ───────────────────────────────────────────────────────
+
+    case "contract_landlord": {
+      // Parse "Name, email" from message
+      const emailMatch = userMessage.match(/[\w.+-]+@[\w-]+\.[a-zA-Z]{2,}/);
+      const email      = emailMatch?.[0] ?? null;
+      const name       = userMessage.replace(email ?? "", "").replace(/[,;|]+/g, " ").trim();
+
+      if (!email || !name || name.length < 2) {
+        return {
+          reply: "Please share your **name and email** so I can include you as the landlord.\n\n*e.g. John Müller, john@example.com*",
+          wizard: { step: "contract_landlord", data },
+        };
+      }
+
+      // Load properties for this tenant to show as chips
+      const supabase = createServiceClient();
+      const { data: props } = await supabase
+        .from("properties")
+        .select("id, title, city")
+        .eq("tenant_id", tenantId)
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(8);
+
+      const propChips = (props ?? []).map((p: { id: string; title: string; city: string }) => `${p.title} — ${p.city}`);
+
+      return {
+        reply: `Got it, **${name}**! Which **property** is this contract for? Pick from your active listings or type the property name.`,
+        wizard: { step: "contract_property", data: { ...data, c_landlord_name: name, c_landlord_email: email } },
+        chips: propChips.length ? propChips : undefined,
+      };
+    }
+
+    case "contract_property": {
+      const supabase = createServiceClient();
+      const { data: props } = await supabase
+        .from("properties")
+        .select("id, title, city, listing_type")
+        .eq("tenant_id", tenantId)
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      // Try to match user input to a property
+      const lower2  = userMessage.toLowerCase();
+      const matched = (props ?? []).find((p: { id: string; title: string; city: string }) =>
+        lower2.includes(p.title.toLowerCase()) ||
+        lower2.includes(p.city.toLowerCase()) ||
+        lower2.startsWith(p.title.substring(0, 10).toLowerCase())
+      );
+
+      if (!matched) {
+        const chips = (props ?? []).map((p: { id: string; title: string; city: string }) => `${p.title} — ${p.city}`);
+        return {
+          reply: chips.length
+            ? "I couldn't match that to a property. Please pick from your listings:"
+            : "You don't have any active listings. Please create a listing first.",
+          wizard: { step: "contract_property", data },
+          chips: chips.length ? chips : ["Cancel"],
+        };
+      }
+
+      return {
+        reply: `✅ **${matched.title}** — selected.\n\nNow, what's the **tenant's full name, email address**, and optionally their ID/passport number?\n\n*e.g. Sarah Kamau, sarah@email.com, ID: 12345678*`,
+        wizard: { step: "contract_tenant", data: { ...data, c_property_id: matched.id, c_property_title: matched.title } },
+      };
+    }
+
+    case "contract_tenant": {
+      const emailMatch2 = userMessage.match(/[\w.+-]+@[\w-]+\.[a-zA-Z]{2,}/);
+      const email2      = emailMatch2?.[0] ?? null;
+      const idMatch     = userMessage.match(/(?:id|passport|pass)[:\s#]*([a-zA-Z0-9]+)/i);
+      const tenantIdNo  = idMatch?.[1] ?? null;
+      const namePart    = userMessage.replace(email2 ?? "", "").replace(tenantIdNo ? idMatch![0] : "", "").replace(/[,;|]+/g, " ").trim();
+
+      if (!email2 || !namePart || namePart.length < 2) {
+        return {
+          reply: "Please share the **tenant's name and email**.\n\n*e.g. Sarah Kamau, sarah@email.com*",
+          wizard: { step: "contract_tenant", data },
+        };
+      }
+
+      return {
+        reply: `Got it — **${namePart}**.\n\nNow the **contract terms**:\n• Start date\n• Monthly rent (or purchase price for sale contracts) + currency\n• Security deposit (optional)\n\n*e.g. 1 June 2025, $1,200/month, $2,400 deposit*`,
+        wizard: {
+          step: "contract_terms",
+          data: { ...data, c_tenant_name: namePart, c_tenant_email: email2, c_tenant_id: tenantIdNo ?? undefined },
+        },
+      };
+    }
+
+    case "contract_terms": {
+      // Extract date, price, deposit via GPT-mini
+      const extraction = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: `Extract contract financial terms from the message. Return JSON only:
+{ "start_date": "YYYY-MM-DD"|null, "end_date": "YYYY-MM-DD"|null, "rent": number|null, "deposit": number|null, "currency": "USD"|"EUR"|"GBP"|"KES"|"AED"|"NGN"|"ZAR"|"GHS"|null }
+Use null for anything not mentioned. Infer currency from symbols (€=EUR, £=GBP, $=USD, KSh=KES).`,
+          },
+          { role: "user", content: userMessage },
+        ],
+        max_tokens: 100,
+        temperature: 0,
+        response_format: { type: "json_object" },
+      });
+
+      let terms: { start_date?: string; end_date?: string; rent?: number; deposit?: number; currency?: string } = {};
+      try { terms = JSON.parse(extraction.choices[0].message.content ?? "{}"); } catch { /* ignore */ }
+
+      if (!terms.start_date || !terms.rent) {
+        return {
+          reply: "I need at least a **start date** and the **monthly rent** (or purchase price). Please try again.\n\n*e.g. 1 June 2025, $1,200/month*",
+          wizard: { step: "contract_terms", data },
+        };
+      }
+
+      const COUNTRY_CHIPS = ["Kenya 🇰🇪", "Germany 🇩🇪", "UAE 🇦🇪", "UK 🇬🇧", "USA 🇺🇸", "Nigeria 🇳🇬", "Ghana 🇬🇭", "South Africa 🇿🇦"];
+
+      return {
+        reply: `Perfect. One last thing — **which country** is the property in? This determines the governing law and legal clauses.`,
+        wizard: {
+          step: "contract_jurisdiction",
+          data: {
+            ...data,
+            c_start_date: terms.start_date,
+            c_end_date:   terms.end_date ?? undefined,
+            c_rent:       terms.rent,
+            c_deposit:    terms.deposit ?? undefined,
+            c_currency:   terms.currency ?? "USD",
+          },
+        },
+        chips: COUNTRY_CHIPS,
+      };
+    }
+
+    case "contract_jurisdiction": {
+      const COUNTRY_MAP: Record<string, { code: string; label: string }> = {
+        kenya: { code: "KE", label: "Kenya" }, ke: { code: "KE", label: "Kenya" },
+        germany: { code: "DE", label: "Germany" }, deutschland: { code: "DE", label: "Germany" }, de: { code: "DE", label: "Germany" },
+        uae: { code: "AE", label: "UAE" }, "united arab": { code: "AE", label: "UAE" }, ae: { code: "AE", label: "UAE" },
+        uk: { code: "GB", label: "United Kingdom" }, "united kingdom": { code: "GB", label: "United Kingdom" }, gb: { code: "GB", label: "United Kingdom" },
+        usa: { code: "US", label: "USA" }, "united states": { code: "US", label: "USA" }, us: { code: "US", label: "USA" },
+        nigeria: { code: "NG", label: "Nigeria" }, ng: { code: "NG", label: "Nigeria" },
+        ghana: { code: "GH", label: "Ghana" }, gh: { code: "GH", label: "Ghana" },
+        "south africa": { code: "ZA", label: "South Africa" }, za: { code: "ZA", label: "South Africa" },
+        france: { code: "FR", label: "France" }, fr: { code: "FR", label: "France" },
+        spain: { code: "ES", label: "Spain" }, es: { code: "ES", label: "Spain" },
+      };
+
+      const lower3  = userMessage.toLowerCase().replace(/[🇰🇪🇩🇪🇦🇪🇬🇧🇺🇸🇳🇬🇬🇭🇿🇦]/g, "").trim();
+      let countryEntry = Object.entries(COUNTRY_MAP).find(([k]) => lower3.includes(k))?.[1];
+      if (!countryEntry) countryEntry = { code: "US", label: "Unknown (defaulting to US law)" };
+
+      // Build summary
+      const d2 = { ...data, c_country_code: countryEntry.code };
+      const rentFmt = d2.c_rent ? new Intl.NumberFormat("en-US", { style: "currency", currency: d2.c_currency ?? "USD", maximumFractionDigits: 0 }).format(d2.c_rent) : "—";
+      const depositFmt = d2.c_deposit ? new Intl.NumberFormat("en-US", { style: "currency", currency: d2.c_currency ?? "USD", maximumFractionDigits: 0 }).format(d2.c_deposit) : "None";
+
+      const summary = [
+        `🏠  **${d2.c_property_title}**`,
+        `🤝  Landlord: ${d2.c_landlord_name} (${d2.c_landlord_email})`,
+        `👤  Tenant: ${d2.c_tenant_name} (${d2.c_tenant_email})`,
+        `📅  Start: ${d2.c_start_date}${d2.c_end_date ? ` → ${d2.c_end_date}` : " (open-ended)"}`,
+        `💰  Rent: ${rentFmt}/mo · Deposit: ${depositFmt}`,
+        `⚖️  Jurisdiction: ${countryEntry.label}`,
+      ].join("\n");
+
+      return {
+        reply: `Here's the contract summary:\n\n${summary}\n\nShall I **generate the full contract** with AI? This creates a legally-informed document based on ${countryEntry.label} law.`,
+        wizard: { step: "contract_confirm", data: d2 },
+        chips: ["Generate contract ✨", "Cancel"],
+      };
+    }
+
+    case "contract_confirm": {
+      const isCancel  = /cancel|no|nein|abbrechen/i.test(userMessage);
+      const isConfirm = /yes|generate|confirm|go ahead|ok|ja|erstellen/i.test(userMessage);
+
+      if (isCancel) {
+        return {
+          reply: "No problem — contract creation cancelled. Let me know if you need anything else.",
+          wizard: { step: null, data: {} },
+        };
+      }
+      if (!isConfirm) {
+        return {
+          reply: "Ready to generate? Tap **Generate contract ✨** or say yes.",
+          wizard: { step: "contract_confirm", data },
+          chips: ["Generate contract ✨", "Cancel"],
+        };
+      }
+
+      // Create contract record using service client
+      const supabase3 = createServiceClient();
+      const { data: created, error: createErr } = await supabase3
+        .from("contracts")
+        .insert({
+          tenant_id:          tenantId,
+          property_id:        data.c_property_id!,
+          landlord_user_id:   null,
+          landlord_name:      data.c_landlord_name!,
+          landlord_email:     data.c_landlord_email!,
+          tenant_user_id:     null,
+          tenant_name:        data.c_tenant_name!,
+          tenant_email:       data.c_tenant_email!,
+          tenant_id_number:   data.c_tenant_id ?? null,
+          contract_type:      "residential_rental",
+          status:             "draft",
+          start_date:         data.c_start_date!,
+          end_date:           data.c_end_date ?? null,
+          notice_period_days: 30,
+          monthly_rent:       data.c_rent ?? null,
+          deposit_amount:     data.c_deposit ?? null,
+          currency:           data.c_currency ?? "USD",
+          payment_day:        1,
+          country_code:       data.c_country_code ?? "US",
+          language:           "en",
+          contract_data:      {},
+          signatures:         {},
+        })
+        .select("id, tenant_name, landlord_name, monthly_rent, currency, start_date, status")
+        .single();
+
+      if (createErr || !created) {
+        return {
+          reply: "Something went wrong creating the contract. Please try again.",
+          wizard: { step: "contract_confirm", data },
+          chips: ["Try again", "Cancel"],
+        };
+      }
+
+      // Trigger AI generation async
+      try {
+        await fetch(`${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/api/contracts/${created.id}/generate`, {
+          method: "POST",
+          headers: { "x-internal-service": "true" },
+        });
+      } catch { /* non-blocking — user can regenerate from /home */ }
+
+      return {
+        reply: `Your contract is being generated! ✨\n\nOnce ready it will appear in **Home → Contracts**. You can review all clauses, sign it, and send it to the tenant from there.`,
+        wizard: { step: null, data: {} },
+        contract_created: {
+          id:            created.id,
+          tenant_name:   created.tenant_name,
+          landlord_name: created.landlord_name,
+          monthly_rent:  created.monthly_rent,
+          currency:      created.currency,
+          start_date:    created.start_date,
+        },
+        chips: ["View my contracts →"],
+      };
+    }
+  }
+}
+
 // ── Search helpers ────────────────────────────────────────────────────────────
 async function extractFilters(msg: string) {
   const res = await openai.chat.completions.create({
@@ -538,6 +828,14 @@ export async function POST(request: NextRequest) {
         reply: "I'd love to help you list your property! Let's go through it step by step — it only takes a minute.\n\nFirst: is this property for **sale** or for **rent**?",
         wizard: { step: "listing_type", data: {} },
         chips: ["For Sale", "For Rent"],
+      });
+    }
+
+    // ── Start contract wizard ─────────────────────────────────────────────
+    if (intent === "create_contract") {
+      return NextResponse.json({
+        reply: "Let's draft a contract together! I'll ask you a few questions and then generate a full, jurisdiction-compliant agreement.\n\nFirst — what's **your name and email address** as the landlord/vendor?\n\n*e.g. John Müller, john@example.com*",
+        wizard: { step: "contract_landlord", data: {} },
       });
     }
 

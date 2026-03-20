@@ -27,12 +27,22 @@ interface WizardState {
   editingField?: string;
 }
 
+interface ContractCreated {
+  id: string;
+  tenant_name: string;
+  landlord_name: string;
+  monthly_rent: number | null;
+  currency: string;
+  start_date: string;
+}
+
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   properties?: Property[];
   appointment?: { success: boolean; error?: string };
   listing_created?: ListingCreated;
+  contract_created?: ContractCreated;
   wizard_chips?: string[];   // structured option chips for wizard steps
   filters?: Record<string, unknown>;
 }
@@ -158,23 +168,59 @@ function ListingCreatedCard({ listing }: { listing: ListingCreated }) {
   );
 }
 
+// ── Contract created card ─────────────────────────────────────────────────────
+function ContractCreatedCard({ contract }: { contract: ContractCreated }) {
+  const rent = contract.monthly_rent
+    ? new Intl.NumberFormat("en-US", { style: "currency", currency: contract.currency, maximumFractionDigits: 0 }).format(contract.monthly_rent)
+    : null;
+  return (
+    <div className="bg-indigo-50 border border-indigo-200 rounded-2xl px-4 py-4 flex items-start gap-3">
+      <div className="w-9 h-9 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0 text-lg">📄</div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-indigo-800 mb-0.5">Contract being generated…</p>
+        <p className="text-xs text-slate-600">
+          {contract.landlord_name} → {contract.tenant_name}
+          {rent ? ` · ${rent}/mo` : ""}
+          {" · "}{new Date(contract.start_date).toLocaleDateString()}
+        </p>
+        <Link href="/home"
+          className="inline-block mt-2 text-xs font-semibold text-indigo-700 underline underline-offset-2 hover:text-indigo-900">
+          View in Home → Contracts
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 // ── Wizard option chips ───────────────────────────────────────────────────────
 // Larger, more prominent than follow-up chips — used for guided listing wizard steps
 function WizardChips({ chips, onSend }: { chips: string[]; onSend: (text: string) => void }) {
   return (
     <div className="flex flex-wrap gap-2 mt-3">
       {chips.map((chip) => {
-        const isPublish = chip.toLowerCase().includes("publish");
+        const isPublish   = chip.toLowerCase().includes("publish");
+        const isGenerate  = chip.toLowerCase().includes("generate");
+        const isViewHome  = chip.toLowerCase().includes("view my contracts");
+        const isPrimary   = isPublish || isGenerate || isViewHome;
+        if (isViewHome) {
+          return (
+            <Link key={chip} href="/home"
+              className="px-4 py-2.5 rounded-xl text-sm font-semibold text-white border-2 border-transparent hover:opacity-90 transition-all"
+              style={{ backgroundColor: "var(--color-primary)" }}>
+              {chip}
+            </Link>
+          );
+        }
         return (
           <button
             key={chip}
             onClick={() => onSend(chip)}
             className={`px-4 py-2.5 rounded-xl text-sm font-semibold border-2 transition-all active:scale-95 ${
-              isPublish
+              isPrimary
                 ? "text-white border-transparent hover:opacity-90"
                 : "bg-white border-slate-200 text-slate-700 hover:border-slate-400 hover:bg-slate-50"
             }`}
-            style={isPublish ? { backgroundColor: "var(--color-primary)", borderColor: "var(--color-primary)" } : {}}>
+            style={isPrimary ? { backgroundColor: "var(--color-primary)", borderColor: "var(--color-primary)" } : {}}>
             {chip}
           </button>
         );
@@ -280,6 +326,7 @@ export function AIChatPage() {
         properties: data.properties !== undefined ? data.properties : undefined,
         appointment: data.appointment,
         listing_created: data.listing_created,
+        contract_created: data.contract_created,
         wizard_chips: data.chips,
         filters: data.filters,
       }]);
@@ -304,11 +351,16 @@ export function AIChatPage() {
     });
   }
 
+  const quickActions = [
+    { icon: "📝", text: "I want to list my property", label: "List a property" },
+    { icon: "📄", text: "Create a contract",          label: "Create a contract" },
+  ];
+
   const suggestions = [
     { icon: "🏠", text: "Show apartments for rent" },
     { icon: "💰", text: "What's available under $300k?" },
     { icon: "🛏️", text: "I need a 3-bedroom home" },
-    { icon: "📝", text: "I want to list my property" },
+    { icon: "🏙️", text: "Show properties in Nairobi" },
   ];
 
   const hasMessages = messages.length > 0;
@@ -362,6 +414,21 @@ export function AIChatPage() {
             <p className="text-center text-xs text-slate-300 mt-2">Press Enter to send · Shift+Enter for new line</p>
           </div>
 
+          {/* Quick action buttons */}
+          <div className="flex gap-3 mb-2">
+            {quickActions.map((a) => (
+              <button
+                key={a.text}
+                onClick={() => sendMessage(a.text)}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white shadow-sm hover:opacity-90 active:scale-95 transition-all"
+                style={{ backgroundColor: "var(--color-primary)" }}
+              >
+                <span>{a.icon}</span>
+                {a.label}
+              </button>
+            ))}
+          </div>
+
           {/* Suggestion chips */}
           <div className="grid grid-cols-2 gap-2.5 max-w-lg w-full">
             {suggestions.map((s) => (
@@ -412,6 +479,7 @@ export function AIChatPage() {
                   )}
                   {msg.appointment && <AppointmentCard result={msg.appointment} />}
                   {msg.listing_created && <ListingCreatedCard listing={msg.listing_created} />}
+                  {msg.contract_created && <ContractCreatedCard contract={msg.contract_created} />}
                   {msg.role === "assistant" && i === messages.length - 1 && !loading && (
                     msg.wizard_chips
                       ? <WizardChips chips={msg.wizard_chips} onSend={sendMessage} />
