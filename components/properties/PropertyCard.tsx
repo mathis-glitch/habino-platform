@@ -14,7 +14,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
   return (
     <Link href={`/properties/${property.id}`} className="card group block hover:shadow-md transition-shadow">
       {/* Image */}
-      <div className="relative h-48 bg-slate-200 overflow-hidden">
+      <div className="relative h-32 bg-slate-200 overflow-hidden">
         <Image
           src={hero}
           alt={property.title}
