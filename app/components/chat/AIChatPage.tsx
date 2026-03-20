@@ -254,16 +254,84 @@ function FollowUpChips({ msg, onSend }: { msg: ChatMessage; onSend: (text: strin
   );
 }
 
+// ── Voice languages ───────────────────────────────────────────────────────────
+const VOICE_LANGS = [
+  { code: "en-US", flag: "🇺🇸", label: "EN" },
+  { code: "de-DE", flag: "🇩🇪", label: "DE" },
+  { code: "fr-FR", flag: "🇫🇷", label: "FR" },
+  { code: "es-ES", flag: "🇪🇸", label: "ES" },
+  { code: "ar-SA", flag: "🇸🇦", label: "AR" },
+  { code: "sw-KE", flag: "🇰🇪", label: "SW" },
+  { code: "pt-BR", flag: "🇧🇷", label: "PT" },
+];
+
+// ── Mic button ────────────────────────────────────────────────────────────────
+function MicButton({ onResult, lang, size = "md" }: { onResult: (t: string) => void; lang: string; size?: "sm" | "md" }) {
+  const [listening,  setListening]  = useState(false);
+  const [supported,  setSupported]  = useState(true);
+  const recogRef = useRef<SpeechRecognition | null>(null);
+
+  useEffect(() => {
+    const w = window as typeof window & { webkitSpeechRecognition?: typeof SpeechRecognition };
+    if (!window.SpeechRecognition && !w.webkitSpeechRecognition) setSupported(false);
+  }, []);
+
+  function toggle() {
+    const w  = window as typeof window & { webkitSpeechRecognition?: typeof SpeechRecognition };
+    const SR = window.SpeechRecognition ?? w.webkitSpeechRecognition;
+    if (!SR) return;
+    if (listening) { recogRef.current?.stop(); setListening(false); return; }
+    const r          = new SR();
+    r.lang           = lang;
+    r.continuous     = false;
+    r.interimResults = false;
+    r.onresult = (e: SpeechRecognitionEvent) => onResult(e.results[0][0].transcript);
+    r.onerror  = () => setListening(false);
+    r.onend    = () => setListening(false);
+    r.start();
+    recogRef.current = r;
+    setListening(true);
+  }
+
+  if (!supported) return null;
+  const dim = size === "sm" ? "w-9 h-9" : "w-10 h-10";
+  return (
+    <button type="button" onClick={toggle} title={listening ? "Stop" : "Speak"}
+      className={`shrink-0 ${dim} rounded-xl flex items-center justify-center transition-all ${
+        listening ? "bg-red-500 animate-pulse" : "bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-700"
+      }`}>
+      {listening
+        ? <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+        : <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+          </svg>}
+    </button>
+  );
+}
+
 // ── Main component ───────────────────────────────────────────────────────────
 export function AIChatPage() {
-  const [messages, setMessages]     = useState<ChatMessage[]>([]);
-  const [input, setInput]           = useState("");
-  const [loading, setLoading]       = useState(false);
+  const [messages, setMessages]       = useState<ChatMessage[]>([]);
+  const [input, setInput]             = useState("");
+  const [loading, setLoading]         = useState(false);
   const [wizardState, setWizardState] = useState<WizardState>({ step: null, data: {} });
+  const [voiceLangIdx, setVoiceLangIdx] = useState(0);
   const bottomRef    = useRef<HTMLDivElement>(null);
   const inputRef     = useRef<HTMLTextAreaElement>(null);
   const pathname     = usePathname();
   const searchParams = useSearchParams();
+
+  const voiceLang = VOICE_LANGS[voiceLangIdx];
+
+  function onVoiceResult(text: string) {
+    setInput((prev) => (prev ? prev + " " + text : text));
+    setTimeout(() => inputRef.current?.focus(), 50);
+  }
+
+  function cycleLang() {
+    setVoiceLangIdx((i) => (i + 1) % VOICE_LANGS.length);
+  }
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -400,6 +468,15 @@ export function AIChatPage() {
                 className="flex-1 bg-transparent text-base text-slate-800 placeholder-slate-400 resize-none focus:outline-none leading-relaxed"
                 style={{ maxHeight: "120px" }}
               />
+              {/* Language picker */}
+              <button type="button" onClick={cycleLang} title="Switch voice language"
+                className="shrink-0 h-10 px-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 transition-all flex items-center gap-1">
+                <span>{voiceLang.flag}</span>
+                <span>{voiceLang.label}</span>
+              </button>
+              {/* Mic */}
+              <MicButton onResult={onVoiceResult} lang={voiceLang.code} />
+              {/* Send */}
               <button
                 onClick={() => sendMessage()}
                 disabled={!input.trim() || loading}
@@ -411,7 +488,7 @@ export function AIChatPage() {
                 </svg>
               </button>
             </div>
-            <p className="text-center text-xs text-slate-300 mt-2">Press Enter to send · Shift+Enter for new line</p>
+            <p className="text-center text-xs text-slate-300 mt-2">Press Enter to send · Tap 🎤 to speak</p>
           </div>
 
           {/* Quick action buttons */}
@@ -544,7 +621,7 @@ export function AIChatPage() {
             );
           })()}
           <div className="max-w-2xl mx-auto">
-            <div className="flex items-end gap-3 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/10 transition-all shadow-sm">
+            <div className="flex items-end gap-2 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/10 transition-all shadow-sm">
               <textarea
                 ref={inputRef}
                 value={input}
@@ -555,6 +632,15 @@ export function AIChatPage() {
                 className="flex-1 bg-transparent text-sm text-slate-800 placeholder-slate-400 resize-none focus:outline-none leading-relaxed"
                 style={{ maxHeight: "120px" }}
               />
+              {/* Language picker */}
+              <button type="button" onClick={cycleLang} title="Switch voice language"
+                className="shrink-0 h-9 px-2 rounded-lg text-[11px] font-semibold bg-white border border-slate-200 hover:bg-slate-100 text-slate-500 transition-all flex items-center gap-1">
+                <span>{voiceLang.flag}</span>
+                <span>{voiceLang.label}</span>
+              </button>
+              {/* Mic */}
+              <MicButton onResult={onVoiceResult} lang={voiceLang.code} size="sm" />
+              {/* Send */}
               <button onClick={() => sendMessage()} disabled={!input.trim() || loading}
                 className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center transition-all disabled:opacity-30 hover:opacity-90 active:scale-95 shadow-sm"
                 style={{ backgroundColor: "var(--color-primary)" }}>
@@ -563,7 +649,7 @@ export function AIChatPage() {
                 </svg>
               </button>
             </div>
-            <p className="text-center text-[11px] text-slate-300 mt-2">Enter to send · Shift+Enter for new line</p>
+            <p className="text-center text-[11px] text-slate-300 mt-2">Enter to send · Tap 🎤 to speak</p>
           </div>
         </div>
       )}
