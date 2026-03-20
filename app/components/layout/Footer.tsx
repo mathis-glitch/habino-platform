@@ -17,17 +17,13 @@ export default function Footer() {
             </a>
           )}
           {tenant?.whatsapp && (
-            <a
-              href={`https://wa.me/${tenant.whatsapp.replace(/\D/g, "")}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-slate-600 transition-colors"
-            >
+            <a href={`https://wa.me/${tenant.whatsapp.replace(/\D/g, "")}`}
+              target="_blank" rel="noopener noreferrer"
+              className="hover:text-slate-600 transition-colors">
               WhatsApp
             </a>
           )}
-          <Link href="/search" className="hover:text-slate-600 transition-colors">Alle Inserate</Link>
-          <Link href="/markt" className="hover:text-slate-600 transition-colors">Marktbericht</Link>
+          <Link href="/markt" className="hover:text-slate-600 transition-colors">Market Report</Link>
         </div>
       </div>
     </footer>
