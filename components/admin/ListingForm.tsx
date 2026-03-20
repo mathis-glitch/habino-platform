@@ -44,6 +44,7 @@ export function ListingForm({ property, tenantId }: Props) {
   const [previewUrls, setPreviewUrls] = useState<string[]>(
     property?.images?.map((i) => i.url) || []
   );
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
 
   function update(field: string, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -72,7 +73,7 @@ export function ListingForm({ property, tenantId }: Props) {
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error);
-        setPreviewUrls((prev) => [...prev, ...data.urls]);
+        setPreviewUrls((prev) => [...prev, ...(data.images ?? []).map((img: { url: string }) => img.url)]);
       } else {
         // New listing — show local previews, store files for later
         const urls = files.map((f) => URL.createObjectURL(f));
@@ -85,8 +86,6 @@ export function ListingForm({ property, tenantId }: Props) {
       setUploading(false);
     }
   }
-
-  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

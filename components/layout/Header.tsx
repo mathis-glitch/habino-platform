@@ -12,7 +12,7 @@ export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const isChat  = pathname === "/";
-  const isSaved = pathname === "/saved";
+  const isHome  = pathname === "/home";
   const isMarkt = pathname === "/markt";
 
   function navClass(active: boolean) {
@@ -25,7 +25,7 @@ export default function Header() {
 
   const tabs = [
     { href: "/",      label: "AI Agent", active: isChat },
-    { href: "/saved", label: "Saved",    active: isSaved },
+    { href: "/home",  label: "Home",     active: isHome },
     { href: "/markt", label: "Market",   active: isMarkt },
   ];
 

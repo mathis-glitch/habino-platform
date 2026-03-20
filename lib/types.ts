@@ -97,6 +97,139 @@ export interface MarketQuery {
   created_at: string;
 }
 
+// ── Contracts ─────────────────────────────────────────────────
+export type ContractStatus =
+  | "draft"
+  | "pending_review"
+  | "pending_signature"
+  | "signed"
+  | "active"
+  | "expired"
+  | "terminated";
+
+export type ContractType =
+  | "residential_rental"
+  | "commercial_rental"
+  | "purchase"
+  | "option_to_purchase"
+  | "short_term_rental";
+
+export interface ContractClause {
+  title: string;
+  body: string;
+  type: "standard" | "special" | "jurisdiction_specific";
+}
+
+export interface ContractData {
+  clauses: ContractClause[];
+  special_conditions: string[];
+  utilities_included: string[];
+  furnished: boolean;
+  pets_allowed: boolean;
+  subletting_allowed: boolean;
+  jurisdiction_notes: string;
+  generated_at: string;
+  model: string;
+}
+
+export interface ContractSignature {
+  signed_at: string;
+  ip?: string;
+  method: "electronic" | "manual";
+}
+
+export interface Contract {
+  id: string;
+  tenant_id: string;
+  property_id: string;
+
+  // Parties
+  landlord_user_id: string | null;
+  landlord_name: string;
+  landlord_email: string;
+  landlord_address: string | null;
+
+  tenant_user_id: string | null;
+  tenant_name: string;
+  tenant_email: string;
+  tenant_address: string | null;
+  tenant_id_number: string | null;
+
+  // Contract details
+  contract_type: ContractType;
+  status: ContractStatus;
+
+  // Dates
+  start_date: string;         // ISO date
+  end_date: string | null;
+  notice_period_days: number;
+
+  // Financials
+  monthly_rent: number | null;
+  purchase_price: number | null;
+  deposit_amount: number | null;
+  currency: string;
+  payment_day: number;
+
+  // Jurisdiction
+  country_code: string;       // ISO 3166-1 alpha-2
+  governing_law: string | null;
+  jurisdiction_city: string | null;
+  language: string;           // ISO 639-1
+
+  // AI content
+  contract_data: ContractData;
+
+  // Signatures
+  signatures: {
+    landlord?: ContractSignature;
+    tenant?: ContractSignature;
+  };
+
+  // PDF
+  pdf_url: string | null;
+  pdf_storage_path: string | null;
+
+  // Meta
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  signed_at: string | null;
+  activated_at: string | null;
+
+  // Joined
+  property?: Property;
+}
+
+// Payload for AI contract generation
+export interface GenerateContractPayload {
+  property_id: string;
+  contract_type: ContractType;
+  start_date: string;
+  end_date?: string;
+  notice_period_days?: number;
+  monthly_rent?: number;
+  purchase_price?: number;
+  deposit_amount?: number;
+  currency: string;
+  payment_day?: number;
+  country_code: string;
+  language?: string;
+  landlord_name: string;
+  landlord_email: string;
+  landlord_address?: string;
+  tenant_name: string;
+  tenant_email: string;
+  tenant_address?: string;
+  tenant_id_number?: string;
+  special_conditions?: string[];
+  furnished?: boolean;
+  pets_allowed?: boolean;
+  subletting_allowed?: boolean;
+  utilities_included?: string[];
+  notes?: string;
+}
+
 // ── API helpers ───────────────────────────────────────────────
 export interface ApiError {
   error: string;

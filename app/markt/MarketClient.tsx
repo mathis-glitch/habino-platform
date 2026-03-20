@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PriceTrendChart, DistrictChart } from "./MarktCharts";
 
 // ── Static data (replace with Supabase / GIS queries later) ──────────────────
