@@ -57,10 +57,25 @@ interface ChatMessage {
   profile_saved?: { success: boolean; error?: string };
   wizard_chips?: string[];   // structured option chips for wizard steps
   filters?: Record<string, unknown>;
+  lang?: string; // detected language code: "de" | "en" | "fr" | "ar" | "sw"
 }
 
+function detectLang(msg: string): string {
+  const lower = msg.toLowerCase();
+  if (/[\u0600-\u06FF]/.test(msg)) return "ar";
+  if (/\b(ninahitaji|tafadhali|nionyeshe|nataka|nairobi|mombasa)\b/.test(lower)) return "sw";
+  if (/\b(je|tu|il|nous|vous|sont|trouver|montrer|appartement|maison)\b/.test(lower)) return "fr";
+  if (/\b(ich|mir|mich|bitte|zeig|such|finde|möchte|gibt|welche|günstiger|teurer|noch|alle)\b/.test(lower)) return "de";
+  return "en";
+}
+
+const LISTING_TYPE_LABELS: Record<string, Record<string, string>> = {
+  buy:  { de: "Kaufen", en: "For Sale", fr: "À vendre", ar: "للبيع",    sw: "Kuuza" },
+  rent: { de: "Mieten", en: "For Rent",  fr: "À louer",  ar: "للإيجار", sw: "Kukodisha" },
+};
+
 // ── Inline property card ─────────────────────────────────────────────────────
-function ChatPropertyCard({ property }: { property: Property }) {
+function ChatPropertyCard({ property, lang = "en" }: { property: Property; lang?: string }) {
   const hero = getHeroImage(property.images);
   const { isSaved, toggle } = useSavedListings();
   const saved = isSaved(property.id);
@@ -94,7 +109,7 @@ function ChatPropertyCard({ property }: { property: Property }) {
           <div className="absolute top-2 left-2">
             <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold text-white"
               style={{ backgroundColor: property.listing_type === "buy" ? "#3B82F6" : "var(--color-primary)" }}>
-              {property.listing_type === "buy" ? "For Sale" : "For Rent"}
+              {(LISTING_TYPE_LABELS[property.listing_type] ?? LISTING_TYPE_LABELS["rent"])[lang] ?? (property.listing_type === "buy" ? "For Sale" : "For Rent")}
             </span>
           </div>
         </div>
@@ -572,6 +587,7 @@ export function AIChatPage() {
         profile_saved: profileSaved,
         wizard_chips: data.chips,
         filters: data.filters,
+        lang: detectLang(userText),
       }]);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -723,7 +739,7 @@ export function AIChatPage() {
                   )}
                   {msg.properties && msg.properties.length > 0 && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" style={{ maxWidth: "520px" }}>
-                      {msg.properties.map((p) => <ChatPropertyCard key={p.id} property={p} />)}
+                      {msg.properties.map((p) => <ChatPropertyCard key={p.id} property={p} lang={msg.lang ?? "en"} />)}
                     </div>
                   )}
                   {msg.appointment && <AppointmentCard result={msg.appointment} />}

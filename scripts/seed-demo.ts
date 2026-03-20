@@ -216,15 +216,15 @@ function pickPropType() {
 }
 
 // ── Title templates ───────────────────────────────────────────
-const ADJECTIVES = ["Modern","Spacious","Elegant","Bright","Quiet","Prime","Newly Built","Renovated","Stunning","Executive","Cozy","Stylish","Luxury","Contemporary","Comfortable","Well-maintained","Premium","Exclusive","Charming","Exceptional"];
+const ADJECTIVES = ["Modern","Geräumig","Elegant","Hell","Ruhig","Erstklassig","Neubau","Renoviert","Beeindruckend","Repräsentativ","Gemütlich","Stilvoll","Luxuriös","Zeitgemäß","Komfortabel","Gepflegt","Premium","Exklusiv","Charmant","Hochwertig"];
 
-const CONDITION = ["— Move-in Ready","","","","— Available Now","— Negotiable","— Long-term","","— Short-term Available",""];
+const CONDITION = ["— Sofort verfügbar","","","","— Beziehbar","— Preis verhandelbar","— Langzeitmiete","","— Kurzfristig verfügbar",""];
 
 function makeTitle(propLabel: string, bedrooms: number, neighbourhood: string, listingType: string): string {
   const adj  = pick(ADJECTIVES);
   const cond = pick(CONDITION);
   if (bedrooms > 0) {
-    return `${adj} ${bedrooms}BR ${propLabel} — ${neighbourhood}${cond}`;
+    return `${adj} ${bedrooms}-Zi. ${propLabel} — ${neighbourhood}${cond}`;
   }
   return `${adj} ${propLabel} — ${neighbourhood}${cond}`;
 }
