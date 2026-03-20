@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Property } from "@/lib/types";
 import Link from "next/link";
 import Image from "next/image";
@@ -27,9 +27,19 @@ function listingLabel(t: string) {
 }
 
 // ── Property Detail Drawer ────────────────────────────────────────────────────
-function DetailDrawer({ property, onClose }: { property: Property; onClose: () => void }) {
-  const router = useRouter();
-  const [imgIdx, setImgIdx] = useState(0);
+function DetailDrawer({
+  property: initialProperty,
+  onClose,
+}: {
+  property: Property;
+  onClose: () => void;
+}) {
+  const router    = useRouter();
+  const [imgIdx, setImgIdx]       = useState(0);
+  const [property, setProperty]   = useState(initialProperty);
+  const [uploading, setUploading] = useState(false);
+  const [uploadErr, setUploadErr] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const images = property.images ?? [];
 
   // Close on Escape key
@@ -56,6 +66,39 @@ function DetailDrawer({ property, onClose }: { property: Property; onClose: () =
   function bookViewing() {
     const q = encodeURIComponent(`I'd like to book a viewing for "${property.title}" in ${property.city}`);
     router.push(`/?q=${q}`);
+  }
+
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    if (!files.length) return;
+    setUploading(true);
+    setUploadErr(null);
+
+    const form = new FormData();
+    files.forEach((f) => form.append("files", f));
+
+    try {
+      const res = await fetch(`/api/properties/${property.id}/images`, {
+        method: "POST",
+        body: form,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Upload failed");
+
+      // Merge new images into local property state
+      const newImages = data.images ?? [];
+      setProperty((prev) => {
+        const merged = [...(prev.images ?? []), ...newImages];
+        setImgIdx(merged.length - newImages.length); // jump to first new image
+        return { ...prev, images: merged };
+      });
+    } catch (err) {
+      setUploadErr(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setUploading(false);
+      // Reset input so same file can be re-selected
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   }
 
   return (
@@ -89,6 +132,24 @@ function DetailDrawer({ property, onClose }: { property: Property; onClose: () =
 
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto">
+
+          {/* Hidden file input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+            className="hidden"
+            onChange={handleUpload}
+          />
+
+          {/* Upload error */}
+          {uploadErr && (
+            <div className="mx-5 mt-3 px-3 py-2 rounded-xl bg-red-50 border border-red-200 text-xs text-red-600">
+              {uploadErr}
+              <button onClick={() => setUploadErr(null)} className="ml-2 underline">Dismiss</button>
+            </div>
+          )}
 
           {/* Image carousel */}
           <div className="relative bg-slate-100" style={{ height: "260px" }}>
@@ -137,17 +198,30 @@ function DetailDrawer({ property, onClose }: { property: Property; onClose: () =
                 )}
               </>
             ) : (
-              <div className="absolute inset-0 flex items-center justify-center text-slate-300">
-                <svg className="w-14 h-14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1}
-                    d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                </svg>
-              </div>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 transition-colors group">
+                {uploading ? (
+                  <div className="w-8 h-8 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <div className="w-12 h-12 rounded-2xl bg-white border-2 border-dashed border-slate-300 group-hover:border-slate-400 flex items-center justify-center transition-colors">
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                          d="M12 4v16m8-8H4" />
+                      </svg>
+                    </div>
+                    <span className="text-sm font-medium">Add photos</span>
+                    <span className="text-xs text-slate-400">JPG, PNG, WebP · max 8 MB each</span>
+                  </>
+                )}
+              </button>
             )}
           </div>
 
           {/* Thumbnail strip */}
-          {images.length > 1 && (
+          {images.length > 0 && (
             <div className="flex gap-2 px-5 py-3 overflow-x-auto bg-slate-50 border-b border-slate-100">
               {images.map((img, i) => (
                 <button key={img.id} onClick={() => setImgIdx(i)}
@@ -158,6 +232,19 @@ function DetailDrawer({ property, onClose }: { property: Property; onClose: () =
                   <Image src={img.url} alt="" width={56} height={40} className="object-cover w-full h-full" />
                 </button>
               ))}
+              {images.length < 10 && (
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="shrink-0 w-14 h-10 rounded-lg border-2 border-dashed border-slate-300 hover:border-slate-400 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors">
+                  {uploading
+                    ? <div className="w-4 h-4 border-2 border-slate-300 border-t-slate-500 rounded-full animate-spin" />
+                    : <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                  }
+                </button>
+              )}
             </div>
           )}
 
