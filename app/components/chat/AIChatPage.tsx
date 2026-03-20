@@ -492,7 +492,18 @@ export function AIChatPage() {
       ? pathname.replace("/properties/", "") : undefined;
 
     try {
-      const apiMessages = newMessages.map(({ role, content }) => ({ role, content }));
+      // Serialize properties into assistant messages so the AI has context for follow-ups
+      const apiMessages = newMessages.map(({ role, content, properties }) => ({
+        role,
+        content: properties && properties.length > 0
+          ? `${content}\n\n[Listings shown: ${JSON.stringify(properties.map(p => ({
+              id: p.id, title: p.title, price: p.price, currency: p.currency,
+              city: p.city, neighbourhood: p.neighbourhood,
+              property_type: p.property_type, listing_type: p.listing_type,
+              bedrooms: p.bedrooms, bathrooms: p.bathrooms, area_sqm: p.area_sqm,
+            })))}]`
+          : content,
+      }));
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

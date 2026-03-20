@@ -909,20 +909,38 @@ Use null for anything not mentioned. Infer currency from symbols (€=EUR, £=GB
   }
 }
 
+// ── Language helper ───────────────────────────────────────────────────────────
+function langInstruction(msg: string): string {
+  // Detect language from character patterns and common words
+  const lower = msg.toLowerCase();
+  const de = /\b(ich|mir|mich|bitte|danke|zeig|such|finde|möchte|können|haben|gibt|welche|mehr|günstiger|teurer|größer|kleiner|noch|auch|bitte|alle|nur)\b/.test(lower);
+  const fr = /\b(je|tu|il|nous|vous|ils|est|sont|avoir|faire|trouver|montrer|plus|moins|cher|grande|petite|appartement|maison)\b/.test(lower);
+  const ar = /[\u0600-\u06FF]/.test(msg);
+  const sw = /\b(ninahitaji|tafadhali|nionyeshe|nyumba|gharama|bei|nairobi|mombasa|nafanya|nataka)\b/.test(lower);
+  if (ar)  return "Reply in Arabic (العربية).";
+  if (sw)  return "Reply in Swahili.";
+  if (fr)  return "Reply in French.";
+  if (de)  return "Reply in German (Deutsch).";
+  return "Reply in the same language as the user's message.";
+}
+
 // ── Search helpers ────────────────────────────────────────────────────────────
-async function extractFilters(msg: string) {
+async function extractFilters(conversationHistory: ChatCompletionMessageParam[]) {
   const res = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [
       {
         role: "system",
-        content: `Extract property search filters from the user message as JSON.
+        content: `Extract property search filters from the conversation as JSON.
+Consider the FULL conversation context — the user may be refining a previous search (e.g. "show cheaper ones", "in a different area", "bigger ones").
 Return ONLY a JSON object with these optional fields:
-listing_type: "buy"|"rent", property_type: "apartment"|"house"|"villa"|"studio"|"commercial"|"land"
+listing_type: "buy"|"rent", property_type: "apartment"|"house"|"villa"|"commercial"|"land"|"office"|"hall"|"production"|"plot"
 min_price: number, max_price: number, bedrooms: number, city: string, neighbourhood: string
-Return {} if no filters are clear. Return ONLY valid JSON, no explanation.`,
+If the user says "cheaper" or "less than X", set max_price. If "bigger", set a higher min area (not a filter field — ignore).
+Carry over filters from the previous search unless the user explicitly changes them.
+Return {} if nothing is clear. Return ONLY valid JSON, no explanation.`,
       },
-      { role: "user", content: msg },
+      ...conversationHistory.slice(-8),
     ],
     max_tokens: 150,
     temperature: 0,
@@ -1021,32 +1039,44 @@ export async function POST(request: NextRequest) {
 
     // ── Start wizard for create_listing intent ────────────────────────────
     if (intent === "create_listing") {
+      const isDE = langInstruction(lastUserMsg).includes("German");
+      const isFR = langInstruction(lastUserMsg).includes("French");
       return NextResponse.json({
-        reply: "I'd love to help you list your property! Let's go through it step by step — it only takes a minute.\n\nFirst: is this property for **sale** or for **rent**?",
+        reply: isDE
+          ? "Gerne helfe ich dir, deine Immobilie einzustellen! Lass uns Schritt für Schritt vorgehen — dauert nur eine Minute.\n\nErst: Wird die Immobilie **verkauft** oder **vermietet**?"
+          : isFR
+          ? "Je vous aide à mettre votre bien en ligne ! Allons-y étape par étape.\n\nD'abord : ce bien est-il à **vendre** ou à **louer** ?"
+          : "I'd love to help you list your property! Let's go through it step by step — it only takes a minute.\n\nFirst: is this property for **sale** or for **rent**?",
         wizard: { step: "listing_type", data: {} },
-        chips: ["For Sale", "For Rent"],
+        chips: isDE ? ["Verkauf", "Vermietung"] : isFR ? ["Vendre", "Louer"] : ["For Sale", "For Rent"],
       });
     }
 
     // ── Start contract wizard ─────────────────────────────────────────────
     if (intent === "create_contract") {
+      const isDE = langInstruction(lastUserMsg).includes("German");
       return NextResponse.json({
-        reply: "Let's draft a contract together! I'll ask you a few questions and then generate a full, jurisdiction-compliant agreement.\n\nFirst — what's **your name and email address** as the landlord/vendor?\n\n*e.g. John Müller, john@example.com*",
+        reply: isDE
+          ? "Lass uns gemeinsam einen Vertrag erstellen! Ich stelle dir ein paar Fragen und generiere dann einen vollständigen Vertrag.\n\nZuerst — wie lautet dein **Name und deine E-Mail-Adresse** als Vermieter/Verkäufer?\n\n*z.B. Max Müller, max@beispiel.de*"
+          : "Let's draft a contract together! I'll ask you a few questions and then generate a full, jurisdiction-compliant agreement.\n\nFirst — what's **your name and email address** as the landlord/vendor?\n\n*e.g. John Müller, john@example.com*",
         wizard: { step: "contract_landlord", data: {} },
       });
     }
 
     // ── Start profile wizard ──────────────────────────────────────────────
     if (intent === "setup_profile") {
+      const isDE = langInstruction(lastUserMsg).includes("German");
       return NextResponse.json({
-        reply: "Let's set up your profile! I'll ask you a few quick questions — it takes about a minute and helps me pre-fill contracts and personalise your experience.\n\nWhat's your **full name**?",
+        reply: isDE
+          ? "Lass uns dein Profil einrichten! Ich stelle dir ein paar kurze Fragen — dauert etwa eine Minute.\n\nWie lautet dein **vollständiger Name**?"
+          : "Let's set up your profile! I'll ask you a few quick questions — it takes about a minute and helps me pre-fill contracts and personalise your experience.\n\nWhat's your **full name**?",
         wizard: { step: "profile_name", data: {} },
       });
     }
 
     // ── SEARCH intent ─────────────────────────────────────────────────────
     if (intent === "search") {
-      const filters    = await extractFilters(lastUserMsg);
+      const filters    = await extractFilters(messages as ChatCompletionMessageParam[]);
       const properties = await searchProperties(filters, tenantId);
 
       const propContext = properties.length
@@ -1056,16 +1086,18 @@ export async function POST(request: NextRequest) {
           }).join("\n")
         : "No matching properties found.";
 
+      const lang = langInstruction(lastUserMsg);
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
           {
             role: "system",
             content: `You are an AI real estate assistant for ${tenant?.name || "this platform"}.
-Reply in English, briefly (1–2 sentences). Results are shown as cards — do not mention IDs.
+${lang} Keep it brief (1–2 sentences). Results are shown as cards below — do not list them again, do not mention IDs.
+If no results found, suggest refining the search.
 SEARCH RESULTS:\n${propContext}`,
           },
-          ...(messages.slice(-6) as ChatCompletionMessageParam[]),
+          ...(messages.slice(-8) as ChatCompletionMessageParam[]),
         ],
         max_tokens: 200,
         temperature: 0.7,
@@ -1073,7 +1105,7 @@ SEARCH RESULTS:\n${propContext}`,
 
       return NextResponse.json({
         reply: completion.choices[0].message.content ||
-          (properties.length ? `Found ${properties.length} matching properties:` : "No matching properties found."),
+          (properties.length ? `${properties.length} Ergebnisse gefunden:` : "Keine passenden Immobilien gefunden."),
         properties,
         filters,
         wizard,
@@ -1082,6 +1114,7 @@ SEARCH RESULTS:\n${propContext}`,
 
     // ── BOOKING intent ────────────────────────────────────────────────────
     if (intent === "book") {
+      const lang = langInstruction(lastUserMsg);
       const extractRes = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
@@ -1089,7 +1122,7 @@ SEARCH RESULTS:\n${propContext}`,
             role: "system",
             content: `Extract booking details from the conversation as JSON.
 Fields: name, email, phone, preferred_date, property_id, property_title, message.
-If required fields (name, email, preferred_date) are missing, ask for them politely in English.`,
+If required fields (name, email, preferred_date) are missing, ask for them politely. ${lang}`,
           },
           ...(messages.slice(-8) as ChatCompletionMessageParam[]),
         ],
@@ -1116,6 +1149,7 @@ If required fields (name, email, preferred_date) are missing, ask for them polit
     }
 
     // ── GENERAL CHAT ──────────────────────────────────────────────────────
+    const lang = langInstruction(lastUserMsg);
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
@@ -1123,7 +1157,7 @@ If required fields (name, email, preferred_date) are missing, ask for them polit
           role: "system",
           content: `You are a friendly AI real estate assistant for ${tenant?.name || "this platform"}.
 Help buyers find properties, book viewings, and help owners list their property.
-Reply in English, briefly (2–3 sentences).
+${lang} Keep replies brief (2–3 sentences). If the user references previously shown listings (in [Listings shown: ...] in the conversation), you can discuss them directly.
 ${tenant?.contact_email ? `Contact: ${tenant.contact_email}` : ""}
 ${context?.currentProperty ? `User is viewing property ${context.currentProperty}.` : ""}`,
         },
