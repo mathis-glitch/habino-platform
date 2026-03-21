@@ -466,7 +466,15 @@ function makeSuggestions(loc: UserLocation | null) {
 }
 
 // ── Main component ───────────────────────────────────────────────────────────
-export function AIChatPage({ initialQuery, sidebarMode }: { initialQuery?: string; sidebarMode?: boolean } = {}) {
+export function AIChatPage({
+  initialQuery,
+  sidebarMode,
+  onPropertiesFound,
+}: {
+  initialQuery?: string;
+  sidebarMode?: boolean;
+  onPropertiesFound?: (ids: string[]) => void;
+} = {}) {
   const [messages, setMessages]       = useState<ChatMessage[]>([]);
   const [input, setInput]             = useState("");
   const [loading, setLoading]         = useState(false);
@@ -604,6 +612,11 @@ export function AIChatPage({ initialQuery, sidebarMode }: { initialQuery?: strin
         } catch (e: unknown) {
           profileSaved = { success: false, error: e instanceof Error ? e.message : "Network error" };
         }
+      }
+
+      // Notify parent (map) about matched property IDs so it can highlight pins
+      if (data.propertyIds && data.propertyIds.length > 0) {
+        onPropertiesFound?.(data.propertyIds);
       }
 
       setMessages([...newMessages, {

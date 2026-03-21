@@ -603,10 +603,16 @@ function HabinoPanel({ onClose }: { onClose: () => void }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 export function MapHomePage() {
-  const [properties,   setProperties]   = useState<PropertyWithCoords[]>([]);
-  const [selected,     setSelected]     = useState<PropertyWithCoords | null>(null);
-  const [chatOpen,     setChatOpen]     = useState(false);
-  const [habinoOpen,   setHabinoOpen]   = useState(false);
+  const [properties,     setProperties]     = useState<PropertyWithCoords[]>([]);
+  const [selected,       setSelected]       = useState<PropertyWithCoords | null>(null);
+  const [chatOpen,       setChatOpen]       = useState(false);
+  const [habinoOpen,     setHabinoOpen]     = useState(false);
+  const [highlightedIds, setHighlightedIds] = useState<string[]>([]);
+
+  // Called by AIChatPage when Claude returns matching properties
+  const handlePropertiesFound = useCallback((ids: string[]) => {
+    setHighlightedIds(ids);
+  }, []);
 
   // Track which city names have already been fetched so we don't re-fetch on every pan
   const loadedCities = useRef<Set<string>>(new Set());
@@ -675,7 +681,7 @@ export function MapHomePage() {
           <span className="text-sm font-semibold text-slate-800">AI Search</span>
         </div>
         <div className="flex-1 overflow-hidden">
-          <AIChatPage sidebarMode />
+          <AIChatPage sidebarMode onPropertiesFound={handlePropertiesFound} />
         </div>
       </div>
     );
@@ -691,6 +697,7 @@ export function MapHomePage() {
         zoom={4}
         properties={properties}
         selectedId={selected?.id ?? null}
+        highlightedIds={highlightedIds}
         onSelect={setSelected}
         onBoundsChange={handleBoundsChange}
       />
@@ -729,7 +736,7 @@ export function MapHomePage() {
             Habino
           </button>
         </div>
-        <AIChatPage sidebarMode />
+        <AIChatPage sidebarMode onPropertiesFound={handlePropertiesFound} />
       </div>
 
       {/* ── Habino control-centre panel (desktop) ── */}

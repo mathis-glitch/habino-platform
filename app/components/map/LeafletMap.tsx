@@ -48,7 +48,7 @@ function fmtPrice(price: number): string {
   return String(price);
 }
 
-function makePinIcon(p: PropertyWithCoords, selected: boolean): L.DivIcon {
+function makePinIcon(p: PropertyWithCoords, selected: boolean, dimmed: boolean): L.DivIcon {
   const color  = TYPE_COLORS[p.property_type] || "#6B7280";
   const price  = fmtPrice(p.price);
   const ppm    = p.area_sqm && p.area_sqm > 0
@@ -62,7 +62,8 @@ function makePinIcon(p: PropertyWithCoords, selected: boolean): L.DivIcon {
   const shadow = selected
     ? `0 4px 20px ${color}55`
     : "0 2px 10px rgba(0,0,0,0.13)";
-  const scale  = selected ? "scale(1.12)" : "scale(1)";
+  const scale  = selected ? "scale(1.12)" : dimmed ? "scale(0.82)" : "scale(1)";
+  const opacity = dimmed ? "0.22" : "1";
 
   const html = `
     <div style="
@@ -70,7 +71,7 @@ function makePinIcon(p: PropertyWithCoords, selected: boolean): L.DivIcon {
       border-radius:999px; padding:4px 10px 4px 8px;
       font-family:system-ui,sans-serif;
       box-shadow:${shadow}; cursor:pointer;
-      transform:${scale}; transition:all .15s;
+      transform:${scale}; opacity:${opacity}; transition:all .2s;
       display:inline-flex; flex-direction:column; align-items:center;
       white-space:nowrap; line-height:1.3;
     ">
@@ -115,17 +116,21 @@ function BoundsWatcher({ onBoundsChange }: { onBoundsChange: (b: MapBounds) => v
 }
 
 interface LeafletMapProps {
-  center:          [number, number];
-  zoom?:           number;
-  properties:      PropertyWithCoords[];
-  selectedId:      string | null;
-  onSelect:        (p: PropertyWithCoords) => void;
-  onBoundsChange?: (b: MapBounds) => void;
+  center:           [number, number];
+  zoom?:            number;
+  properties:       PropertyWithCoords[];
+  selectedId:       string | null;
+  highlightedIds?:  string[];          // IDs returned by AI search — others are dimmed
+  onSelect:         (p: PropertyWithCoords) => void;
+  onBoundsChange?:  (b: MapBounds) => void;
 }
 
 export default function LeafletMap({
-  center, zoom = 5, properties, selectedId, onSelect, onBoundsChange,
+  center, zoom = 5, properties, selectedId, highlightedIds, onSelect, onBoundsChange,
 }: LeafletMapProps) {
+  const hasHighlight = highlightedIds && highlightedIds.length > 0;
+  const highlightSet = hasHighlight ? new Set(highlightedIds) : null;
+
   return (
     <MapContainer
       center={center}
@@ -149,15 +154,19 @@ export default function LeafletMap({
       />
       <MapFlyTo center={center} zoom={zoom} />
       {onBoundsChange && <BoundsWatcher onBoundsChange={onBoundsChange} />}
-      {properties.map((p) => (
-        <Marker
-          key={p.id}
-          position={[p.lat, p.lng]}
-          icon={makePinIcon(p, p.id === selectedId)}
-          eventHandlers={{ click: () => onSelect(p) }}
-          zIndexOffset={p.id === selectedId ? 1000 : 0}
-        />
-      ))}
+      {properties.map((p) => {
+        const selected = p.id === selectedId;
+        const dimmed   = !selected && !!highlightSet && !highlightSet.has(p.id);
+        return (
+          <Marker
+            key={p.id}
+            position={[p.lat, p.lng]}
+            icon={makePinIcon(p, selected, dimmed)}
+            eventHandlers={{ click: () => onSelect(p) }}
+            zIndexOffset={selected ? 1000 : highlightSet?.has(p.id) ? 500 : 0}
+          />
+        );
+      })}
     </MapContainer>
   );
 }
