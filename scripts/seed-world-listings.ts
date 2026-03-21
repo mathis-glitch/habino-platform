@@ -751,9 +751,15 @@ async function main() {
   const tenantId = tenants[0].id;
   console.log(`✅ Using tenant: ${tenants[0].name} (${tenantId})`);
 
-  // 2. Check existing count
-  const { count: existing } = await sb.from("properties").select("id", { count:"exact", head:true });
-  console.log(`ℹ️  Existing listings: ${existing ?? 0}`);
+  // 2. Clear existing listings for this tenant (clean re-seed)
+  const { count: existing } = await sb.from("properties").select("id", { count:"exact", head:true }).eq("tenant_id", tenantId);
+  console.log(`ℹ️  Existing listings for this tenant: ${existing ?? 0}`);
+  if (existing && existing > 0) {
+    console.log("🗑️  Clearing old listings for clean re-seed…");
+    const { error: delErr } = await sb.from("properties").delete().eq("tenant_id", tenantId);
+    if (delErr) console.error("  ⚠️  Delete warning:", delErr.message);
+    else console.log("  ✅ Old listings cleared.");
+  }
 
   // 3. Generate listings
   console.log(`\n📍 Generating listings for ${CITIES.length} cities…`);
