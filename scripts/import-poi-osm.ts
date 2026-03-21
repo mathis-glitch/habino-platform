@@ -159,16 +159,20 @@ interface OverpassElement {
   tags?: Record<string, string>;
 }
 
-async function queryOverpass(lat: number, lng: number, radiusM: number, tag: string): Promise<OverpassElement[]> {
-  const [key, val] = tag.split("=");
-  const query = `
-[out:json][timeout:25];
-(
-  node["${key}"="${val}"](around:${radiusM},${lat},${lng});
-  way["${key}"="${val}"](around:${radiusM},${lat},${lng});
-  relation["${key}"="${val}"](around:${radiusM},${lat},${lng});
-);
-out center;`;
+// Build ONE Overpass query fetching ALL poi types at once (24× fewer requests)
+function buildBatchQuery(lat: number, lng: number, radiusM: number, tags: string[]): string {
+  const unions = tags.flatMap(tag => {
+    const [key, val] = tag.split("=");
+    return [
+      `  node["${key}"="${val}"](around:${radiusM},${lat},${lng});`,
+      `  way["${key}"="${val}"](around:${radiusM},${lat},${lng});`,
+    ];
+  }).join("\n");
+  return `[out:json][timeout:60];\n(\n${unions}\n);\nout center tags;`;
+}
+
+async function queryOverpassBatch(lat: number, lng: number, radiusM: number, tags: string[]): Promise<OverpassElement[]> {
+  const query = buildBatchQuery(lat, lng, radiusM, tags);
 
   for (let attempt = 0; attempt < 3; attempt++) {
     const url = OVERPASS_URLS[overpassIdx % OVERPASS_URLS.length];
@@ -177,18 +181,28 @@ out center;`;
         method:  "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body:    `data=${encodeURIComponent(query)}`,
-        signal:  AbortSignal.timeout(30_000),
+        signal:  AbortSignal.timeout(65_000),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json() as { elements: OverpassElement[] };
       return json.elements ?? [];
     } catch (e) {
       if (attempt === 2) throw e;
-      overpassIdx++; // Try next mirror on failure
-      await sleep(2000 * (attempt + 1));
+      overpassIdx++;
+      await sleep(3000 * (attempt + 1));
     }
   }
   return [];
+}
+
+// Classify an element by its OSM tags → our POI type
+function classifyElement(tags: Record<string, string> | undefined): { type: string; category: string } | null {
+  if (!tags) return null;
+  for (const [tag, type, category] of POI_TYPES) {
+    const [key, val] = tag.split("=");
+    if (tags[key] === val) return { type, category };
+  }
+  return null;
 }
 
 // ── Batch upsert ──────────────────────────────────────────────────────────────
@@ -239,14 +253,16 @@ async function main() {
     throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env.local");
   }
 
-  const cities  = loadCities();
-  const done    = await loadDoneSet();
+  const cities     = loadCities();
+  const done       = await loadDoneSet();
   const typesToRun = FILTER_TYPE
     ? POI_TYPES.filter(([, type]) => type === FILTER_TYPE)
     : POI_TYPES;
+  const tagsToRun  = typesToRun.map(([tag]) => tag);
 
   console.log(`\n🏙️  Cities to process: ${cities.length}`);
-  console.log(`📌 POI types to import: ${typesToRun.map(([,t]) => t).join(", ")}\n`);
+  console.log(`📌 POI types: ${typesToRun.map(([,t]) => t).join(", ")}`);
+  console.log(`⚡ Mode: 1 Overpass request per city (all types batched)\n`);
 
   let totalImported = 0;
   let cityIdx = 0;
@@ -255,62 +271,67 @@ async function main() {
     cityIdx++;
     const cityLabel = `${city.name} (${city.country}) [${cityIdx}/${cities.length}]`;
 
-    for (const [tag, , ] of typesToRun) {
-      const { type, category } = POI_TYPE_MAP.get(tag)!;
-      const doneKey = `${city.name}||${city.country}||${type}`;
+    // Skip city entirely if ALL types already done
+    const allDone = typesToRun.every(([, type]) =>
+      done.has(`${city.name}||${city.country}||${type}`)
+    );
+    if (allDone) continue;
 
-      if (done.has(doneKey)) continue;
-
-      // Query in 15km radius around city center
-      let elements: OverpassElement[] = [];
-      try {
-        elements = await queryOverpass(city.lat, city.lng, 15_000, tag);
-      } catch (e) {
-        console.warn(`  ⚠️  Overpass failed for ${cityLabel} / ${type}: ${e}`);
-        await sleep(3000);
-        continue;
-      }
-
-      const rows: PoiRow[] = elements
-        .map(el => {
-          const coords = getLatLng(el);
-          if (!coords) return null;
-          return {
-            osm_id:   el.id,
-            osm_type: el.type,
-            name:     el.tags?.name ?? el.tags?.["name:en"] ?? null,
-            type,
-            category,
-            lat:      coords.lat,
-            lng:      coords.lng,
-            country:  city.country,
-            city:     city.name,
-            metadata: el.tags ? Object.fromEntries(
-              Object.entries(el.tags).filter(([k]) => !["name","type"].includes(k)).slice(0, 10)
-            ) : null,
-          } satisfies PoiRow;
-        })
-        .filter((r): r is PoiRow => r !== null);
-
-      if (rows.length > 0) {
-        await upsertBatch(rows);
-        totalImported += rows.length;
-      }
-
-      // Log progress
-      await sb.from("poi_import_log").upsert(
-        { city: city.name, country: city.country, poi_type: type, count: rows.length },
-        { onConflict: "city,country,poi_type" }
-      );
-      done.add(doneKey);
-
-      if (rows.length > 0) {
-        console.log(`  ✅ ${cityLabel} / ${type}: ${rows.length} POIs`);
-      }
-
-      // Rate limiting — be polite to Overpass API
-      await sleep(1500);
+    // ONE request fetching all POI types at once
+    let elements: OverpassElement[] = [];
+    try {
+      elements = await queryOverpassBatch(city.lat, city.lng, 15_000, tagsToRun);
+    } catch (e) {
+      console.warn(`  ⚠️  Overpass failed for ${cityLabel}: ${e}`);
+      await sleep(5000);
+      continue;
     }
+
+    // Classify each element and build rows
+    const rows: PoiRow[] = [];
+    for (const el of elements) {
+      const coords = getLatLng(el);
+      if (!coords) continue;
+      const cls = classifyElement(el.tags);
+      if (!cls) continue;
+      // Skip if this type was already imported for this city
+      if (done.has(`${city.name}||${city.country}||${cls.type}`)) continue;
+      rows.push({
+        osm_id:   el.id,
+        osm_type: el.type,
+        name:     el.tags?.name ?? el.tags?.["name:en"] ?? null,
+        type:     cls.type,
+        category: cls.category,
+        lat:      coords.lat,
+        lng:      coords.lng,
+        country:  city.country,
+        city:     city.name,
+        metadata: el.tags ? Object.fromEntries(
+          Object.entries(el.tags).filter(([k]) => !["name","type"].includes(k)).slice(0, 10)
+        ) : null,
+      });
+    }
+
+    if (rows.length > 0) {
+      await upsertBatch(rows);
+      totalImported += rows.length;
+    }
+
+    // Mark all types as done for this city (even if count=0)
+    const countByType = new Map<string, number>();
+    for (const r of rows) countByType.set(r.type, (countByType.get(r.type) ?? 0) + 1);
+
+    const logRows = typesToRun.map(([, type]) => ({
+      city: city.name, country: city.country, poi_type: type,
+      count: countByType.get(type) ?? 0,
+    }));
+    await sb.from("poi_import_log").upsert(logRows, { onConflict: "city,country,poi_type" });
+    for (const [, type] of typesToRun) done.add(`${city.name}||${city.country}||${type}`);
+
+    console.log(`  ✅ ${cityLabel}: ${rows.length} POIs`);
+
+    // Polite rate limit — 1 request per city now instead of 24
+    await sleep(1500);
   }
 
   console.log(`\n🎉 Done! Total POIs imported: ${totalImported.toLocaleString()}`);
