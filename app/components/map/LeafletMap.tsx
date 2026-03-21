@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, useMap, AttributionControl } from "react-leaflet";
 import L from "leaflet";
 import type { Property } from "@/lib/types";
 
@@ -62,6 +62,7 @@ export default function LeafletMap({ center, zoom = 12, properties, selectedId, 
       zoom={zoom}
       zoomControl={false}
       scrollWheelZoom
+      attributionControl={false}
       // Fixed + full-viewport so Leaflet always has a measurable size
       style={{
         position: "fixed",
@@ -72,9 +73,13 @@ export default function LeafletMap({ center, zoom = 12, properties, selectedId, 
         zIndex: 0,
       }}
     >
+      <AttributionControl
+        position="bottomleft"
+        prefix='© Habino · <a href="mailto:hello@habino.app">hello@habino.app</a> · <a href="https://www.openstreetmap.org/copyright" target="_blank">OSM</a>'
+      />
       <TileLayer
         url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>'
+        attribution=""
         subdomains="abcd"
         maxZoom={19}
       />

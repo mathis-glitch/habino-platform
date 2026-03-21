@@ -14,9 +14,9 @@ export default function Header() {
   const isMarkt = pathname === "/markt";
 
   const tabs = [
-    { href: "/",      label: "KI Agent", active: isChat },
-    { href: "/saved", label: "Gespeichert", active: isSaved },
-    { href: "/markt", label: "Markt",    active: isMarkt },
+    { href: "/",      label: "AI Agent", active: isChat },
+    { href: "/saved", label: "Saved",    active: isSaved },
+    { href: "/markt", label: "Market",   active: isMarkt },
   ];
 
   return (

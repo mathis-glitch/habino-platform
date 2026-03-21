@@ -18,8 +18,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
   if (!tenantId) {
     return {
-      title: "Habino — KI Immobilienassistent",
-      description: "Find your space. Anytime. Anywhere. — KI-gestützte Immobilienplattform.",
+      title: "Habino — AI Property Assistant",
+      description: "Find your space. Anytime. Anywhere. — AI-powered property platform.",
       manifest: "/manifest.json",
       appleWebApp: {
         capable: true,
@@ -41,7 +41,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
   return {
     title: tenant?.name || "Habino",
-    description: tenant?.tagline || "KI-gestützter Immobilienassistent",
+    description: tenant?.tagline || "AI-powered property assistant",
     manifest: "/manifest.json",
     appleWebApp: {
       capable: true,
@@ -80,7 +80,7 @@ export default async function RootLayout({
     : "--color-primary: #2E7D46; --color-secondary: #0F1F3D; --color-primary-dark: #235f35; --color-primary-light: #e8f5ed";
 
   return (
-    <html lang="de" style={{ cssText: cssVars } as React.CSSProperties}>
+    <html lang="en" style={{ cssText: cssVars } as React.CSSProperties}>
       <head>
         {/* PWA — iOS */}
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />

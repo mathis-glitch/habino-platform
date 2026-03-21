@@ -441,12 +441,37 @@ function MicButton({ onResult, lang, size = "md" }: { onResult: (t: string) => v
   );
 }
 
+// ── Currency by ISO country code ──────────────────────────────────────────────
+const COUNTRY_CURRENCY: Record<string, string> = {
+  KE: "KES", NG: "NGN", GH: "GHS", TZ: "TZS", UG: "UGX",
+  ZA: "ZAR", ET: "ETB", EG: "EGP", AE: "AED", MA: "MAD",
+  RW: "RWF", SN: "XOF", CI: "XOF", ZM: "ZMW", ZW: "USD",
+  MZ: "MZN", ML: "XOF", TG: "XOF", CD: "CDF", TN: "TND",
+  CM: "XAF", BJ: "XOF", NE: "XOF", BF: "XOF", GM: "GMD",
+  MU: "MUR", SC: "SCR", OM: "OMR", QA: "QAR", SA: "SAR",
+  US: "USD", GB: "GBP", DE: "EUR", FR: "EUR", AU: "AUD",
+};
+
+interface UserLocation { city: string; country: string; currency: string }
+
+function makeSuggestions(loc: UserLocation | null) {
+  const city     = loc?.city     || "Nairobi";
+  const currency = loc?.currency || "KES";
+  return [
+    { icon: "🏠", text: `Apartments for rent in ${city}` },
+    { icon: "🏢", text: `Office space in ${city}` },
+    { icon: "🛏️", text: `3-bedroom house under 100,000 ${currency}` },
+    { icon: "🏗️", text: `Land for sale in ${city}` },
+  ];
+}
+
 // ── Main component ───────────────────────────────────────────────────────────
 export function AIChatPage({ initialQuery, sidebarMode }: { initialQuery?: string; sidebarMode?: boolean } = {}) {
   const [messages, setMessages]       = useState<ChatMessage[]>([]);
   const [input, setInput]             = useState("");
   const [loading, setLoading]         = useState(false);
   const [wizardState, setWizardState] = useState<WizardState>({ step: null, data: {} });
+  const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [voiceLangIdx, setVoiceLangIdx] = useState(0);
   const bottomRef    = useRef<HTMLDivElement>(null);
   const inputRef     = useRef<HTMLTextAreaElement>(null);
@@ -469,6 +494,29 @@ export function AIChatPage({ initialQuery, sidebarMode }: { initialQuery?: strin
   }, [messages, loading]);
 
   useEffect(() => { inputRef.current?.focus(); }, []);
+
+  // Detect user location for localised suggestions
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      try {
+        const { latitude: lat, longitude: lon } = pos.coords;
+        const res  = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`,
+          { headers: { "Accept-Language": "en" } }
+        );
+        const data = await res.json();
+        const addr = data.address || {};
+        const city = addr.city || addr.town || addr.village || addr.county || "your city";
+        const cc   = (addr.country_code || "").toUpperCase();
+        setUserLocation({
+          city,
+          country: addr.country || "",
+          currency: COUNTRY_CURRENCY[cc] || "USD",
+        });
+      } catch { /* silently fail — suggestions fall back to defaults */ }
+    }, () => { /* user denied */ });
+  }, []);
 
   // Auto-send ?q= query param OR initialQuery prop
   // Also handle ?wizard=profile to start the profile setup interview
@@ -592,17 +640,12 @@ export function AIChatPage({ initialQuery, sidebarMode }: { initialQuery?: strin
   }
 
   const quickActions = [
-    { icon: "📝", text: "Ich möchte eine Immobilie inserieren", label: "Inserieren" },
-    { icon: "📄", text: "Vertrag erstellen",                    label: "Vertrag" },
-    { icon: "👤", text: "Profil einrichten",                    label: "Profil" },
+    { icon: "📝", text: "I want to list a property",  label: "List" },
+    { icon: "📄", text: "Create a contract",           label: "Contract" },
+    { icon: "👤", text: "Set up my profile",           label: "Profile" },
   ];
 
-  const suggestions = [
-    { icon: "🏠", text: "Wohnungen zur Miete in Nairobi" },
-    { icon: "🏢", text: "Büroflächen in Addis Ababa" },
-    { icon: "🛏️", text: "3-Zimmer Wohnung unter 100.000 KES" },
-    { icon: "🏗️", text: "Grundstück kaufen in Cape Town" },
-  ];
+  const suggestions = makeSuggestions(userLocation);
 
   const hasMessages = messages.length > 0;
 
@@ -615,56 +658,64 @@ export function AIChatPage({ initialQuery, sidebarMode }: { initialQuery?: strin
         {/* Hero state (no messages yet) */}
         {!hasMessages && (
           <div className={`flex flex-col items-center justify-center px-4 min-h-full ${sidebarMode ? "py-6" : "py-12"}`}>
-            <div className={`text-center max-w-xl ${sidebarMode ? "mb-5" : "mb-10"}`}>
+            <div className={`text-center max-w-xl ${sidebarMode ? "mb-6" : "mb-10"}`}>
               {!sidebarMode && (
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 text-slate-500 text-xs font-semibold mb-5">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse" />
-                  KI-gestützte Immobiliensuche
+                  AI-powered property search
                 </div>
               )}
-              <h1 className={`font-extrabold text-slate-900 leading-tight tracking-tight mb-3 ${sidebarMode ? "text-2xl" : "text-4xl md:text-5xl mb-4"}`}>
+              {/* Location badge — shown when geo is resolved */}
+              {sidebarMode && userLocation && (
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-slate-400 text-[11px] font-medium mb-3">
+                  <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  </svg>
+                  {userLocation.city}{userLocation.country ? `, ${userLocation.country}` : ""}
+                </div>
+              )}
+              <h1 className={`font-extrabold text-slate-900 leading-tight tracking-tight ${sidebarMode ? "text-2xl mb-1" : "text-4xl md:text-5xl mb-4"}`}>
                 {sidebarMode ? (
-                  <>KI-Suche</>
+                  <>Hi, I&apos;m Habino</>
                 ) : (
-                  <>Deine Immobilie.<br /><span style={{ color: "var(--color-primary)" }}>Gefunden per KI.</span></>
+                  <>Your property.<br /><span style={{ color: "var(--color-primary)" }}>Found by AI.</span></>
                 )}
               </h1>
-              <p className={`text-slate-500 ${sidebarMode ? "text-sm" : "text-base md:text-lg"}`}>
-                {sidebarMode
-                  ? "Beschreibe was du suchst — ich finde passende Immobilien auf der Karte."
-                  : "Beschreibe was du suchst — ich finde passende Immobilien und buche Besichtigungen. Eigentümer? Ich helfe dir beim Inserieren."}
-              </p>
+              {sidebarMode && (
+                <p className="text-base font-medium text-slate-400 mb-4">I&apos;m here to help.</p>
+              )}
+              {!sidebarMode && (
+                <p className="text-slate-500 text-base md:text-lg">
+                  Describe what you&apos;re looking for — I&apos;ll find matching properties and book viewings.
+                </p>
+              )}
             </div>
 
-            {/* Quick action buttons */}
-            <div className="flex flex-wrap justify-center gap-3 mb-4">
-              {quickActions.map((a) => (
-                <button key={a.text} onClick={() => sendMessage(a.text)}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white shadow-sm hover:opacity-90 active:scale-95 transition-all"
-                  style={{ backgroundColor: "var(--color-primary)" }}>
-                  <span>{a.icon}</span>
-                  {a.label}
-                </button>
-              ))}
-            </div>
+            {/* Quick action buttons — full page only */}
+            {!sidebarMode && (
+              <div className="flex flex-wrap justify-center gap-3 mb-4">
+                {quickActions.map((a) => (
+                  <button key={a.text} onClick={() => sendMessage(a.text)}
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white shadow-sm hover:opacity-90 active:scale-95 transition-all"
+                    style={{ backgroundColor: "var(--color-primary)" }}>
+                    <span>{a.icon}</span>
+                    {a.label}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* Suggestion chips */}
-            <div className="grid grid-cols-2 gap-2.5 max-w-lg w-full">
+            <div className={`w-full ${sidebarMode ? "flex flex-col gap-2 max-w-full" : "grid grid-cols-2 gap-2.5 max-w-lg"}`}>
               {suggestions.map((s) => (
                 <button key={s.text} onClick={() => sendMessage(s.text)}
-                  className="flex items-center gap-3 text-left px-4 py-3 rounded-2xl border border-slate-200 bg-white hover:shadow-sm hover:border-slate-300 transition-all text-sm text-slate-600 font-medium">
+                  className="flex items-center gap-3 text-left px-4 py-3 rounded-2xl border border-slate-200 bg-white/60 hover:bg-white hover:shadow-sm hover:border-slate-300 transition-all text-sm text-slate-600 font-medium">
                   <span className="text-base">{s.icon}</span>
                   {s.text}
                 </button>
               ))}
             </div>
-
-            <p className="text-xs text-slate-300 mt-8">
-              Are you a property agent?{" "}
-              <Link href="/admin" className="underline hover:text-slate-500 transition-colors">
-                Go to dashboard →
-              </Link>
-            </p>
           </div>
         )}
 
@@ -784,8 +835,8 @@ export function AIChatPage({ initialQuery, sidebarMode }: { initialQuery?: strin
                 value={input}
                 onChange={(e) => { setInput(e.target.value); autoResize(e.target); }}
                 onKeyDown={handleKeyDown}
-                placeholder="Wonach suchst du? z.B. 3-Zi. Wohnung in Nairobi unter 80.000 KES..."
-                rows={1}
+                placeholder={userLocation ? `What are you looking for in ${userLocation.city}?` : "What are you looking for? e.g. 3-bed apartment in Nairobi…"}
+                rows={sidebarMode ? 3 : 1}
                 className="flex-1 bg-transparent text-sm text-slate-800 placeholder-slate-400 resize-none focus:outline-none leading-relaxed"
                 style={{ maxHeight: "120px" }}
               />
@@ -802,7 +853,7 @@ export function AIChatPage({ initialQuery, sidebarMode }: { initialQuery?: strin
                 </svg>
               </button>
             </div>
-            <p className="text-center text-[11px] text-slate-300 mt-1.5">Enter zum Senden · 🎤 Spracheingabe</p>
+            {!sidebarMode && <p className="text-center text-[11px] text-slate-300 mt-1.5">Press Enter to send · 🎤 Voice input</p>}
           </div>
         </div>
     </main>

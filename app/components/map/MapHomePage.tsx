@@ -100,8 +100,8 @@ function PropertySheet({ property, onClose }: { property: PropertyWithCoords; on
               </button>
             </div>
             <div className="flex items-center gap-2.5 mt-2 text-xs text-slate-400">
-              {property.bedrooms > 0  && <span>{property.bedrooms} Zi.</span>}
-              {property.bathrooms > 0 && <><span>·</span><span>{property.bathrooms} Bad</span></>}
+              {property.bedrooms > 0  && <span>{property.bedrooms} bd.</span>}
+              {property.bathrooms > 0 && <><span>·</span><span>{property.bathrooms} ba.</span></>}
               {property.area_sqm      && <><span>·</span><span>{property.area_sqm} m²</span></>}
             </div>
           </div>
@@ -110,11 +110,11 @@ function PropertySheet({ property, onClose }: { property: PropertyWithCoords; on
           <Link href={`/properties/${property.id}`}
             className="flex-1 py-3 rounded-2xl text-sm font-semibold text-white text-center"
             style={{ backgroundColor: "var(--color-primary)" }}>
-            Details ansehen
+            View details
           </Link>
-          <Link href={`/?chat=1&q=${encodeURIComponent(`Besichtigung für "${property.title}"`)}`}
+          <Link href={`/?chat=1&q=${encodeURIComponent(`Book a viewing for "${property.title}"`)}`}
             className="px-4 py-3 rounded-2xl text-sm font-medium border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors whitespace-nowrap">
-            KI fragen
+            Ask AI
           </Link>
         </div>
       </div>
@@ -122,12 +122,62 @@ function PropertySheet({ property, onClose }: { property: PropertyWithCoords; on
   );
 }
 
+// ── Habino control-centre panel ───────────────────────────────────────────────
+function HabinoPanel({ onClose }: { onClose: () => void }) {
+  const items = [
+    { href: "/profile",  icon: "👤", label: "Profile" },
+    { href: "/home",     icon: "📄", label: "Contracts" },
+    { href: "/saved",    icon: "🔖", label: "Saved Properties" },
+    { href: "/listings", icon: "🏠", label: "My Listings" },
+  ];
+  return (
+    <div
+      className="fixed z-[200] overflow-hidden"
+      style={{
+        left: "16px",
+        top: "16px",
+        width: "clamp(220px, 18vw, 280px)",
+        background: "rgba(255,255,255,0.88)",
+        backdropFilter: "blur(24px) saturate(1.6)",
+        WebkitBackdropFilter: "blur(24px) saturate(1.6)",
+        borderRadius: "20px",
+        boxShadow: "0 8px 40px rgba(0,0,0,0.12), 0 1px 0 rgba(255,255,255,0.8) inset",
+        border: "1px solid rgba(255,255,255,0.55)",
+      }}>
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100/60">
+        <span className="text-sm font-bold text-slate-800">Habino</span>
+        <button
+          onClick={onClose}
+          className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition-colors">
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      {/* Nav items */}
+      <nav className="p-2 flex flex-col gap-1">
+        {items.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 hover:bg-white/70 hover:text-slate-900 transition-all">
+            <span className="text-base">{item.icon}</span>
+            {item.label}
+          </Link>
+        ))}
+      </nav>
+    </div>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 export function MapHomePage() {
-  const [properties, setProperties] = useState<PropertyWithCoords[]>([]);
-  const [selected,   setSelected]   = useState<PropertyWithCoords | null>(null);
+  const [properties,   setProperties]   = useState<PropertyWithCoords[]>([]);
+  const [selected,     setSelected]     = useState<PropertyWithCoords | null>(null);
   const [activeCity] = useState("Nairobi");
-  const [chatOpen,   setChatOpen]   = useState(false);
+  const [chatOpen,     setChatOpen]     = useState(false);
+  const [habinoOpen,   setHabinoOpen]   = useState(false);
 
   // Fetch properties for active city
   useEffect(() => {
@@ -156,9 +206,9 @@ export function MapHomePage() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
-            Karte
+            Map
           </button>
-          <span className="text-sm font-semibold text-slate-800">KI-Suche</span>
+          <span className="text-sm font-semibold text-slate-800">AI Search</span>
         </div>
         <div className="flex-1 overflow-hidden">
           <AIChatPage sidebarMode />
@@ -187,7 +237,7 @@ export function MapHomePage() {
         onClick={() => setChatOpen(true)}
         className="md:hidden fixed z-[100] bottom-[72px] right-4 w-12 h-12 rounded-2xl text-white shadow-lg flex items-center justify-center text-xs font-bold"
         style={{ backgroundColor: "var(--color-primary)" }}>
-        KI
+        AI
       </button>
 
       {/* ── AI Chat panel — floating glass box, desktop only, ≤25vw ── */}
@@ -205,8 +255,24 @@ export function MapHomePage() {
           boxShadow: "0 8px 40px rgba(0,0,0,0.12), 0 1px 0 rgba(255,255,255,0.8) inset",
           border: "1px solid rgba(255,255,255,0.55)",
         }}>
+        {/* Panel top bar with Habino button */}
+        <div className="shrink-0 flex items-center justify-end px-4 pt-3 pb-0">
+          <button
+            onClick={() => setHabinoOpen((o) => !o)}
+            className="px-3 py-1.5 rounded-xl text-xs font-semibold text-white shadow-sm hover:opacity-90 active:scale-95 transition-all"
+            style={{ backgroundColor: habinoOpen ? "var(--color-secondary)" : "var(--color-primary)" }}>
+            Habino
+          </button>
+        </div>
         <AIChatPage sidebarMode />
       </div>
+
+      {/* ── Habino control-centre panel (desktop) ── */}
+      {habinoOpen && (
+        <div className="hidden md:block">
+          <HabinoPanel onClose={() => setHabinoOpen(false)} />
+        </div>
+      )}
 
       {/* Property sheet */}
       {selected && <PropertySheet property={selected} onClose={() => setSelected(null)} />}
