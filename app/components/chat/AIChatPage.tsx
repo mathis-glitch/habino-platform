@@ -122,31 +122,10 @@ function ChatPropertyCard({ property, lang = "en" }: { property: Property; lang?
           <p className="text-xs text-slate-400 mt-0.5">
             {property.neighbourhood ? `${property.neighbourhood}, ` : ""}{property.city}
           </p>
-          <div className="flex items-center gap-2.5 mt-1.5 text-[10px] text-slate-400">
-            {property.bedrooms > 0 && (
-              <span className="flex items-center gap-0.5">
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 12V7a2 2 0 012-2h14a2 2 0 012 2v5M3 12h18M3 12v5m18-5v5M3 17h18" />
-                </svg>
-                {property.bedrooms}
-              </span>
-            )}
-            {property.bathrooms > 0 && (
-              <span className="flex items-center gap-0.5">
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 12h16M4 12V8a2 2 0 012-2h2m-4 6v5a1 1 0 001 1h14a1 1 0 001-1v-5M9 6V5a1 1 0 011-1h4a1 1 0 011 1v1" />
-                </svg>
-                {property.bathrooms}
-              </span>
-            )}
-            {property.area_sqm && (
-              <span className="flex items-center gap-0.5">
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                </svg>
-                {property.area_sqm} m²
-              </span>
-            )}
+          <div className="flex items-center gap-2 mt-1.5 text-[10px] text-slate-400">
+            {property.bedrooms > 0 && <span>{property.bedrooms} Zi.</span>}
+            {property.bathrooms > 0 && <><span className="text-slate-200">·</span><span>{property.bathrooms} Bad</span></>}
+            {property.area_sqm && <><span className="text-slate-200">·</span><span>{property.area_sqm} m²</span></>}
           </div>
           {saved && (
             <p className="text-[10px] text-slate-400 mt-1.5">

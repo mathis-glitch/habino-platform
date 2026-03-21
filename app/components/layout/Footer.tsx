@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useTenant } from "@/app/tenant-provider";
 
 export default function Footer() {
@@ -23,7 +22,6 @@ export default function Footer() {
               WhatsApp
             </a>
           )}
-          <Link href="/markt" className="hover:text-slate-600 transition-colors">Market Report</Link>
         </div>
       </div>
     </footer>
