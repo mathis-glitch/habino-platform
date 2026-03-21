@@ -72,7 +72,7 @@ export default function BottomNav() {
             >
               <div
                 className={`flex items-center justify-center transition-colors duration-150 ${
-                  active ? "" : "text-slate-400"
+                  active ? "" : "text-neutral-400"
                 }`}
                 style={active ? { color: "var(--color-primary)" } : {}}
               >
@@ -80,7 +80,7 @@ export default function BottomNav() {
               </div>
               <span
                 className={`text-[10px] font-semibold tracking-wide transition-colors ${
-                  active ? "" : "text-slate-400"
+                  active ? "" : "text-neutral-400"
                 }`}
                 style={active ? { color: "var(--color-primary)" } : {}}
               >
