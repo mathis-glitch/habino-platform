@@ -284,10 +284,9 @@ function haversine(lat1: number, lng1: number, lat2: number, lng2: number): numb
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-// ── Natural coordinate assignment ─────────────────────────────────────────────
-// Each neighbourhood gets a fixed cluster centre (~±5 km from city centre).
-// Each property scatters around that centre (~±600 m).
-// Returns only properties whose pin is at least MIN_DIST metres from all placed pins.
+// ── Coordinate assignment ──────────────────────────────────────────────────────
+// Uses actual lat/lng stored in the DB. Falls back to CITY_COORDS + hash jitter
+// for legacy rows that predate the coordinates migration.
 const MIN_DIST = 500; // metres
 
 function withCoords(
@@ -298,17 +297,21 @@ function withCoords(
   const working = [...placed];
 
   for (const p of props) {
-    const base = CITY_COORDS[p.city];
-    if (!base) continue;
+    let lat: number;
+    let lng: number;
 
-    // Neighbourhood cluster centre (deterministic, ±0.045° lat / ±0.06° lng ≈ ±5 km)
-    const nb  = p.neighbourhood || p.city;
-    const nbLat = base[0] + hashDeg(nb + "_lat", 0.045);
-    const nbLng = base[1] + hashDeg(nb + "_lng", 0.060);
-
-    // Individual property jitter within neighbourhood (±0.006° ≈ ±660 m)
-    const lat = nbLat + hashDeg(p.id + "_lat", 0.006);
-    const lng = nbLng + hashDeg(p.id + "_lng", 0.006);
+    if (p.lat != null && p.lng != null) {
+      // ✅ Real coordinates from DB — use directly
+      lat = p.lat;
+      lng = p.lng;
+    } else {
+      // Legacy fallback: derive from CITY_COORDS + deterministic hash
+      const base = CITY_COORDS[p.city];
+      if (!base) continue;
+      const nb = p.neighbourhood || p.city;
+      lat = base[0] + hashDeg(nb + "_lat", 0.045) + hashDeg(p.id + "_lat", 0.006);
+      lng = base[1] + hashDeg(nb + "_lng", 0.060) + hashDeg(p.id + "_lng", 0.006);
+    }
 
     // Skip if too close to an already-placed pin
     const tooClose = working.some(([a, b]) => haversine(lat, lng, a, b) < MIN_DIST);
@@ -614,55 +617,44 @@ export function MapHomePage() {
     setHighlightedIds(ids);
   }, []);
 
-  // Track which city names have already been fetched so we don't re-fetch on every pan
-  const loadedCities = useRef<Set<string>>(new Set());
-
   // Current placed coordinates (for minimum-distance filtering across batches)
   const placedRef = useRef<Array<[number, number]>>([]);
 
+  // Track which viewport tiles have already been fetched (prevents re-fetch on every pan)
+  // Key = "lat0,lng0,lat1,lng1" rounded to 1 decimal (≈ 11km grid)
+  const loadedTiles = useRef<Set<string>>(new Set());
+
   // Called by LeafletMap whenever the viewport changes (pan / zoom)
   const handleBoundsChange = useCallback(async (bounds: MapBounds) => {
-    const pad = 0.5;
-    const unloaded = Object.entries(CITY_COORDS)
-      .filter(([, [lat, lng]]) =>
-        lat >= bounds.south - pad && lat <= bounds.north + pad &&
-        lng >= bounds.west  - pad && lng <= bounds.east  + pad
-      )
-      .map(([city]) => city)
-      .filter(city => !loadedCities.current.has(city));
+    // Round bounds to 1 decimal to create cache tiles (~11 km grid)
+    const r = (n: number) => Math.round(n * 10) / 10;
+    const tileKey = `${r(bounds.south)},${r(bounds.west)},${r(bounds.north)},${r(bounds.east)}`;
+    if (loadedTiles.current.has(tileKey)) return;
+    loadedTiles.current.add(tileKey);
 
-    if (!unloaded.length) return;
+    // Bbox query — fetches all properties within the visible viewport directly
+    const bbox = `${bounds.south},${bounds.west},${bounds.north},${bounds.east}`;
+    const res = await fetch(
+      `/api/properties?bbox=${encodeURIComponent(bbox)}&limit=500&sort=newest`
+    ).catch(() => null);
+    if (!res?.ok) return;
 
-    // Process ALL visible cities — loop in batches of 20 so URLs stay short
-    const BATCH_SIZE = 20;
-    for (let i = 0; i < unloaded.length; i += BATCH_SIZE) {
-      const batch = unloaded.slice(i, i + BATCH_SIZE);
+    const json = await res.json().catch(() => ({ data: [] }));
+    const raw: Property[] = json.data ?? [];
+    if (!raw.length) return;
 
-      // Mark this batch as loading before the fetch to block duplicate requests
-      batch.forEach(c => loadedCities.current.add(c));
+    const fresh = withCoords(raw, placedRef.current);
+    if (!fresh.length) return;
 
-      const res = await fetch(
-        `/api/properties?cities=${encodeURIComponent(batch.join(","))}&limit=400&sort=newest`
-      ).catch(() => null);
-      if (!res?.ok) continue;
+    fresh.forEach(p => placedRef.current.push([p.lat, p.lng]));
 
-      const json = await res.json().catch(() => ({ data: [] }));
-      const raw: Property[] = json.data ?? [];
-      if (!raw.length) continue;
-
-      const fresh = withCoords(raw, placedRef.current);
-      if (!fresh.length) continue;
-
-      fresh.forEach(p => placedRef.current.push([p.lat, p.lng]));
-
-      setProperties(prev => {
-        const seen = new Set(prev.map(p => p.id));
-        const added = fresh.filter(p => !seen.has(p.id));
-        const merged = [...prev, ...added];
-        // Cap at 2000 pins to keep rendering performant
-        return merged.length > 2000 ? merged.slice(merged.length - 2000) : merged;
-      });
-    }
+    setProperties(prev => {
+      const seen = new Set(prev.map(p => p.id));
+      const added = fresh.filter(p => !seen.has(p.id));
+      const merged = [...prev, ...added];
+      // Cap at 3000 pins for performance
+      return merged.length > 3000 ? merged.slice(merged.length - 3000) : merged;
+    });
   }, []);
 
   // Start centered on Africa/Middle East at zoom 4 to show global spread immediately

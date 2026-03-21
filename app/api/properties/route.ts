@@ -35,12 +35,23 @@ export async function GET(request: NextRequest) {
   if (filters.listing_type)  query = query.eq("listing_type",  filters.listing_type);
   if (filters.property_type) query = query.eq("property_type", filters.property_type);
 
-  // cities = comma-separated exact list (map viewport batch); city = single ilike search
+  // bbox = viewport bounding box (south,west,north,east) — primary map loading method
+  const bboxParam = searchParams.get("bbox");
+  if (bboxParam) {
+    const [south, west, north, east] = bboxParam.split(",").map(Number);
+    if (!isNaN(south) && !isNaN(west) && !isNaN(north) && !isNaN(east)) {
+      query = query
+        .gte("lat", south).lte("lat", north)
+        .gte("lng", west) .lte("lng", east)
+        .not("lat", "is", null);
+    }
+  }
+  // cities = legacy comma-separated list (kept for backwards compat); city = single ilike search
   const citiesParam = searchParams.get("cities");
-  if (citiesParam) {
+  if (!bboxParam && citiesParam) {
     const cityList = citiesParam.split(",").map(c => c.trim()).filter(Boolean);
     query = query.in("city", cityList);
-  } else if (filters.city) {
+  } else if (!bboxParam && filters.city) {
     query = query.ilike("city", `%${filters.city}%`);
   }
 

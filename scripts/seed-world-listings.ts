@@ -10,12 +10,13 @@
  */
 
 import { createClient } from "@supabase/supabase-js";
+import { EXTENDED_CITIES } from "./city-data-extended";
 
 // ── Config ────────────────────────────────────────────────────────────────────
 const SUPABASE_URL      = process.env.NEXT_PUBLIC_SUPABASE_URL      || "https://ikubxgsptautubecukoi.supabase.co";
 const SUPABASE_SR_KEY   = process.env.SUPABASE_SERVICE_ROLE_KEY     || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlrdWJ4Z3NwdGF1dHViZWN1a29pIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Mzc2ODE2NiwiZXhwIjoyMDg5MzQ0MTY2fQ.c6hUfJODHj9smszXQSfUOU55thu3TNs39bWTksfTPxs";
-const BATCH_SIZE        = 500;
-const TARGET_TOTAL      = 300_000;
+const BATCH_SIZE        = 1_000;
+const TARGET_TOTAL      = 1_000_000;
 
 const sb = createClient(SUPABASE_URL, SUPABASE_SR_KEY);
 
@@ -538,6 +539,29 @@ const CITIES: CityDef[] = [
   { city:"Nuku'alofa",     country:"Tonga",        lat:-21.1393, lng:-175.2049,currency:"TOP", priceIndex:4, neighbourhoods:["Kolofo'ou","Kolomotu'a","Tofoa","Popua","Ha'ateiho","'Eua","Vaini","Pea"] },
 ];
 
+// ── Programmatic neighbourhood generator for cities without detailed data ─────
+function generateNeighbourhoods(city: string): string[] {
+  const f = city.split(/[\s,\-]/)[0];
+  return [
+    `${f} Central`, `${f} North`, `${f} South`, `${f} East`, `${f} West`,
+    `${f} Heights`, `${f} Park`,  `${f} Gardens`, `New ${f}`, `Old ${f}`,
+    `${f} District`, `${f} Hills`,
+  ];
+}
+
+// ── Merge EXTENDED_CITIES (skip cities already defined above) ─────────────────
+{
+  const existingKeys = new Set(CITIES.map(c => `${c.city}|${c.country}`));
+  for (const [name, country, lat, lng, currency, priceIndex] of EXTENDED_CITIES) {
+    const key = `${name}|${country}`;
+    if (!existingKeys.has(key)) {
+      CITIES.push({ city: name, country, lat, lng, currency, priceIndex,
+                    neighbourhoods: generateNeighbourhoods(name) });
+      existingKeys.add(key);
+    }
+  }
+}
+
 // ── Property type definitions ─────────────────────────────────────────────────
 const PROPERTY_TYPES = ["apartment","house","villa","office","commercial","land","plot","hall","production"] as const;
 type PropType = typeof PROPERTY_TYPES[number];
@@ -762,7 +786,7 @@ async function main() {
   }
 
   // 3. Generate listings
-  console.log(`\n📍 Generating listings for ${CITIES.length} cities…`);
+  console.log(`\n📍 Generating ${TARGET_TOTAL.toLocaleString()} listings across ${CITIES.length} cities…`);
 
   // Calculate per-city count so total ≈ TARGET_TOTAL
   // Larger priceIndex cities get more listings
@@ -820,8 +844,8 @@ async function main() {
         agent_name:    agent,
         agent_email:   `${agent.toLowerCase().replace(" ",".")  }@habino.app`,
         status:        "active",
-        // Store lat/lng in address field isn't ideal — we store it in a JSON col if present
-        // For map display the app uses city lookup + hash offset (works fine without exact coords)
+        lat,
+        lng,
       });
 
       if (batch.length >= BATCH_SIZE) await flush();
@@ -831,7 +855,8 @@ async function main() {
   await flush(); // final partial batch
 
   console.log(`\n\n🎉 Done! Inserted ${totalInserted.toLocaleString()} listings across ${CITIES.length} cities.`);
-  console.log("   Open Habino and search any city to see them on the map.");
+  console.log("   Open Habino — pan anywhere on the map to see listings.");
+  console.log("   (Tip: run 'supabase db push' if you haven't applied migration 002 yet.)");
 }
 
 main().catch(console.error);

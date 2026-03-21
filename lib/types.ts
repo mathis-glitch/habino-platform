@@ -52,6 +52,9 @@ export interface Property {
   status: PropertyStatus;
   created_at: string;
   updated_at: string;
+  // coordinates (stored in DB, used for map pins)
+  lat: number | null;
+  lng: number | null;
   // joined
   images?: PropertyImage[];
 }
