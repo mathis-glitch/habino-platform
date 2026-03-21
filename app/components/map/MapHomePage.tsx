@@ -623,7 +623,7 @@ export function MapHomePage() {
   // Called by LeafletMap whenever the viewport changes (pan / zoom)
   const handleBoundsChange = useCallback(async (bounds: MapBounds) => {
     const pad = 0.5;
-    const visibleCities = Object.entries(CITY_COORDS)
+    const unloaded = Object.entries(CITY_COORDS)
       .filter(([, [lat, lng]]) =>
         lat >= bounds.south - pad && lat <= bounds.north + pad &&
         lng >= bounds.west  - pad && lng <= bounds.east  + pad
@@ -631,36 +631,38 @@ export function MapHomePage() {
       .map(([city]) => city)
       .filter(city => !loadedCities.current.has(city));
 
-    if (!visibleCities.length) return;
+    if (!unloaded.length) return;
 
-    // Mark all as loading immediately to prevent duplicate requests
-    visibleCities.forEach(c => loadedCities.current.add(c));
+    // Process ALL visible cities — loop in batches of 20 so URLs stay short
+    const BATCH_SIZE = 20;
+    for (let i = 0; i < unloaded.length; i += BATCH_SIZE) {
+      const batch = unloaded.slice(i, i + BATCH_SIZE);
 
-    // Single batched API call — one query, all visible cities
-    const batch = visibleCities.slice(0, 20); // max 20 cities per batch
-    const res = await fetch(
-      `/api/properties?cities=${encodeURIComponent(batch.join(","))}&limit=400&sort=newest`
-    ).catch(() => null);
-    if (!res?.ok) return;
+      // Mark this batch as loading before the fetch to block duplicate requests
+      batch.forEach(c => loadedCities.current.add(c));
 
-    const json = await res.json().catch(() => ({ data: [] }));
-    const raw: Property[] = json.data ?? [];
-    if (!raw.length) return;
+      const res = await fetch(
+        `/api/properties?cities=${encodeURIComponent(batch.join(","))}&limit=400&sort=newest`
+      ).catch(() => null);
+      if (!res?.ok) continue;
 
-    // Assign coords with minimum-distance deduplication across all existing pins
-    const fresh = withCoords(raw, placedRef.current);
-    if (!fresh.length) return;
+      const json = await res.json().catch(() => ({ data: [] }));
+      const raw: Property[] = json.data ?? [];
+      if (!raw.length) continue;
 
-    // Update placed coords reference
-    fresh.forEach(p => placedRef.current.push([p.lat, p.lng]));
+      const fresh = withCoords(raw, placedRef.current);
+      if (!fresh.length) continue;
 
-    setProperties(prev => {
-      const seen = new Set(prev.map(p => p.id));
-      const added = fresh.filter(p => !seen.has(p.id));
-      const merged = [...prev, ...added];
-      // Cap at 1000 pins — drop oldest when over limit
-      return merged.length > 1000 ? merged.slice(merged.length - 1000) : merged;
-    });
+      fresh.forEach(p => placedRef.current.push([p.lat, p.lng]));
+
+      setProperties(prev => {
+        const seen = new Set(prev.map(p => p.id));
+        const added = fresh.filter(p => !seen.has(p.id));
+        const merged = [...prev, ...added];
+        // Cap at 2000 pins to keep rendering performant
+        return merged.length > 2000 ? merged.slice(merged.length - 2000) : merged;
+      });
+    }
   }, []);
 
   // Start centered on Africa/Middle East at zoom 4 to show global spread immediately
