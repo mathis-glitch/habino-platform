@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
 import L from "leaflet";
-import "leaflet/dist/leaflet.css";
 import type { Property } from "@/lib/types";
 
 export type PropertyWithCoords = Property & { lat: number; lng: number };
@@ -85,7 +84,7 @@ export default function LeafletMap({
       zoom={zoom}
       zoomControl={false}
       scrollWheelZoom
-      style={{ height: "100%", width: "100%", background: "#f0ede8" }}
+      style={{ height: "100dvh", width: "100vw", position: "fixed", top: 0, left: 0, background: "#f0ede8" }}
     >
       {/* CartoDB Positron — clean, minimal, Airbnb-like */}
       <TileLayer

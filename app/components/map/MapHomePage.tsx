@@ -12,7 +12,7 @@ import { AIChatPage } from "@/app/components/chat/AIChatPage";
 const LeafletMap = dynamic(() => import("./LeafletMap"), {
   ssr: false,
   loading: () => (
-    <div className="absolute inset-0 bg-[#f0ede8] flex items-center justify-center">
+    <div className="fixed inset-0 bg-[#f0ede8] flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
     </div>
   ),

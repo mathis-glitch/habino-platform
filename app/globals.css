@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Leaflet — must be global, not scoped to a component */
+@import "leaflet/dist/leaflet.css";
+
 :root {
   --color-primary: #2E7D46;
   --color-secondary: #0F1F3D;
