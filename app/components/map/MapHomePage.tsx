@@ -232,7 +232,7 @@ export function MapHomePage() {
 
   const mapCenter: [number, number] = CITY_COORDS[activeCity] ?? [-1.2921, 36.8219];
 
-  // If chat panel is open, render the full AI chat
+  // Mobile: full-screen chat overlay
   if (chatOpen) {
     return (
       <div className="fixed inset-0 z-[300] bg-white flex flex-col">
@@ -248,129 +248,133 @@ export function MapHomePage() {
           <span className="text-sm font-semibold text-slate-800">KI-Suche</span>
         </div>
         <div className="flex-1 overflow-hidden">
-          <AIChatPage initialQuery={query} />
+          <AIChatPage initialQuery={query} sidebarMode />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="fixed inset-0 overflow-hidden">
+    /* ── Root: fixed full-screen, split into map + sidebar ── */
+    <div className="fixed inset-0 flex overflow-hidden">
 
-      {/* ── Full-screen map ──────────────────────────────────────────────── */}
-      <div className="absolute inset-0">
-        <LeafletMap
-          center={mapCenter}
-          zoom={mapZoom}
-          properties={properties}
-          selectedId={selected?.id ?? null}
-          onSelect={setSelected}
-        />
-      </div>
+      {/* ══════════════ LEFT — Map area ══════════════ */}
+      <div className="relative flex-1 h-full">
 
-      {/* ── Top overlay ──────────────────────────────────────────────────── */}
-      <div className="absolute top-0 left-0 right-0 z-[100] pointer-events-none"
-        style={{ paddingTop: "env(safe-area-inset-top)" }}>
+        {/* Map canvas */}
+        <div className="absolute inset-0">
+          <LeafletMap
+            center={mapCenter}
+            zoom={mapZoom}
+            properties={properties}
+            selectedId={selected?.id ?? null}
+            onSelect={setSelected}
+          />
+        </div>
 
-        <div className="px-4 pt-4 pointer-events-auto">
-          {/* Search pill */}
-          <form
-            onSubmit={handleSearch}
-            className="flex items-center gap-2 bg-white/92 backdrop-blur-2xl rounded-2xl shadow-lg border border-white/70 px-4 py-3">
+        {/* ── Top overlay (search + city pills) ── */}
+        <div className="absolute top-0 left-0 right-0 z-[100] pointer-events-none"
+          style={{ paddingTop: "env(safe-area-inset-top)" }}>
+          <div className="px-4 pt-4 pointer-events-auto">
 
-            {/* Logo wordmark */}
-            <span className="text-sm font-black tracking-tight shrink-0"
-              style={{ color: "var(--color-primary)" }}>
-              habino
-            </span>
+            {/* Search pill */}
+            <form
+              onSubmit={handleSearch}
+              className="flex items-center gap-2 bg-white/92 backdrop-blur-2xl rounded-2xl shadow-lg border border-white/70 px-4 py-3">
 
-            <div className="w-px h-4 bg-slate-200 shrink-0" />
+              <span className="text-sm font-black tracking-tight shrink-0"
+                style={{ color: "var(--color-primary)" }}>
+                habino
+              </span>
+              <div className="w-px h-4 bg-slate-200 shrink-0" />
 
-            {/* Search input */}
-            <input
-              ref={inputRef}
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Stadt, Stadtteil oder KI-Suche…"
-              className="flex-1 bg-transparent text-sm text-slate-800 placeholder-slate-400 outline-none min-w-0"
-            />
+              <input
+                ref={inputRef}
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Stadt, Stadtteil…"
+                className="flex-1 bg-transparent text-sm text-slate-800 placeholder-slate-400 outline-none min-w-0"
+              />
 
-            {/* Loading spinner OR AI chat button */}
-            {loading ? (
-              <div className="w-5 h-5 border-2 border-slate-200 border-t-slate-500 rounded-full animate-spin shrink-0" />
-            ) : (
-              <>
-                {/* AI button */}
-                <button
-                  type="button"
-                  onClick={() => setChatOpen(true)}
-                  className="shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors"
-                  style={{ backgroundColor: "var(--color-primary-light)", color: "var(--color-primary)" }}>
-                  KI
-                </button>
+              {loading ? (
+                <div className="w-5 h-5 border-2 border-slate-200 border-t-slate-500 rounded-full animate-spin shrink-0" />
+              ) : (
+                <>
+                  {/* KI button — mobile only (desktop has permanent sidebar) */}
+                  <button
+                    type="button"
+                    onClick={() => setChatOpen(true)}
+                    className="md:hidden shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold"
+                    style={{ backgroundColor: "var(--color-primary-light)", color: "var(--color-primary)" }}>
+                    KI
+                  </button>
+                  <button
+                    type="submit"
+                    className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-white"
+                    style={{ backgroundColor: "var(--color-primary)" }}>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </button>
+                </>
+              )}
+            </form>
 
-                {/* Search submit */}
-                <button
-                  type="submit"
-                  className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-white transition-opacity hover:opacity-80"
-                  style={{ backgroundColor: "var(--color-primary)" }}>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </button>
-              </>
-            )}
-          </form>
-
-          {/* City quick-select pills */}
-          <div className="flex gap-2 mt-2.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
-            {QUICK_CITIES.map((city) => {
-              const active = city === activeCity;
-              return (
-                <button
-                  key={city}
-                  onClick={() => { setActiveCity(city); setSelected(null); }}
-                  className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-                    active
-                      ? "text-white border-transparent shadow-sm"
-                      : "bg-white/85 backdrop-blur-xl text-slate-600 border-white/60 hover:bg-white shadow-sm"
-                  }`}
-                  style={active ? { backgroundColor: "var(--color-primary)" } : {}}>
-                  {city}
-                </button>
-              );
-            })}
+            {/* City pills */}
+            <div className="flex gap-2 mt-2.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+              {QUICK_CITIES.map((city) => {
+                const active = city === activeCity;
+                return (
+                  <button
+                    key={city}
+                    onClick={() => { setActiveCity(city); setSelected(null); }}
+                    className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                      active
+                        ? "text-white border-transparent shadow-sm"
+                        : "bg-white/85 backdrop-blur-xl text-slate-600 border-white/60 hover:bg-white shadow-sm"
+                    }`}
+                    style={active ? { backgroundColor: "var(--color-primary)" } : {}}>
+                    {city}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* ── Zoom controls (right side, mid-height) ────────────────────── */}
-      <div className="absolute right-4 top-1/2 -translate-y-1/2 z-[100]">
-        <ZoomControls
-          onZoomIn={() => setMapZoom((z) => Math.min(z + 1, 19))}
-          onZoomOut={() => setMapZoom((z) => Math.max(z - 1, 2))}
-        />
-      </div>
-
-      {/* ── Property count pill (above BottomNav) ─────────────────────── */}
-      {properties.length > 0 && !selected && (
-        <div className="absolute left-1/2 -translate-x-1/2 z-[100]
-          bg-white/92 backdrop-blur-xl rounded-full px-4 py-2 shadow-md border border-white/60
-          text-xs font-semibold text-slate-700 whitespace-nowrap"
-          style={{ bottom: "calc(52px + env(safe-area-inset-bottom) + 12px)" }}>
-          {properties.length} Inserate
+        {/* ── Zoom controls ── */}
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 z-[100]">
+          <ZoomControls
+            onZoomIn={() => setMapZoom((z) => Math.min(z + 1, 19))}
+            onZoomOut={() => setMapZoom((z) => Math.max(z - 1, 2))}
+          />
         </div>
-      )}
 
-      {/* ── Property detail sheet ─────────────────────────────────────── */}
-      {selected && (
-        <PropertySheet
-          property={selected}
-          onClose={() => setSelected(null)}
-        />
-      )}
+        {/* ── Listing count badge ── */}
+        {properties.length > 0 && !selected && (
+          <div className="absolute left-1/2 -translate-x-1/2 z-[100]
+            bg-white/92 backdrop-blur-xl rounded-full px-4 py-2 shadow-md border border-white/60
+            text-xs font-semibold text-slate-700 whitespace-nowrap"
+            style={{ bottom: "calc(52px + env(safe-area-inset-bottom) + 12px)" }}>
+            {properties.length} Inserate
+          </div>
+        )}
+
+        {/* ── Property detail sheet ── */}
+        {selected && (
+          <PropertySheet
+            property={selected}
+            onClose={() => setSelected(null)}
+          />
+        )}
+      </div>
+
+      {/* ══════════════ RIGHT — AI chat sidebar (desktop only) ══════════════ */}
+      <div className="hidden md:flex flex-col w-[380px] border-l border-slate-100 bg-white overflow-hidden shrink-0">
+        <AIChatPage sidebarMode />
+      </div>
     </div>
   );
 }

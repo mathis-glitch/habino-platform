@@ -442,7 +442,7 @@ function MicButton({ onResult, lang, size = "md" }: { onResult: (t: string) => v
 }
 
 // ── Main component ───────────────────────────────────────────────────────────
-export function AIChatPage({ initialQuery }: { initialQuery?: string } = {}) {
+export function AIChatPage({ initialQuery, sidebarMode }: { initialQuery?: string; sidebarMode?: boolean } = {}) {
   const [messages, setMessages]       = useState<ChatMessage[]>([]);
   const [input, setInput]             = useState("");
   const [loading, setLoading]         = useState(false);
@@ -607,25 +607,32 @@ export function AIChatPage({ initialQuery }: { initialQuery?: string } = {}) {
   const hasMessages = messages.length > 0;
 
   return (
-    <main className="flex flex-col" style={{ height: "calc(100dvh - 56px - 58px)" }}>
+    <main className="flex flex-col" style={{ height: sidebarMode ? "100%" : "calc(100dvh - 56px - 58px)" }}>
 
       {/* ── Scrollable content area ── */}
       <div className="flex-1 overflow-y-auto">
 
         {/* Hero state (no messages yet) */}
         {!hasMessages && (
-          <div className="flex flex-col items-center justify-center px-4 py-12 min-h-full">
-            <div className="text-center max-w-xl mb-10">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 text-slate-500 text-xs font-semibold mb-5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse" />
-                KI-gestützte Immobiliensuche
-              </div>
-              <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 leading-tight tracking-tight mb-4">
-                Deine Immobilie.<br />
-                <span style={{ color: "var(--color-primary)" }}>Gefunden per KI.</span>
+          <div className={`flex flex-col items-center justify-center px-4 min-h-full ${sidebarMode ? "py-6" : "py-12"}`}>
+            <div className={`text-center max-w-xl ${sidebarMode ? "mb-5" : "mb-10"}`}>
+              {!sidebarMode && (
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 text-slate-500 text-xs font-semibold mb-5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse" />
+                  KI-gestützte Immobiliensuche
+                </div>
+              )}
+              <h1 className={`font-extrabold text-slate-900 leading-tight tracking-tight mb-3 ${sidebarMode ? "text-2xl" : "text-4xl md:text-5xl mb-4"}`}>
+                {sidebarMode ? (
+                  <>KI-Suche</>
+                ) : (
+                  <>Deine Immobilie.<br /><span style={{ color: "var(--color-primary)" }}>Gefunden per KI.</span></>
+                )}
               </h1>
-              <p className="text-slate-500 text-base md:text-lg">
-                Beschreibe was du suchst — ich finde passende Immobilien und buche Besichtigungen. Eigentümer? Ich helfe dir beim Inserieren.
+              <p className={`text-slate-500 ${sidebarMode ? "text-sm" : "text-base md:text-lg"}`}>
+                {sidebarMode
+                  ? "Beschreibe was du suchst — ich finde passende Immobilien auf der Karte."
+                  : "Beschreibe was du suchst — ich finde passende Immobilien und buche Besichtigungen. Eigentümer? Ich helfe dir beim Inserieren."}
               </p>
             </div>
 
