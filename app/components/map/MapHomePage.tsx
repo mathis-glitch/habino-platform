@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { Property } from "@/lib/types";
@@ -44,7 +44,6 @@ const CITY_COORDS: Record<string, [number, number]> = {
   "Lomé":          [ 6.1375,   1.2123],
 };
 
-const QUICK_CITIES = ["Nairobi", "Lagos", "Addis Ababa", "Cape Town", "Dubai", "Accra", "Casablanca"];
 
 function hashNum(s: string, salt: number): number {
   let h = salt;
@@ -127,12 +126,8 @@ function PropertySheet({ property, onClose }: { property: PropertyWithCoords; on
 export function MapHomePage() {
   const [properties, setProperties] = useState<PropertyWithCoords[]>([]);
   const [selected,   setSelected]   = useState<PropertyWithCoords | null>(null);
-  const [activeCity, setActiveCity] = useState("Nairobi");
-  const [mapZoom,    setMapZoom]    = useState(12);
-  const [query,      setQuery]      = useState("");
-  const [loading,    setLoading]    = useState(false);
+  const [activeCity] = useState("Nairobi");
   const [chatOpen,   setChatOpen]   = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   // Fetch properties for active city
   useEffect(() => {
@@ -150,15 +145,6 @@ export function MapHomePage() {
     load();
     return () => { cancelled = true; };
   }, [activeCity]);
-
-  async function handleSearch(e: React.FormEvent) {
-    e.preventDefault();
-    const q = query.trim();
-    if (!q) return;
-    const matched = Object.keys(CITY_COORDS).find(c => q.toLowerCase().includes(c.toLowerCase()));
-    if (matched && matched !== activeCity) { setActiveCity(matched); return; }
-    setChatOpen(true);
-  }
 
   const mapCenter: [number, number] = CITY_COORDS[activeCity] ?? [-1.2921, 36.8219];
 
@@ -198,83 +184,13 @@ export function MapHomePage() {
 
       {/* ── LAYER 1: All UI overlays (z-index above map's 0) ── */}
 
-      {/* Search bar — top left, stops before chat panel on desktop */}
-      <div className="fixed z-[100] left-4 right-4 md:right-[calc(25vw+24px)]"
-        style={{ top: "calc(env(safe-area-inset-top) + 16px)" }}>
-
-        <form onSubmit={handleSearch}
-          className="flex items-center gap-2 bg-white/90 backdrop-blur-2xl rounded-2xl shadow-lg border border-white/70 px-4 py-3">
-          <span className="text-sm font-black tracking-tight shrink-0" style={{ color: "var(--color-primary)" }}>
-            habino
-          </span>
-          <div className="w-px h-4 bg-slate-200 shrink-0" />
-          <input
-            ref={inputRef}
-            type="text"
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            placeholder="Stadt, Stadtteil…"
-            className="flex-1 bg-transparent text-sm text-slate-800 placeholder-slate-400 outline-none min-w-0"
-          />
-          {loading
-            ? <div className="w-5 h-5 border-2 border-slate-200 border-t-slate-500 rounded-full animate-spin shrink-0" />
-            : <>
-                <button type="button" onClick={() => setChatOpen(true)}
-                  className="md:hidden shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold"
-                  style={{ backgroundColor: "var(--color-primary-light)", color: "var(--color-primary)" }}>
-                  KI
-                </button>
-                <button type="submit"
-                  className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-white"
-                  style={{ backgroundColor: "var(--color-primary)" }}>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </button>
-              </>
-          }
-        </form>
-
-        {/* City pills */}
-        <div className="flex gap-2 mt-2.5 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
-          {QUICK_CITIES.map(city => {
-            const active = city === activeCity;
-            return (
-              <button key={city} onClick={() => { setActiveCity(city); setSelected(null); }}
-                className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-                  active ? "text-white border-transparent shadow-sm"
-                         : "bg-white/85 backdrop-blur-xl text-slate-600 border-white/60 hover:bg-white shadow-sm"
-                }`}
-                style={active ? { backgroundColor: "var(--color-primary)" } : {}}>
-                {city}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Zoom controls */}
-      <div className="fixed z-[100] right-4 md:right-[calc(25vw+24px)]"
-        style={{ top: "50%", transform: "translateY(-50%)" }}>
-        <div className="flex flex-col gap-0.5 bg-white/90 backdrop-blur-xl rounded-2xl shadow-md border border-white/60 overflow-hidden">
-          <button onClick={() => setMapZoom(z => Math.min(z + 1, 19))}
-            className="w-9 h-9 flex items-center justify-center text-slate-700 hover:bg-slate-50 text-lg font-light">+</button>
-          <div className="h-px bg-slate-100 mx-2" />
-          <button onClick={() => setMapZoom(z => Math.max(z - 1, 2))}
-            className="w-9 h-9 flex items-center justify-center text-slate-700 hover:bg-slate-50 text-lg font-light">−</button>
-        </div>
-      </div>
-
-      {/* Listing count badge */}
-      {properties.length > 0 && !selected && (
-        <div className="fixed left-1/2 -translate-x-1/2 z-[100]
-          bg-white/90 backdrop-blur-xl rounded-full px-4 py-2 shadow-md border border-white/60
-          text-xs font-semibold text-slate-700 whitespace-nowrap"
-          style={{ bottom: "calc(52px + env(safe-area-inset-bottom) + 12px)" }}>
-          {properties.length} Inserate
-        </div>
-      )}
+      {/* Mobile: floating KI button */}
+      <button
+        onClick={() => setChatOpen(true)}
+        className="md:hidden fixed z-[100] bottom-[72px] right-4 w-12 h-12 rounded-2xl text-white shadow-lg flex items-center justify-center text-xs font-bold"
+        style={{ backgroundColor: "var(--color-primary)" }}>
+        KI
+      </button>
 
       {/* ── AI Chat panel — floating glass box, desktop only, ≤25vw ── */}
       <div
