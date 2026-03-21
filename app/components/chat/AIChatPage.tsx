@@ -626,7 +626,7 @@ export function AIChatPage() {
   const hasMessages = messages.length > 0;
 
   return (
-    <main className="flex flex-col" style={{ height: "calc(100dvh - 64px - 56px)" }}>
+    <main className="flex flex-col" style={{ height: "calc(100dvh - 56px - 58px)" }}>
 
       {/* ── Scrollable content area ── */}
       <div className="flex-1 overflow-y-auto">
