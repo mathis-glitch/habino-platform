@@ -15,7 +15,7 @@ import { createClient } from "@supabase/supabase-js";
 const SUPABASE_URL      = process.env.NEXT_PUBLIC_SUPABASE_URL      || "https://ikubxgsptautubecukoi.supabase.co";
 const SUPABASE_SR_KEY   = process.env.SUPABASE_SERVICE_ROLE_KEY     || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlrdWJ4Z3NwdGF1dHViZWN1a29pIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Mzc2ODE2NiwiZXhwIjoyMDg5MzQ0MTY2fQ.c6hUfJODHj9smszXQSfUOU55thu3TNs39bWTksfTPxs";
 const BATCH_SIZE        = 500;
-const TARGET_TOTAL      = 120_000;
+const TARGET_TOTAL      = 300_000;
 
 const sb = createClient(SUPABASE_URL, SUPABASE_SR_KEY);
 
@@ -152,6 +152,230 @@ const CITIES: CityDef[] = [
   { city:"Kano",           country:"Nigeria",      lat:12.0022,  lng:8.5920,   currency:"NGN", priceIndex:3, neighbourhoods:["Nasarawa","Bompai","Tarauni","Gwale","Municipal","Kumbotso","Madobi"] },
   { city:"Ibadan",         country:"Nigeria",      lat:7.3775,   lng:3.9470,   currency:"NGN", priceIndex:3, neighbourhoods:["GRA","Bodija","Iyaganku","Ring Road","Agodi","Felele","Challenge","Eleyele"] },
   { city:"Freetown",       country:"Sierra Leone", lat:8.4657,   lng:-13.2317, currency:"SLL", priceIndex:3, neighbourhoods:["Aberdeen","Lumley","Hill Station","Wilberforce","Congo Town","Brookfields","Tengbeh Town"] },
+
+  // ── More East Africa ──
+  { city:"Zanzibar",       country:"Tanzania",     lat:-6.1648,  lng:39.1989,  currency:"TZS", priceIndex:5, neighbourhoods:["Stone Town","Nungwi","Kendwa","Paje","Jambiani","Kiwengwa","Bwejuu"] },
+  { city:"Eldoret",        country:"Kenya",        lat:0.5143,   lng:35.2698,  currency:"KES", priceIndex:3, neighbourhoods:["Huruma","Langas","Kapsoya","Elgon View","Annex","Pioneer","Munyaka"] },
+  { city:"Djibouti",       country:"Djibouti",     lat:11.5720,  lng:43.1456,  currency:"DJF", priceIndex:5, neighbourhoods:["Balbala","Arhiba","Marabout","Gabode","Ambouli","Quartier 7","Hodan"] },
+  { city:"Bujumbura",      country:"Burundi",      lat:-3.3614,  lng:29.3600,  currency:"BIF", priceIndex:3, neighbourhoods:["Rohero","Kigobe","Ngagara","Musaga","Bwiza","Buyenzi","Cibitoke"] },
+  { city:"Lilongwe",       country:"Malawi",       lat:-13.9626, lng:33.7741,  currency:"MWK", priceIndex:3, neighbourhoods:["Area 3","Area 10","Area 43","Kanengo","Biwi","Area 18","Area 47"] },
+  { city:"Blantyre",       country:"Malawi",       lat:-15.7866, lng:35.0168,  currency:"MWK", priceIndex:3, neighbourhoods:["Blantyre CBD","Limbe","Sunnyside","Chilomoni","Ndirande","Naperi","Bangwe"] },
+  { city:"Port Louis",     country:"Mauritius",    lat:-20.1619, lng:57.4989,  currency:"MUR", priceIndex:6, neighbourhoods:["Ebène","Quatre Bornes","Curepipe","Moka","Grand Baie","Flic en Flac","Rose Hill"] },
+  { city:"Juba",           country:"South Sudan",  lat:4.8594,   lng:31.5713,  currency:"USD", priceIndex:4, neighbourhoods:["Juba Town","Gudele","Munuki","Kator","Lologo","Rock City","Tongping"] },
+  { city:"Dodoma",         country:"Tanzania",     lat:-6.1722,  lng:35.7395,  currency:"TZS", priceIndex:3, neighbourhoods:["Chang'ombe","Nkuhungu","Kilimani","Ipagala","Chamwino","Makole","Kikuyu"] },
+
+  // ── More West Africa ──
+  { city:"Monrovia",       country:"Liberia",      lat:6.3005,   lng:-10.7969, currency:"LRD", priceIndex:3, neighbourhoods:["Sinkor","Congo Town","Mamba Point","Paynesville","Gbarnga Road","Old Road","Gardnersville"] },
+  { city:"Ouagadougou",    country:"Burkina Faso", lat:12.3714,  lng:-1.5197,  currency:"XOF", priceIndex:3, neighbourhoods:["Zone 1","Zone du Bois","Hamdalaye","Patte d'Oie","Karpala","Gounghin","Tampouy"] },
+  { city:"Niamey",         country:"Niger",        lat:13.5137,  lng:2.1098,   currency:"XOF", priceIndex:3, neighbourhoods:["Plateau","Lazaret","Koura Kano","Gamkallé","Amirou Biro","Boukoki","Bobiel"] },
+  { city:"Cotonou",        country:"Benin",        lat:6.3654,   lng:2.4183,   currency:"XOF", priceIndex:4, neighbourhoods:["Fidjrossè","Cadjehoun","Haie Vive","Akpakpa","Zogbo","Dantokpa","Mènontin"] },
+  { city:"Enugu",          country:"Nigeria",      lat:6.4584,   lng:7.5464,   currency:"NGN", priceIndex:4, neighbourhoods:["New Haven","GRA","Independence Layout","Trans Ekulu","Achara Layout","Abakpa","Maryland"] },
+  { city:"Benin City",     country:"Nigeria",      lat:6.3350,   lng:5.6037,   currency:"NGN", priceIndex:4, neighbourhoods:["GRA Phase I","GRA Phase II","Ugbowo","Uselu","Airport Road","Oba Market","New Benin"] },
+  { city:"Thiès",          country:"Senegal",      lat:14.7910,  lng:-16.9359, currency:"XOF", priceIndex:3, neighbourhoods:["Zone Résidentielle","Médina Fall","Randoulène","Thiès Nord","Diamaguène","Nguinth"] },
+
+  // ── More North Africa ──
+  { city:"Tripoli",        country:"Libya",        lat:32.9018,  lng:13.1801,  currency:"LYD", priceIndex:5, neighbourhoods:["Hay Andalus","Gurji","Ain Zara","Siyahiyya","Dahra","Old City","Al-Zawiya"] },
+  { city:"Khartoum",       country:"Sudan",        lat:15.5007,  lng:32.5599,  currency:"SDG", priceIndex:4, neighbourhoods:["Riyadh","Khartoum 2","Bahri","Omdurman","Khartoum North","Soba","Salam"] },
+  { city:"Giza",           country:"Egypt",        lat:30.0131,  lng:31.2089,  currency:"EGP", priceIndex:4, neighbourhoods:["6th October","Sheikh Zayed","Haram","Dokki","Agouza","Mohandessin","Faisal"] },
+  { city:"Fes",            country:"Morocco",      lat:34.0181,  lng:-5.0078,  currency:"MAD", priceIndex:5, neighbourhoods:["Médina","Ville Nouvelle","Saïss","Les Oliviers","Oued Fès","Sahrij Gnaoua","Route d'Immouzer"] },
+  { city:"Sfax",           country:"Tunisia",      lat:34.7406,  lng:10.7603,  currency:"TND", priceIndex:4, neighbourhoods:["Sfax Ville","Sakiet Ezzit","Menzel Chaker","Route Mahres","Thyna","Sakiet Eddaier"] },
+
+  // ── More Southern Africa ──
+  { city:"Gaborone",       country:"Botswana",     lat:-24.6282, lng:25.9231,  currency:"BWP", priceIndex:5, neighbourhoods:["Gaborone West","Phakalane","Tlokweng","Extension 2","Sebele","Broadhurst","Block 3"] },
+  { city:"Bulawayo",       country:"Zimbabwe",     lat:-20.1525, lng:28.5778,  currency:"USD", priceIndex:4, neighbourhoods:["Kumalo","Suburbs","Famona","Hillside","Waterford","Nkulumane","Thorngrove"] },
+  { city:"Bloemfontein",   country:"South Africa", lat:-29.0852, lng:26.1596,  currency:"ZAR", priceIndex:5, neighbourhoods:["Westdene","Brandwag","Universitas","Langenhoven Park","Fichardt Park","Willows"] },
+  { city:"Port Elizabeth",  country:"South Africa", lat:-33.9608, lng:25.6022,  currency:"ZAR", priceIndex:5, neighbourhoods:["Mill Park","Summerstrand","Walmer","Lorraine","Framesby","Newton Park","Kabega"] },
+
+  // ── More Central Africa ──
+  { city:"Lubumbashi",     country:"DRC",          lat:-11.6609, lng:27.4794,  currency:"CDF", priceIndex:4, neighbourhoods:["Annexe","Golf","Kamalondo","Kampemba","Kenya","Ruashi","Rwashi"] },
+  { city:"Brazzaville",    country:"Republic of Congo", lat:-4.2692, lng:15.2718, currency:"XAF", priceIndex:4, neighbourhoods:["Centre-Ville","Poto-Poto","Bacongo","Moungali","Ouenzé","Talangaï","Makélékélé"] },
+  { city:"Libreville",     country:"Gabon",        lat:0.3924,   lng:9.4536,   currency:"XAF", priceIndex:5, neighbourhoods:["Louis","Akanda","Owendo","Nzeng-Ayong","PK8","Alibandeng","Lalala"] },
+  { city:"N'Djamena",      country:"Chad",         lat:12.1048,  lng:15.0444,  currency:"XAF", priceIndex:4, neighbourhoods:["1er Arrondissement","2e Arrondissement","3e Arrondissement","Walia","Toukra","Ridina"] },
+
+  // ── Gulf & Middle East extras ──
+  { city:"Amman",          country:"Jordan",       lat:31.9539,  lng:35.9106,  currency:"JOD", priceIndex:6, neighbourhoods:["Abdoun","Sweifiyyeh","Khalda","Dabouq","Rabieh","Tlaa Al-Ali","Wadi Saqra","Shmeisani","Gardens","Um Uthaina"] },
+  { city:"Beirut",         country:"Lebanon",      lat:33.8938,  lng:35.5018,  currency:"USD", priceIndex:6, neighbourhoods:["Achrafieh","Hamra","Verdun","Rawche","Badaro","Mar Mikhael","Sodeco","Gemmayzeh","Jnah"] },
+  { city:"Tel Aviv",       country:"Israel",       lat:32.0853,  lng:34.7818,  currency:"ILS", priceIndex:10,neighbourhoods:["Rothschild","Neve Tzedek","Florentin","Ramat Aviv","Dizengoff","Port Area","Jaffa","Bavli","North Tel Aviv","Herzliya Pituah"] },
+  { city:"Jerusalem",      country:"Israel",       lat:31.7683,  lng:35.2137,  currency:"ILS", priceIndex:9, neighbourhoods:["German Colony","Rehavia","Talbiyeh","Beit HaKerem","Ramot","French Hill","Arnona","Katamon"] },
+  { city:"Haifa",          country:"Israel",       lat:32.7940,  lng:34.9896,  currency:"ILS", priceIndex:8, neighbourhoods:["Carmel","Neve Sha'anan","Downtown","German Colony Haifa","Kiryat Haim","Ramat HaNassi"] },
+  { city:"Baghdad",        country:"Iraq",         lat:33.3152,  lng:44.3661,  currency:"IQD", priceIndex:5, neighbourhoods:["Mansour","Zayouna","Karrada","Al-Jadriya","Arasat","Kadhimiya","Adhamiya","Saidiya"] },
+  { city:"Tehran",         country:"Iran",         lat:35.6892,  lng:51.3890,  currency:"USD", priceIndex:6, neighbourhoods:["Niavaran","Elahieh","Zafaranieh","Shahrak-e-Gharb","Velenjak","Jordan","Narmak","Aghdasieh"] },
+  { city:"Ankara",         country:"Turkey",       lat:39.9334,  lng:32.8597,  currency:"TRY", priceIndex:5, neighbourhoods:["Çankaya","Keçiören","Etimesgut","Yenimahalle","Çayyolu","Oran","Dikmen","Bahçelievler"] },
+  { city:"Izmir",          country:"Turkey",       lat:38.4192,  lng:27.1287,  currency:"TRY", priceIndex:5, neighbourhoods:["Bornova","Karşıyaka","Buca","Konak","Balçova","Çiğli","Narlıdere","Güzelbahçe"] },
+  { city:"Antalya",        country:"Turkey",       lat:36.8969,  lng:30.7133,  currency:"TRY", priceIndex:5, neighbourhoods:["Lara","Konyaaltı","Muratpaşa","Döşemealtı","Kepez","Aksu","Alanya","Belek"] },
+
+  // ── Central Asia & Caucasus ──
+  { city:"Almaty",         country:"Kazakhstan",   lat:43.2565,  lng:76.9286,  currency:"KZT", priceIndex:6, neighbourhoods:["Medeu","Bostandyk","Alatau","Almaly","Auezov","Turksib","Zhetysu","Nauryzbai"] },
+  { city:"Tashkent",       country:"Uzbekistan",   lat:41.2995,  lng:69.2401,  currency:"UZS", priceIndex:4, neighbourhoods:["Yunusabad","Chilanzar","Mirabad","Sergeli","Bektemir","Shaykhontohur","Olmazor","Uchtepa"] },
+  { city:"Samarkand",      country:"Uzbekistan",   lat:39.6270,  lng:66.9750,  currency:"UZS", priceIndex:3, neighbourhoods:["Registan","Siyob","Ibrohimov","Chilonzor","Farabi","Bogishamol","Dagbitkazik"] },
+  { city:"Bishkek",        country:"Kyrgyzstan",   lat:42.8746,  lng:74.5698,  currency:"KGS", priceIndex:3, neighbourhoods:["Sverdlovsky","Oktyabrsky","Pervomaysky","Leninsky","Alatau","Asanbay","Kemin"] },
+  { city:"Astana",         country:"Kazakhstan",   lat:51.1801,  lng:71.4460,  currency:"KZT", priceIndex:6, neighbourhoods:["Есіл","Байконыр","Сарыарқа","Алматы district","Expo","Left Bank","Khan Shatyr"] },
+  { city:"Dushanbe",       country:"Tajikistan",   lat:38.5598,  lng:68.7738,  currency:"TJS", priceIndex:3, neighbourhoods:["Ismoil Somoni","Shohmansur","Sino","Firdavsi","Rudaki","Bokhtar","Hisor"] },
+  { city:"Ashgabat",       country:"Turkmenistan", lat:37.9601,  lng:58.3261,  currency:"TMT", priceIndex:4, neighbourhoods:["Azatlyk","Kopetdag","Berkararlyk","Bagtyyarlyk","Chandybil","Parahat","Archabil"] },
+  { city:"Baku",           country:"Azerbaijan",   lat:40.4093,  lng:49.8671,  currency:"AZN", priceIndex:6, neighbourhoods:["White City","Nasimi","Sabayil","Binagadi","Khatai","Sabunchu","Yasamal","Nizami"] },
+  { city:"Tbilisi",        country:"Georgia",      lat:41.6938,  lng:44.8015,  currency:"GEL", priceIndex:5, neighbourhoods:["Vake","Saburtalo","Mtatsminda","Isani","Gldani","Nadzaladevi","Didube","Chugureti"] },
+  { city:"Yerevan",        country:"Armenia",      lat:40.1792,  lng:44.4991,  currency:"AMD", priceIndex:5, neighbourhoods:["Kentron","Arabkir","Davtashen","Erebuni","Malatia","Nor Nork","Kanaker","Shengavit"] },
+
+  // ── South Asia extras ──
+  { city:"Chennai",        country:"India",        lat:13.0827,  lng:80.2707,  currency:"INR", priceIndex:6, neighbourhoods:["Adyar","Nungambakkam","Anna Nagar","T. Nagar","Velachery","OMR","ECR","Besant Nagar","Mylapore"] },
+  { city:"Pune",           country:"India",        lat:18.5204,  lng:73.8567,  currency:"INR", priceIndex:6, neighbourhoods:["Koregaon Park","Kalyani Nagar","Viman Nagar","Baner","Aundh","Kothrud","Hadapsar","Wakad","Hinjewadi"] },
+  { city:"Kolkata",        country:"India",        lat:22.5726,  lng:88.3639,  currency:"INR", priceIndex:5, neighbourhoods:["Salt Lake","New Town","Park Street","Alipore","Ballygunge","Behala","Howrah","Rajarhat"] },
+  { city:"Ahmedabad",      country:"India",        lat:23.0225,  lng:72.5714,  currency:"INR", priceIndex:5, neighbourhoods:["Satellite","Bodakdev","Prahlad Nagar","SG Highway","Navrangpura","Vastrapur","Thaltej"] },
+  { city:"Jaipur",         country:"India",        lat:26.9124,  lng:75.7873,  currency:"INR", priceIndex:5, neighbourhoods:["Vaishali Nagar","Malviya Nagar","Mansarovar","Jagatpura","C-Scheme","Civil Lines","Jawahar Nagar"] },
+  { city:"Islamabad",      country:"Pakistan",     lat:33.6844,  lng:73.0479,  currency:"PKR", priceIndex:5, neighbourhoods:["F-7","F-8","F-10","E-7","G-10","Bahria Town","DHA","Margalla Hills","I-8"] },
+  { city:"Dhaka",          country:"Bangladesh",   lat:23.8103,  lng:90.4125,  currency:"BDT", priceIndex:4, neighbourhoods:["Gulshan","Banani","Dhanmondi","Bashundhara","Uttara","Mirpur","Mohammadpur","Khilgaon"] },
+  { city:"Chittagong",     country:"Bangladesh",   lat:22.3569,  lng:91.7832,  currency:"BDT", priceIndex:3, neighbourhoods:["Agrabad","Nasirabad","Panchlaish","Khulshi","Halishahar","Bayazid","Kotwali"] },
+  { city:"Kathmandu",      country:"Nepal",        lat:27.7172,  lng:85.3240,  currency:"NPR", priceIndex:4, neighbourhoods:["Thamel","Lazimpat","Maharajgunj","Boudha","Patan","Bhaktapur","Kirtipur","Naxal","Baneshwor"] },
+
+  // ── East Asia extras ──
+  { city:"Tokyo",          country:"Japan",        lat:35.6762,  lng:139.6503, currency:"JPY", priceIndex:9, neighbourhoods:["Shinjuku","Shibuya","Roppongi","Minato","Setagaya","Meguro","Chiyoda","Nakameguro","Harajuku","Ebisu","Akasaka","Shinagawa"] },
+  { city:"Osaka",          country:"Japan",        lat:34.6937,  lng:135.5023, currency:"JPY", priceIndex:8, neighbourhoods:["Namba","Umeda","Shinsaibashi","Tennoji","Nakatsu","Fukushima","Kitahorie","Abeno"] },
+  { city:"Yokohama",       country:"Japan",        lat:35.4437,  lng:139.6380, currency:"JPY", priceIndex:8, neighbourhoods:["Minato Mirai","Nishi-ku","Naka-ku","Tsurumi","Kohoku","Midori","Aoba","Totsuka"] },
+  { city:"Kyoto",          country:"Japan",        lat:35.0116,  lng:135.7681, currency:"JPY", priceIndex:8, neighbourhoods:["Gion","Higashiyama","Fushimi","Sakyo","Nishikyo","Kita","Nakagyo","Yamashina"] },
+  { city:"Nagoya",         country:"Japan",        lat:35.1815,  lng:136.9066, currency:"JPY", priceIndex:7, neighbourhoods:["Sakae","Nagoya Station","Chikusa","Higashi","Meito","Tempaku","Moriyama"] },
+  { city:"Fukuoka",        country:"Japan",        lat:33.5904,  lng:130.4017, currency:"JPY", priceIndex:7, neighbourhoods:["Hakata","Nishi","Higashi","Minami","Jonan","Sawara","Chuo"] },
+  { city:"Beijing",        country:"China",        lat:39.9042,  lng:116.4074, currency:"CNY", priceIndex:9, neighbourhoods:["Chaoyang","Haidian","Dongcheng","Xicheng","Chengwen","Shunyi","Tongzhou","Daxing","Yanqing"] },
+  { city:"Shanghai",       country:"China",        lat:31.2304,  lng:121.4737, currency:"CNY", priceIndex:9, neighbourhoods:["Jing'an","Lujiazui","Xuhui","Changning","Pudong","Hongqiao","Qingpu","Songjiang","Jiading"] },
+  { city:"Guangzhou",      country:"China",        lat:23.1291,  lng:113.2644, currency:"CNY", priceIndex:8, neighbourhoods:["Tianhe","Yuexiu","Haizhu","Liwan","Huangpu","Panyu","Baiyun","Nansha","Zengcheng"] },
+  { city:"Shenzhen",       country:"China",        lat:22.5431,  lng:114.0579, currency:"CNY", priceIndex:9, neighbourhoods:["Nanshan","Futian","Luohu","Bao'an","Longhua","Longgang","Yantian","Pingshan"] },
+  { city:"Chengdu",        country:"China",        lat:30.5728,  lng:104.0668, currency:"CNY", priceIndex:7, neighbourhoods:["Jinjiang","Qingyang","Wuhou","Chenghua","Jinniu","Pidu","Wenjiang","Shuangliu"] },
+  { city:"Wuhan",          country:"China",        lat:30.5928,  lng:114.3055, currency:"CNY", priceIndex:6, neighbourhoods:["Jiangan","Jianghan","Qiaokou","Hanyang","Wuchang","Hongshan","Qingshan","Xinzhou"] },
+  { city:"Hangzhou",       country:"China",        lat:30.2741,  lng:120.1551, currency:"CNY", priceIndex:8, neighbourhoods:["Westlake","Binjiang","Gongshu","Shangcheng","Jianggan","Xiacheng","Yuhang","Xiaoshan"] },
+  { city:"Chongqing",      country:"China",        lat:29.5630,  lng:106.5516, currency:"CNY", priceIndex:6, neighbourhoods:["Yuzhong","Jiulongpo","Nan'an","Banan","Shapingba","Yubei","Dadukou","Jiangbei"] },
+  { city:"Nanjing",        country:"China",        lat:32.0603,  lng:118.7969, currency:"CNY", priceIndex:7, neighbourhoods:["Gulou","Xuanwu","Jianye","Qinhuai","Pukou","Jiangning","Lishui","Gaochun"] },
+  { city:"Seoul",          country:"South Korea",  lat:37.5665,  lng:126.9780, currency:"KRW", priceIndex:9, neighbourhoods:["Gangnam","Seocho","Mapo","Yongsan","Jongno","Songpa","Nowon","Dobong","Seodaemun","Seongdong","Gwangjin"] },
+  { city:"Busan",          country:"South Korea",  lat:35.1796,  lng:129.0756, currency:"KRW", priceIndex:7, neighbourhoods:["Haeundae","Suyeong","Nam-gu","Jung-gu","Dong-gu","Seo-gu","Buk-gu","Yeonje","Sasang"] },
+  { city:"Incheon",        country:"South Korea",  lat:37.4563,  lng:126.7052, currency:"KRW", priceIndex:7, neighbourhoods:["Songdo","Yeonsu","Namdong","Bupyeong","Seo-gu","Jung-gu","Dong-gu","Ganghwa"] },
+  { city:"Taipei",         country:"Taiwan",       lat:25.0330,  lng:121.5654, currency:"TWD", priceIndex:8, neighbourhoods:["Da'an","Xinyi","Zhongzheng","Songshan","Zhongshan","Wanhua","Neihu","Wenshan","Shilin","Beitou"] },
+  { city:"Hong Kong",      country:"China",        lat:22.3193,  lng:114.1694, currency:"HKD", priceIndex:10,neighbourhoods:["Central","Wan Chai","Causeway Bay","Mong Kok","Tsim Sha Tsui","Kowloon Tong","Sham Shui Po","Tai Po","Sai Kung","Clear Water Bay"] },
+  { city:"Ulaanbaatar",    country:"Mongolia",     lat:47.8864,  lng:106.9057, currency:"MNT", priceIndex:4, neighbourhoods:["Sukhbaatar","Chingeltei","Bayangol","Khan-Uul","Bayanzurkh","Songinokhairkhan"] },
+
+  // ── Southeast Asia extras ──
+  { city:"Hanoi",          country:"Vietnam",      lat:21.0285,  lng:105.8542, currency:"VND", priceIndex:5, neighbourhoods:["Hoan Kiem","Ba Dinh","Tay Ho","Dong Da","Cau Giay","Long Bien","Hoang Mai","Nam Tu Liem"] },
+  { city:"Da Nang",        country:"Vietnam",      lat:16.0544,  lng:108.2022, currency:"VND", priceIndex:5, neighbourhoods:["Hai Chau","Thanh Khe","Son Tra","Ngu Hanh Son","Lien Chieu","Cam Le","Hoa Vang"] },
+  { city:"Chiang Mai",     country:"Thailand",     lat:18.7883,  lng:98.9853,  currency:"THB", priceIndex:5, neighbourhoods:["Nimmanhaemin","Old City","Santitham","Mueang Mai","Hang Dong","San Sai","Doi Saket"] },
+  { city:"Surabaya",       country:"Indonesia",    lat:-7.2575,  lng:112.7521, currency:"IDR", priceIndex:5, neighbourhoods:["Sukolilo","Gubeng","Genteng","Rungkut","Mulyorejo","Wonokromo","Lakarsantri"] },
+  { city:"Bandung",        country:"Indonesia",    lat:-6.9175,  lng:107.6191, currency:"IDR", priceIndex:4, neighbourhoods:["Dago","Setiabudi","Buah Batu","Antapani","Arcamanik","Cibeunying","Coblong"] },
+  { city:"Medan",          country:"Indonesia",    lat:3.5952,   lng:98.6722,  currency:"IDR", priceIndex:4, neighbourhoods:["Petisah","Polonia","Helvetia","Sunggal","Medan Baru","Tembung","Perjuangan"] },
+  { city:"Penang",         country:"Malaysia",     lat:5.4141,   lng:100.3288, currency:"MYR", priceIndex:6, neighbourhoods:["Georgetown","Batu Ferringhi","Gurney","Sungai Nibong","Ayer Itam","Balik Pulau","Tanjung Tokong"] },
+  { city:"Johor Bahru",    country:"Malaysia",     lat:1.4927,   lng:103.7414, currency:"MYR", priceIndex:6, neighbourhoods:["Iskandar Puteri","Tebrau","Johor Jaya","Taman Molek","Larkin","Permas Jaya","Ulu Tiram"] },
+  { city:"Cebu",           country:"Philippines",  lat:10.3157,  lng:123.8854, currency:"PHP", priceIndex:5, neighbourhoods:["Lahug","IT Park","Banilad","Ayala","Mabolo","Cebu Business Park","North Reclamation"] },
+  { city:"Phnom Penh",     country:"Cambodia",     lat:11.5564,  lng:104.9282, currency:"USD", priceIndex:4, neighbourhoods:["BKK1","Tonle Bassac","Toul Kork","7 Makara","Boeng Keng Kang","Chamkarmon","Daun Penh"] },
+  { city:"Yangon",         country:"Myanmar",      lat:16.8409,  lng:96.1735,  currency:"MMK", priceIndex:4, neighbourhoods:["Yankin","Hlaing","Kamayut","North Okkalapa","Bahan","Sanchaung","Mayangone","Tarmwe"] },
+  { city:"Vientiane",      country:"Laos",         lat:17.9757,  lng:102.6331, currency:"LAK", priceIndex:3, neighbourhoods:["Chanthabouly","Sikhottabong","Xaysetha","Sisattanak","Naxaithong","Xaytany","Hatxayfong"] },
+
+  // ── Western Europe extras ──
+  { city:"Edinburgh",      country:"UK",           lat:55.9533,  lng:-3.1883,  currency:"GBP", priceIndex:8, neighbourhoods:["New Town","Old Town","Morningside","Marchmont","Stockbridge","Leith","Inverleith","Corstorphine"] },
+  { city:"Manchester",     country:"UK",           lat:53.4808,  lng:-2.2426,  currency:"GBP", priceIndex:7, neighbourhoods:["City Centre","Didsbury","Chorlton","Salford","Stretford","Altrincham","Sale","Urmston"] },
+  { city:"Birmingham",     country:"UK",           lat:52.4862,  lng:-1.8904,  currency:"GBP", priceIndex:6, neighbourhoods:["Edgbaston","Moseley","Harborne","Sutton Coldfield","Solihull","Digbeth","Jewellery Quarter"] },
+  { city:"Glasgow",        country:"UK",           lat:55.8642,  lng:-4.2518,  currency:"GBP", priceIndex:6, neighbourhoods:["West End","Southside","Merchant City","Dennistoun","Bearsden","Milngavie","Partick"] },
+  { city:"Hamburg",        country:"Germany",      lat:53.5753,  lng:10.0153,  currency:"EUR", priceIndex:8, neighbourhoods:["Altona","Eimsbüttel","Harvestehude","Blankenese","Wandsbek","Bergedorf","Barmbek","HafenCity"] },
+  { city:"Frankfurt",      country:"Germany",      lat:50.1109,  lng:8.6821,   currency:"EUR", priceIndex:8, neighbourhoods:["Sachsenhausen","Westend","Nordend","Bornheim","Bockenheim","Gallus","Sachsenhausen Nord"] },
+  { city:"Cologne",        country:"Germany",      lat:50.9333,  lng:6.9500,   currency:"EUR", priceIndex:7, neighbourhoods:["Innenstadt","Lindenthal","Ehrenfeld","Nippes","Mülheim","Chorweiler","Porz","Rodenkirchen"] },
+  { city:"Lyon",           country:"France",       lat:45.7640,  lng:4.8357,   currency:"EUR", priceIndex:7, neighbourhoods:["Presqu'île","Part-Dieu","Croix-Rousse","Vieux Lyon","Confluence","Monplaisir","Bron","Caluire"] },
+  { city:"Marseille",      country:"France",       lat:43.2965,  lng:5.3698,   currency:"EUR", priceIndex:6, neighbourhoods:["Vieux-Port","Endoume","Roucas Blanc","Prado","Les Catalans","Madrague","Plombières"] },
+  { city:"Nice",           country:"France",       lat:43.7102,  lng:7.2620,   currency:"EUR", priceIndex:8, neighbourhoods:["Promenade des Anglais","Vieux-Nice","Cimiez","Mont Boron","Musiciens","Libération","Saint-Isidore"] },
+  { city:"Naples",         country:"Italy",        lat:40.8518,  lng:14.2681,  currency:"EUR", priceIndex:6, neighbourhoods:["Vomero","Posillipo","Fuorigrotta","Chiaia","Centro Storico","Pozzuoli","Bagnoli","Soccavo"] },
+  { city:"Turin",          country:"Italy",        lat:45.0703,  lng:7.6869,   currency:"EUR", priceIndex:7, neighbourhoods:["Centro","Crocetta","Cit Turin","San Salvario","Borgo Po","Mirafiori","Barriera di Milano"] },
+  { city:"Florence",       country:"Italy",        lat:43.7696,  lng:11.2558,  currency:"EUR", priceIndex:8, neighbourhoods:["Oltrarno","San Niccolò","Duomo","Santa Croce","Novoli","Rifredi","Isolotto","Sesto Fiorentino"] },
+  { city:"Valencia",       country:"Spain",        lat:39.4699,  lng:-0.3763,  currency:"EUR", priceIndex:7, neighbourhoods:["Eixample","Rascanya","Benimaclet","Campanar","Patraix","Jesús","Quatre Carreres","Alboraya"] },
+  { city:"Seville",        country:"Spain",        lat:37.3891,  lng:-5.9845,  currency:"EUR", priceIndex:6, neighbourhoods:["Centro","Triana","Los Remedios","Nervión","Heliópolis","Bellavista","San Pablo"] },
+  { city:"Porto",          country:"Portugal",     lat:41.1579,  lng:-8.6291,  currency:"EUR", priceIndex:7, neighbourhoods:["Foz","Bonfim","Cedofeita","Campanhã","Massarelos","Paranhos","Ramalde","Baixa"] },
+  { city:"Rotterdam",      country:"Netherlands",  lat:51.9244,  lng:4.4777,   currency:"EUR", priceIndex:7, neighbourhoods:["Kralingen","Hillegersberg","Overschie","Centrum","Delfshaven","Prins Alexander","Feijenoord"] },
+  { city:"Geneva",         country:"Switzerland",  lat:46.2044,  lng:6.1432,   currency:"CHF", priceIndex:10,neighbourhoods:["Champel","Florissant","Eaux-Vives","Plainpalais","Carouge","Paquis","Cologny","Collonge-Bellerive"] },
+  { city:"Thessaloniki",   country:"Greece",       lat:40.6401,  lng:22.9444,  currency:"EUR", priceIndex:5, neighbourhoods:["Aristotelous","Ladadika","Nea Paralia","Analipsi","Panorama","Neapoli","Toumba","Kalamaria"] },
+  { city:"Oslo",           country:"Norway",       lat:59.9139,  lng:10.7522,  currency:"NOK", priceIndex:10,neighbourhoods:["Frogner","Majorstua","Grünerløkka","Grønland","Aker Brygge","Bjørvika","Ullern","Vinderen","Blindern"] },
+  { city:"Helsinki",       country:"Finland",      lat:60.1699,  lng:24.9384,  currency:"EUR", priceIndex:8, neighbourhoods:["Kallio","Töölö","Lauttasaari","Westend","Tapiola","Matinkylä","Herttoniemi","Vuosaari"] },
+  { city:"Brussels",       country:"Belgium",      lat:50.8503,  lng:4.3517,   currency:"EUR", priceIndex:7, neighbourhoods:["Ixelles","Etterbeek","Uccle","Woluwé","Laeken","Molenbeek","Forest","Auderghem","Waterloo"] },
+
+  // ── Eastern Europe ──
+  { city:"Kyiv",           country:"Ukraine",      lat:50.4501,  lng:30.5234,  currency:"UAH", priceIndex:5, neighbourhoods:["Pechersk","Shevchenkivskyi","Obolon","Holosiivskyi","Podil","Bortnychi","Darnytsya","Desnyanskyi"] },
+  { city:"Kharkiv",        country:"Ukraine",      lat:49.9935,  lng:36.2304,  currency:"UAH", priceIndex:4, neighbourhoods:["Saltivka","Pavlove Pole","Alekseyivka","Kholodna Hora","Rohan","Industrialny","Novobavarskyi"] },
+  { city:"Lviv",           country:"Ukraine",      lat:49.8397,  lng:24.0297,  currency:"UAH", priceIndex:5, neighbourhoods:["City Centre","Sykhiv","Lychakiv","Shevchenkivskyi","Halychyna","Frankivsk","Rясне"] },
+  { city:"Minsk",          country:"Belarus",      lat:53.9045,  lng:27.5615,  currency:"BYN", priceIndex:5, neighbourhoods:["Centralny","Savetski","Pershamaiski","Frunzenski","Zavodski","Leninski","Kastrychnicki","Partizanski"] },
+  { city:"Bucharest",      country:"Romania",      lat:44.4268,  lng:26.1025,  currency:"RON", priceIndex:6, neighbourhoods:["Floreasca","Dorobanți","Herăstrău","Drumul Taberei","Berceni","Titan","Militari","Tineretului"] },
+  { city:"Sofia",          country:"Bulgaria",     lat:42.6977,  lng:23.3219,  currency:"BGN", priceIndex:5, neighbourhoods:["Lozenets","Boyana","Dragalevtsi","Manastirski Livadi","Oborishte","Serdika","Nadezhda","Liulin"] },
+  { city:"Belgrade",       country:"Serbia",       lat:44.7866,  lng:20.4489,  currency:"RSD", priceIndex:5, neighbourhoods:["Vračar","Savski Venac","Stari Grad","Zvezdara","Rakovica","Zemun","Novi Beograd","Surčin"] },
+  { city:"Zagreb",         country:"Croatia",      lat:45.8150,  lng:15.9819,  currency:"EUR", priceIndex:6, neighbourhoods:["Gornji Grad","Medveščak","Trnje","Trešnjevka","Črnomerec","Sesvete","Novi Zagreb","Dubrava"] },
+  { city:"Bratislava",     country:"Slovakia",     lat:48.1486,  lng:17.1077,  currency:"EUR", priceIndex:6, neighbourhoods:["Staré Mesto","Nové Mesto","Dúbravka","Petržalka","Ružinov","Devínska","Karlova Ves","Rača"] },
+  { city:"Ljubljana",      country:"Slovenia",     lat:46.0511,  lng:14.5051,  currency:"EUR", priceIndex:6, neighbourhoods:["Center","Šiška","Šentvid","Moste","Polje","Vič","Bežigrad","Golovec"] },
+  { city:"Sarajevo",       country:"Bosnia",       lat:43.8486,  lng:18.3564,  currency:"BAM", priceIndex:4, neighbourhoods:["Centar","Novo Sarajevo","Novi Grad","Stari Grad","Ilidža","Vogošća","Hadžići"] },
+  { city:"Tirana",         country:"Albania",      lat:41.3275,  lng:19.8187,  currency:"ALL", priceIndex:4, neighbourhoods:["Blloku","Kombinat","Yzberisht","Don Bosko","Tirana e Re","Lapraka","Kamëz"] },
+  { city:"Tallinn",        country:"Estonia",      lat:59.4370,  lng:24.7536,  currency:"EUR", priceIndex:7, neighbourhoods:["Kesklinn","Kalamaja","Kassisaba","Kadriorg","Pirita","Nõmme","Kristiine","Mustamäe","Põhja-Tallinn"] },
+  { city:"Riga",           country:"Latvia",       lat:56.9496,  lng:24.1052,  currency:"EUR", priceIndex:6, neighbourhoods:["Centrs","Vecriga","Āgenskalns","Teika","Purvciems","Mežciems","Imanta","Jugla","Pleskodāle"] },
+  { city:"Vilnius",        country:"Lithuania",    lat:54.6872,  lng:25.2797,  currency:"EUR", priceIndex:6, neighbourhoods:["Žvėrynas","Antakalnis","Šnipiškės","Naujininkai","Justiniškės","Šeškinė","Pašilaičiai"] },
+  { city:"Warsaw",         country:"Poland",       lat:52.2297,  lng:21.0122,  currency:"PLN", priceIndex:6, neighbourhoods:["Śródmieście","Mokotów","Wilanów","Ursynów","Żoliborz","Bielany","Praga","Wola","Ochota"] },
+  { city:"Krakow",         country:"Poland",       lat:50.0647,  lng:19.9450,  currency:"PLN", priceIndex:6, neighbourhoods:["Stare Miasto","Kazimierz","Podgórze","Krowodrza","Nowa Huta","Zwierzyniec","Grzegórzki"] },
+  { city:"Prague",         country:"Czechia",      lat:50.0755,  lng:14.4378,  currency:"CZK", priceIndex:7, neighbourhoods:["Prague 1","Prague 2","Prague 6","Vinohrady","Žižkov","Smíchov","Karlín","Holešovice"] },
+  { city:"Budapest",       country:"Hungary",      lat:47.4979,  lng:19.0402,  currency:"HUF", priceIndex:6, neighbourhoods:["District 5","District 6","District 7","District 11","District 2","District 12","District 13"] },
+  { city:"Istanbul",       country:"Turkey",       lat:41.0082,  lng:28.9784,  currency:"TRY", priceIndex:6, neighbourhoods:["Beşiktaş","Şişli","Kadıköy","Üsküdar","Beyoğlu","Ataşehir","Maltepe","Bakırköy","Sarıyer"] },
+
+  // ── Russia ──
+  { city:"Moscow",         country:"Russia",       lat:55.7558,  lng:37.6173,  currency:"RUB", priceIndex:7, neighbourhoods:["Arbat","Zamoskvorechye","Basmanny","Presnensky","Khamovniki","Tverskoy","Tagansky","Dorogomilovo","Filevsky Park"] },
+  { city:"Saint Petersburg", country:"Russia",     lat:59.9311,  lng:30.3609,  currency:"RUB", priceIndex:6, neighbourhoods:["Petrogradsky","Tsentralny","Admiralteysky","Moskovsky","Vasileostrovskiy","Kalininsky","Vyborgsky","Nevsky"] },
+  { city:"Novosibirsk",    country:"Russia",       lat:55.0084,  lng:82.9357,  currency:"RUB", priceIndex:4, neighbourhoods:["Akademgorodok","Kirovsky","Leninsky","Oktiabrsky","Zheleznodorozhny","Central","Pervomaysky"] },
+  { city:"Yekaterinburg",  country:"Russia",       lat:56.8389,  lng:60.6057,  currency:"RUB", priceIndex:5, neighbourhoods:["Centre","Akademichesky","Botanichesky","Uktus","Uralmash","Pioneer","Vtuzgorodok"] },
+
+  // ── Americas — USA ──
+  { city:"Houston",        country:"USA",          lat:29.7604,  lng:-95.3698, currency:"USD", priceIndex:8, neighbourhoods:["River Oaks","Midtown","Montrose","Heights","Memorial","Galleria","Sugar Land","The Woodlands","Pearland","Katy"] },
+  { city:"Dallas",         country:"USA",          lat:32.7767,  lng:-96.7970, currency:"USD", priceIndex:8, neighbourhoods:["Uptown","Deep Ellum","Oak Cliff","Lakewood","Preston Hollow","Highland Park","Plano","Frisco","Allen","McKinney"] },
+  { city:"San Francisco",  country:"USA",          lat:37.7749,  lng:-122.4194,currency:"USD", priceIndex:10,neighbourhoods:["Pacific Heights","Noe Valley","Castro","Mission","Soma","Marina","Nob Hill","Richmond","Sunset","Presidio"] },
+  { city:"Seattle",        country:"USA",          lat:47.6062,  lng:-122.3321,currency:"USD", priceIndex:9, neighbourhoods:["Capitol Hill","Fremont","Queen Anne","Ballard","Bellevue","Redmond","Kirkland","Mercer Island","Edmonds"] },
+  { city:"Boston",         country:"USA",          lat:42.3601,  lng:-71.0589, currency:"USD", priceIndex:9, neighbourhoods:["Back Bay","South End","Beacon Hill","Cambridge","Brookline","Newton","Wellesley","Somerville","Quincy"] },
+  { city:"Denver",         country:"USA",          lat:39.7392,  lng:-104.9903,currency:"USD", priceIndex:8, neighbourhoods:["LoDo","Cherry Creek","Congress Park","Capitol Hill","Highland","Washington Park","Stapleton","Parker"] },
+  { city:"Atlanta",        country:"USA",          lat:33.7490,  lng:-84.3880, currency:"USD", priceIndex:7, neighbourhoods:["Buckhead","Midtown","Inman Park","Grant Park","Decatur","Sandy Springs","Alpharetta","Marietta"] },
+  { city:"Austin",         country:"USA",          lat:30.2672,  lng:-97.7431, currency:"USD", priceIndex:8, neighbourhoods:["South Congress","East Austin","Travis Heights","West Lake Hills","Round Rock","Cedar Park","Pflugerville"] },
+  { city:"Las Vegas",      country:"USA",          lat:36.1699,  lng:-115.1398,currency:"USD", priceIndex:7, neighbourhoods:["Summerlin","Henderson","Green Valley","Centennial Hills","Paradise","Spring Valley","Enterprise"] },
+  { city:"Minneapolis",    country:"USA",          lat:44.9778,  lng:-93.2650, currency:"USD", priceIndex:7, neighbourhoods:["Uptown","Linden Hills","Minnehaha","Northeast","Kenwood","Edina","Plymouth","Eden Prairie"] },
+
+  // ── Americas — Canada ──
+  { city:"Montreal",       country:"Canada",       lat:45.5017,  lng:-73.5673, currency:"CAD", priceIndex:7, neighbourhoods:["Plateau","Outremont","Westmount","NDG","Verdun","Hochelaga","Rosemont","Sud-Ouest"] },
+  { city:"Calgary",        country:"Canada",       lat:51.0447,  lng:-114.0719,currency:"CAD", priceIndex:8, neighbourhoods:["Beltline","Inglewood","Altadore","Mount Royal","Kensington","Bridgeland","Springbank Hill","Tuscany"] },
+  { city:"Ottawa",         country:"Canada",       lat:45.4215,  lng:-75.6972, currency:"CAD", priceIndex:7, neighbourhoods:["Glebe","Westboro","Hintonburg","Alta Vista","Kanata","Barrhaven","Orleans","Nepean"] },
+
+  // ── Americas — Latin America ──
+  { city:"Mexico City",    country:"Mexico",       lat:19.4326,  lng:-99.1332, currency:"MXN", priceIndex:5, neighbourhoods:["Polanco","Lomas","Condesa","Roma","Coyoacán","Santa Fe","Del Valle","Nápoles","Satélite"] },
+  { city:"Guadalajara",    country:"Mexico",       lat:20.6597,  lng:-103.3496,currency:"MXN", priceIndex:4, neighbourhoods:["Chapultepec","Providencia","Jardines del Bosque","Tlaquepaque","Zapopan","Tonalá","Huentitán"] },
+  { city:"Monterrey",      country:"Mexico",       lat:25.6866,  lng:-100.3161,currency:"MXN", priceIndex:5, neighbourhoods:["San Pedro Garza García","Monterrey Centro","Cumbres","Valle","Del Valle","Chipinque","Obispado"] },
+  { city:"Cancún",         country:"Mexico",       lat:21.1619,  lng:-86.8515, currency:"MXN", priceIndex:5, neighbourhoods:["Hotel Zone","Centro","Región 94","Supermanzana 2","Pok-Ta-Pok","Alfredo V Bonfil"] },
+  { city:"Guatemala City", country:"Guatemala",    lat:14.6349,  lng:-90.5069, currency:"GTQ", priceIndex:4, neighbourhoods:["Zona 10","Zona 14","Zona 15","Zona 16","Cayalá","Ciudad Cayalá","Vista Hermosa","Lomas de Pamplona"] },
+  { city:"San José",       country:"Costa Rica",   lat:9.9281,   lng:-84.0907, currency:"CRC", priceIndex:5, neighbourhoods:["Escazú","Santa Ana","Rohrmoser","Curridabat","Desamparados","La Unión","Tibás","Heredia"] },
+  { city:"Panama City",    country:"Panama",       lat:8.9936,   lng:-79.5197, currency:"USD", priceIndex:6, neighbourhoods:["Punta Pacifica","Marbella","San Francisco","El Cangrejo","Costa del Este","Clayton","Casco Viejo","Obarrio"] },
+  { city:"Havana",         country:"Cuba",         lat:23.1136,  lng:-82.3666, currency:"USD", priceIndex:4, neighbourhoods:["Vedado","Miramar","Playa","Habana Vieja","Centro Habana","Cerro","Marianao","Boyeros"] },
+  { city:"Santo Domingo",  country:"Dominican Rep.",lat:18.4861, lng:-69.9312, currency:"DOP", priceIndex:4, neighbourhoods:["Piantini","Serralles","Naco","Mirador Norte","La Esperilla","Bella Vista","Ensanche Ozama"] },
+  { city:"Kingston",       country:"Jamaica",      lat:17.9970,  lng:-76.7936, currency:"JMD", priceIndex:4, neighbourhoods:["New Kingston","Half Way Tree","Liguanea","Cherry Gardens","Norbrook","Constant Spring","Manor Park"] },
+  { city:"Medellín",       country:"Colombia",     lat:6.2442,   lng:-75.5812, currency:"COP", priceIndex:4, neighbourhoods:["El Poblado","Envigado","Laureles","Belén","Robledo","Bello","Itagüí","Sabaneta","La Estrella"] },
+  { city:"Cali",           country:"Colombia",     lat:3.4516,   lng:-76.5320, currency:"COP", priceIndex:4, neighbourhoods:["Ciudad Jardín","El Peñón","Granada","Oeste","Norte","Pance","Yumbo","Palmira"] },
+  { city:"Lima",           country:"Peru",         lat:-12.0464, lng:-77.0428, currency:"PEN", priceIndex:5, neighbourhoods:["Miraflores","San Isidro","Barranco","Surco","La Molina","San Borja","Jesús María","Lince"] },
+  { city:"Quito",          country:"Ecuador",      lat:-0.1807,  lng:-78.4678, currency:"USD", priceIndex:4, neighbourhoods:["Cumbayá","González Suárez","Bellavista","Quito Norte","Guapulo","La Floresta","Iñaquito"] },
+  { city:"Guayaquil",      country:"Ecuador",      lat:-2.1962,  lng:-79.8862, currency:"USD", priceIndex:4, neighbourhoods:["Urdesa","Alborada","Kennedy","Ceibos","Samborondon","Miraflores","Los Ceibos","Puerto Santa Ana"] },
+  { city:"Caracas",        country:"Venezuela",    lat:10.4806,  lng:-66.9036, currency:"USD", priceIndex:4, neighbourhoods:["Chacao","El Rosal","Altamira","La Castellana","Las Mercedes","Baruta","El Hatillo","Country Club"] },
+  { city:"La Paz",         country:"Bolivia",      lat:-16.5000, lng:-68.1500, currency:"BOB", priceIndex:3, neighbourhoods:["Sopocachi","Miraflores","Achumani","Calacoto","San Miguel","Irpavi","Mallasa","Chasquipampa"] },
+  { city:"Asunción",       country:"Paraguay",     lat:-25.2637, lng:-57.5759, currency:"PYG", priceIndex:3, neighbourhoods:["Villa Aurelia","Recoleta","Trinidad","Sajonia","San Lorenzo","Lambaré","Luque","Fernando de la Mora"] },
+  { city:"Montevideo",     country:"Uruguay",      lat:-34.9011, lng:-56.1645, currency:"UYU", priceIndex:5, neighbourhoods:["Pocitos","Punta Carretas","Carrasco","Malvín","Buceo","Cordón","Centro","Parque Batlle"] },
+  { city:"Buenos Aires",   country:"Argentina",    lat:-34.6037, lng:-58.3816, currency:"ARS", priceIndex:5, neighbourhoods:["Palermo","Recoleta","Puerto Madero","Belgrano","Nuñez","Caballito","Flores","San Telmo","Almagro"] },
+  { city:"Córdoba",        country:"Argentina",    lat:-31.4201, lng:-64.1888, currency:"ARS", priceIndex:4, neighbourhoods:["Nueva Córdoba","Buen Pastor","Güemes","Alta Córdoba","General Paz","Cerro de las Rosas","Villa Belgrano"] },
+  { city:"Santiago",       country:"Chile",        lat:-33.4489, lng:-70.6693, currency:"CLP", priceIndex:6, neighbourhoods:["Las Condes","Providencia","Ñuñoa","Vitacura","Lo Barnechea","La Reina","Peñalolén","Macul"] },
+  { city:"Valparaíso",     country:"Chile",        lat:-33.0472, lng:-71.6127, currency:"CLP", priceIndex:5, neighbourhoods:["Viña del Mar","Reñaca","Con Con","Cerros","Plan","Playa Ancha","Quilpué"] },
+  { city:"São Paulo",      country:"Brazil",       lat:-23.5505, lng:-46.6333, currency:"BRL", priceIndex:6, neighbourhoods:["Jardins","Itaim Bibi","Pinheiros","Vila Madalena","Moema","Brooklin","Alphaville","Tatuapé"] },
+  { city:"Rio de Janeiro", country:"Brazil",       lat:-22.9068, lng:-43.1729, currency:"BRL", priceIndex:6, neighbourhoods:["Ipanema","Leblon","Copacabana","Barra da Tijuca","Botafogo","Flamengo","Tijuca","Gavea"] },
+  { city:"Brasília",       country:"Brazil",       lat:-15.7975, lng:-47.8919, currency:"BRL", priceIndex:6, neighbourhoods:["Asa Sul","Asa Norte","Lago Sul","Lago Norte","Águas Claras","Taguatinga","Guará","Ceilândia"] },
+  { city:"Salvador",       country:"Brazil",       lat:-12.9714, lng:-38.5014, currency:"BRL", priceIndex:4, neighbourhoods:["Barra","Graça","Pituba","Itaigara","Caminho das Árvores","Alphaville","Lauro de Freitas"] },
+  { city:"Recife",         country:"Brazil",       lat:-8.0578,  lng:-34.8829, currency:"BRL", priceIndex:4, neighbourhoods:["Boa Viagem","Aflitos","Graças","Espinheiro","Setúbal","Pina","Caruaru","Jaboatão"] },
+  { city:"Fortaleza",      country:"Brazil",       lat:-3.7172,  lng:-38.5433, currency:"BRL", priceIndex:4, neighbourhoods:["Meireles","Aldeota","Varjota","Cocó","Edson Queiroz","Eusébio","Caucaia","Maracanaú"] },
+  { city:"Curitiba",       country:"Brazil",       lat:-25.4284, lng:-49.2733, currency:"BRL", priceIndex:5, neighbourhoods:["Batel","Champagnat","Santa Felicidade","Bacacheri","Portão","São Lourenço","Boa Vista"] },
+  { city:"Belo Horizonte", country:"Brazil",       lat:-19.9191, lng:-43.9386, currency:"BRL", priceIndex:4, neighbourhoods:["Lourdes","Savassi","Belvedere","Serra","Anchieta","Pampulha","Jardim América","Buritis"] },
+  { city:"Manaus",         country:"Brazil",       lat:-3.1190,  lng:-60.0217, currency:"BRL", priceIndex:4, neighbourhoods:["Adrianópolis","Parque 10","Aleixo","Chapada","Flores","Petrópolis","Vieiralves","Distrito Industrial"] },
+
+  // ── Oceania extras ──
+  { city:"Perth",          country:"Australia",    lat:-31.9505, lng:115.8605, currency:"AUD", priceIndex:8, neighbourhoods:["Subiaco","Cottesloe","Nedlands","Claremont","South Perth","Fremantle","Scarborough","Joondalup"] },
+  { city:"Adelaide",       country:"Australia",    lat:-34.9285, lng:138.6007, currency:"AUD", priceIndex:7, neighbourhoods:["Norwood","Unley","Glenelg","Henley Beach","Burnside","Adelaide Hills","Prospect","Kensington"] },
+  { city:"Gold Coast",     country:"Australia",    lat:-28.0167, lng:153.4000, currency:"AUD", priceIndex:8, neighbourhoods:["Surfers Paradise","Broadbeach","Burleigh Heads","Coolangatta","Robina","Coomera","Runaway Bay"] },
+  { city:"Wellington",     country:"New Zealand",  lat:-41.2866, lng:174.7756, currency:"NZD", priceIndex:7, neighbourhoods:["Thorndon","Mount Victoria","Brooklyn","Karori","Newtown","Hataitai","Kilbirnie","Lower Hutt"] },
+  { city:"Christchurch",   country:"New Zealand",  lat:-43.5320, lng:172.6306, currency:"NZD", priceIndex:7, neighbourhoods:["Merivale","Fendalton","Riccarton","Sumner","Lyttelton","Halswell","New Brighton","Hornby"] },
+  { city:"Suva",           country:"Fiji",         lat:-18.1248, lng:178.4501, currency:"FJD", priceIndex:4, neighbourhoods:["Lami","Tamavua","Domain","Samabula","Nasinu","Nausori","Deuba","Pacific Harbour"] },
+  { city:"Port Moresby",   country:"Papua New Guinea", lat:-9.4438, lng:147.1803, currency:"PGK", priceIndex:5, neighbourhoods:["Waigani","Boroko","Gordons","Hohola","Gerehu","ATS","Six Mile","Murray Barracks"] },
+  { city:"Honolulu",       country:"USA",          lat:21.3069,  lng:-157.8583,currency:"USD", priceIndex:9, neighbourhoods:["Honolulu","Kahala","Manoa","Kailua","Hawaii Kai","Kaimuki","Nuuanu","Moanalua","Ewa Beach"] },
 ];
 
 // ── Property type definitions ─────────────────────────────────────────────────
@@ -255,17 +479,36 @@ function getPrice(type: PropType, listingType: "buy"|"rent", pi: number, currenc
   const jitter = 0.6 + Math.random() * 0.8; // ±40%
 
   const fxMap: Record<string, number> = {
+    // Africa
     KES:130, TZS:2600, UGX:3700, ETB:57, RWF:1300, NGN:1550, GHS:15,
-    XOF:620, XAF:620, ZAR:18, ZMW:26, MZN:64, NAD:18, USD:1,
-    MAD:10, EGP:50, TND:3.1, DZD:135, DZD2:135,
+    XOF:620, XAF:620, ZAR:18, ZMW:26, MZN:64, NAD:18, LSL:18, SZL:18,
+    MAD:10, EGP:50, TND:3.1, DZD:135, LYD:4.8, SDG:600,
+    GNF:8600, SLL:21000, CDF:2800, MGA:4600, LRD:157,
+    MUR:45, SCR:13.5, KMF:461, DJF:178, BIF:2880, MWK:1730, BWP:13.5,
+    // Middle East
     AED:3.67, SAR:3.75, QAR:3.64, KWD:0.31, OMR:0.38, BHD:0.38,
+    JOD:0.71, ILS:3.7, IQD:1310, IRR:42000, YER:250,
+    // Asia
     INR:84, THB:35, IDR:16000, MYR:4.5, VND:25000, SGD:1.35,
-    PHP:58, LKR:300, PKR:280,
+    PHP:58, LKR:300, PKR:280, BDT:110, NPR:133, MMK:2100,
+    KHR:4100, LAK:21700, BND:1.35,
+    // East Asia
+    JPY:150, CNY:7.2, KRW:1350, TWD:32, HKD:7.8, MNT:3400,
+    // Central Asia & Caucasus
+    KZT:470, UZS:12500, KGS:89, TJS:10.9, TMT:3.5,
+    AZN:1.7, GEL:2.7, AMD:388,
+    // Europe
     GBP:0.79, EUR:0.92, CHF:0.88, PLN:4.0, CZK:23, HUF:370,
     TRY:34, SEK:10.5, DKK:7, NOK:10.6,
-    USD2:1, CAD:1.36, AUD:1.55, NZD:1.65,
+    RON:4.6, BGN:1.8, RSD:108, BAM:1.8, ALL:93,
+    RUB:90, UAH:37, BYN:3.2, MDL:17.5,
+    // Americas
+    USD:1, CAD:1.36, AUD:1.55, NZD:1.65,
     BRL:5.1, ARS:1000, COP:4200, PEN:3.7, MXN:17, CLP:970,
-    GNF:8600, SLL:21000, CDF:2800, MGA:4600,
+    BOB:6.9, PYG:7500, UYU:39, GTQ:7.8, CRC:510, HNL:25, NIO:36.5,
+    DOP:58, JMD:156, HTG:130, CUP:120,
+    // Oceania
+    FJD:2.25, PGK:3.8, WST:2.7, TOP:2.35,
   };
   const fx = fxMap[currency] ?? 1;
   const base = listingType === "buy" ? buyBase : rentBase;
@@ -322,6 +565,16 @@ const AGENT_NAMES = [
   "Sophie Müller","Carlos Rodrigues","Priya Sharma","Ahmed Al-Rashid","Maria Santos",
   "John Njoroge","Grace Amoah","Pierre Dubois","Yuki Tanaka","Omar Abdullah",
   "Elena Popescu","Samuel Okafor","Diana Nkrumah","Lucas Fernandez","Amara Diallo",
+  "Wei Chen","Hiroshi Yamamoto","Min-jun Kim","Lin Xiaoming","Park Soo-yeon",
+  "Mehmet Yilmaz","Natasha Ivanova","Stefan Müller","Anna Kowalska","Andrei Popescu",
+  "Ravi Patel","Sunita Krishnan","Ahmed Hassan","Layla Mohammed","Hassan Ibrahim",
+  "Isabella Romano","Marco Bianchi","Luisa García","Roberto Martínez","Ana Pereira",
+  "Olga Petrova","Dmitri Volkov","Sasha Kozlov","Katya Sorokina","Ivan Petrov",
+  "Nguyen Thi Thu","Bui Van Minh","Farrukh Tashkentov","Asel Bakytbekova","Giorgi Beridze",
+  "Sipho Ndlovu","Thandiwe Mokoena","Kwame Asante","Adaeze Obi","Chidi Okeke",
+  "Valentina López","Diego Herrera","Camila Fernández","Pablo Morales","Ana Beatriz Silva",
+  "Tariq Mahmoud","Nour Al-Farsi","Khalid bin Rashid","Sara Al-Mansoori","Yasmin Khalil",
+  "Raj Venkataraman","Deepika Nair","Karan Mehta","Aarav Joshi","Pooja Iyer",
 ];
 
 // ── Main ──────────────────────────────────────────────────────────────────────
