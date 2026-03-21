@@ -15,13 +15,6 @@ import { createServiceClient } from "@/lib/supabase/server";
  * falls back to lat/lng B-tree range scan.
  */
 
-// Module-level PostGIS availability cache (same pattern as /api/properties)
-let postgisEnabled: boolean | null = null;
-
-function makeEnvelope(s: number, w: number, n: number, e: number) {
-  return `SRID=4326;POLYGON((${w} ${s},${e} ${s},${e} ${n},${w} ${n},${w} ${s}))`;
-}
-
 function limitForZoom(zoom: number): number {
   if (zoom <= 5)  return 120;
   if (zoom <= 8)  return 250;
@@ -71,43 +64,20 @@ export async function GET(request: NextRequest) {
     return q.order("created_at", { ascending: false });
   }
 
-  let data: unknown[] | null = null;
-  let error: { message: string } | null = null;
-
-  // ── Path A: PostGIS GiST index ───────────────────────────────────────────
-  if (postgisEnabled !== false) {
-    const result = await applySort(
-      buildBase().filter("geom", "st_intersects", makeEnvelope(south, west, north, east))
-    );
-    if (!result.error) {
-      postgisEnabled = true;
-      data = result.data;
-    } else if (result.error.message.includes("geom") || result.error.message.includes("postgis")) {
-      postgisEnabled = false;
-      error = result.error;
-    } else {
-      error = result.error;
-    }
-  }
-
-  // ── Path B: lat/lng B-tree fallback ──────────────────────────────────────
-  if (postgisEnabled === false && !data) {
-    const result = await applySort(
-      buildBase()
-        .gte("lat", south).lte("lat", north)
-        .gte("lng", west) .lte("lng", east)
-        .not("lat", "is", null)
-    );
-    data  = result.data;
-    error = result.error;
-  }
+  // ── lat/lng B-tree bbox scan (fast, no PostGIS needed for simple bbox) ────
+  const { data, error } = await applySort(
+    buildBase()
+      .gte("lat", south).lte("lat", north)
+      .gte("lng", west) .lte("lng", east)
+      .not("lat", "is", null)
+  );
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
   return NextResponse.json(
-    { data, zoom, limit, _postgis: postgisEnabled ?? "probing" },
+    { data, zoom, limit },
     {
       headers: {
         // Cache tile for 2 minutes — pins don't change between seed runs

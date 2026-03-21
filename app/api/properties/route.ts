@@ -2,17 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { PropertyFilters } from "@/lib/types";
 
-// ── PostGIS auto-detection ─────────────────────────────────────────────────────
-// Cached per process: `null` = not yet tested, `true/false` = result of first bbox query.
-// First request probes PostGIS; if the `geom` column doesn't exist it falls back to
-// lat/lng range scan and permanently disables the PostGIS path (no repeated retries).
-let postgisEnabled: boolean | null = null;
-
-// Build a WKT envelope string for PostGIS st_intersects
-function makeEnvelope(south: number, west: number, north: number, east: number): string {
-  return `SRID=4326;POLYGON((${west} ${south},${east} ${south},${east} ${north},${west} ${north},${west} ${south}))`;
-}
-
 // GET /api/properties — public listing feed
 export async function GET(request: NextRequest) {
   const tenantId = request.headers.get("x-tenant-id");
@@ -84,42 +73,18 @@ export async function GET(request: NextRequest) {
   if (bboxCoords) {
     const { south, west, north, east } = bboxCoords;
 
-    // ── Path A: PostGIS st_intersects (GiST index — 5–10× faster) ───────────
-    if (postgisEnabled !== false) {
-      const q = applySort(
-        buildBase().filter("geom", "st_intersects", makeEnvelope(south, west, north, east))
-      );
-      const result = await q;
-
-      if (!result.error) {
-        // PostGIS worked — cache positive result
-        postgisEnabled = true;
-        data  = result.data;
-        count = result.count;
-      } else if (result.error.message.includes("geom") || result.error.message.includes("postgis")) {
-        // PostGIS not yet enabled — permanently fall back to B-tree path
-        console.info("[map] PostGIS not available, falling back to lat/lng range scan");
-        postgisEnabled = false;
-        error = result.error;
-      } else {
-        // Some other error — surface it
-        error = result.error;
-      }
-    }
-
-    // ── Path B: lat/lng B-tree range scan (fallback) ─────────────────────────
-    if (postgisEnabled === false && !data) {
-      const q = applySort(
-        buildBase()
-          .gte("lat", south).lte("lat", north)
-          .gte("lng", west) .lte("lng", east)
-          .not("lat", "is", null)
-      );
-      const result = await q;
-      data  = result.data;
-      count = result.count;
-      error = result.error;
-    }
+    // ── lat/lng B-tree bbox scan ──────────────────────────────────────────────
+    // Simple and fast — PostGIS st_intersects via PostgREST is not supported.
+    // PostGIS is only used for proximity queries (ST_DWithin) via RPC functions.
+    const result = await applySort(
+      buildBase()
+        .gte("lat", south).lte("lat", north)
+        .gte("lng", west) .lte("lng", east)
+        .not("lat", "is", null)
+    );
+    data  = result.data;
+    count = result.count;
+    error = result.error;
 
   } else {
     // ── No bbox: city name filter or plain list ───────────────────────────────
@@ -145,7 +110,6 @@ export async function GET(request: NextRequest) {
     total: count || 0,
     page:  filters.page,
     limit: filters.limit,
-    _postgis: postgisEnabled ?? "probing", // debug info (stripped in production builds)
   });
 }
 
