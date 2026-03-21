@@ -24,52 +24,26 @@ function fmtPin(price: number): string {
 }
 
 function makePinIcon(price: number, selected: boolean): L.DivIcon {
-  const label = fmtPin(price);
-  const bg    = selected ? "#111827" : "#ffffff";
-  const fg    = selected ? "#ffffff" : "#111827";
-  const scale = selected ? "scale(1.08)" : "scale(1)";
-  const shadow = selected
-    ? "0 4px 16px rgba(0,0,0,0.28)"
-    : "0 2px 10px rgba(0,0,0,0.14)";
+  const label  = fmtPin(price);
+  const bg     = selected ? "#111827" : "#ffffff";
+  const fg     = selected ? "#ffffff" : "#111827";
+  const shadow = selected ? "0 4px 16px rgba(0,0,0,0.28)" : "0 2px 10px rgba(0,0,0,0.14)";
+  const scale  = selected ? "scale(1.08)" : "scale(1)";
 
-  const html = `
-    <div style="
-      background:${bg};
-      color:${fg};
-      border-radius:999px;
-      padding:5px 11px;
-      font-size:12px;
-      font-weight:700;
-      font-family:system-ui,-apple-system,sans-serif;
-      box-shadow:${shadow};
-      white-space:nowrap;
-      cursor:pointer;
-      transform:${scale};
-      transition:transform 0.15s,box-shadow 0.15s;
-      border:2px solid ${selected ? "#111827" : "transparent"};
-      line-height:1.2;
-    ">${label}</div>`;
-
-  return L.divIcon({ className: "", html, iconSize: undefined, iconAnchor: undefined });
+  return L.divIcon({
+    className: "",
+    html: `<div style="background:${bg};color:${fg};border-radius:999px;padding:5px 11px;font-size:12px;font-weight:700;font-family:system-ui,sans-serif;box-shadow:${shadow};white-space:nowrap;cursor:pointer;transform:${scale};transition:all .15s;border:2px solid ${selected ? "#111827" : "transparent"}">${label}</div>`,
+    iconSize:   undefined,
+    iconAnchor: undefined,
+  });
 }
 
-// Smooth pan/zoom when city changes
 function MapFlyTo({ center, zoom }: { center: [number, number]; zoom: number }) {
   const map = useMap();
   useEffect(() => {
     map.flyTo(center, zoom, { duration: 1.1, easeLinearity: 0.3 });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [center[0], center[1], zoom]);
-  return null;
-}
-
-// Force Leaflet to recalculate dimensions after mount
-function MapSizer() {
-  const map = useMap();
-  useEffect(() => {
-    const t = setTimeout(() => map.invalidateSize(), 100);
-    return () => clearTimeout(t);
-  }, [map]);
   return null;
 }
 
@@ -81,32 +55,30 @@ interface LeafletMapProps {
   onSelect:   (p: PropertyWithCoords) => void;
 }
 
-export default function LeafletMap({
-  center,
-  zoom = 12,
-  properties,
-  selectedId,
-  onSelect,
-}: LeafletMapProps) {
+export default function LeafletMap({ center, zoom = 12, properties, selectedId, onSelect }: LeafletMapProps) {
   return (
     <MapContainer
       center={center}
       zoom={zoom}
       zoomControl={false}
       scrollWheelZoom
-      style={{ height: "100%", width: "100%", background: "#f0ede8" }}
+      // Fixed + full-viewport so Leaflet always has a measurable size
+      style={{
+        position: "fixed",
+        inset: 0,
+        width: "100vw",
+        height: "100dvh",
+        background: "#f0ede8",
+        zIndex: 0,
+      }}
     >
-      {/* CartoDB Positron — clean, minimal, Airbnb-like */}
       <TileLayer
         url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>'
         subdomains="abcd"
         maxZoom={19}
       />
-
       <MapFlyTo center={center} zoom={zoom} />
-      <MapSizer />
-
       {properties.map((p) => (
         <Marker
           key={p.id}
