@@ -4,50 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const TABS = [
-  {
-    href: "/",
-    label: "Suchen",
-    icon: (active: boolean) => (
-      <svg className="w-5 h-5" fill={active ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24"
-        strokeWidth={active ? 2 : 2}>
-        <path strokeLinecap="round" strokeLinejoin="round"
-          d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-      </svg>
-    ),
-  },
-  {
-    href: "/saved",
-    label: "Gespeichert",
-    icon: (active: boolean) => (
-      <svg className="w-5 h-5" fill={active ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24"
-        strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round"
-          d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-      </svg>
-    ),
-  },
-  {
-    href: "/markt",
-    label: "Markt",
-    icon: (active: boolean) => (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-        strokeWidth={active ? 2.5 : 2}>
-        <path strokeLinecap="round" strokeLinejoin="round"
-          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-      </svg>
-    ),
-  },
-  {
-    href: "/profile",
-    label: "Profil",
-    icon: (active: boolean) => (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-        strokeWidth={active ? 2.5 : 2}>
-        <path strokeLinecap="round" strokeLinejoin="round"
-          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-      </svg>
-    ),
-  },
+  { href: "/",        label: "Suchen"      },
+  { href: "/saved",   label: "Gespeichert" },
+  { href: "/markt",   label: "Markt"       },
+  { href: "/profile", label: "Profil"      },
 ];
 
 export default function BottomNav() {
@@ -58,7 +18,7 @@ export default function BottomNav() {
       className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-100"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      <div className="flex items-stretch h-[58px]">
+      <div className="flex items-stretch h-[52px]">
         {TABS.map((tab) => {
           const active = tab.href === "/"
             ? pathname === "/"
@@ -68,20 +28,10 @@ export default function BottomNav() {
             <Link
               key={tab.href}
               href={tab.href}
-              className="flex-1 flex flex-col items-center justify-center gap-0.5 active:opacity-70 transition-opacity"
+              className="flex-1 flex items-center justify-center active:opacity-70 transition-opacity"
             >
-              <div
-                className={`flex items-center justify-center transition-colors duration-150 ${
-                  active ? "" : "text-neutral-400"
-                }`}
-                style={active ? { color: "var(--color-primary)" } : {}}
-              >
-                {tab.icon(active)}
-              </div>
               <span
-                className={`text-[10px] font-semibold tracking-wide transition-colors ${
-                  active ? "" : "text-neutral-400"
-                }`}
+                className={`text-sm font-semibold transition-colors ${active ? "" : "text-neutral-400"}`}
                 style={active ? { color: "var(--color-primary)" } : {}}
               >
                 {tab.label}
