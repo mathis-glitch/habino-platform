@@ -15,7 +15,7 @@ import { EXTENDED_CITIES } from "./city-data-extended";
 // ── Config ────────────────────────────────────────────────────────────────────
 const SUPABASE_URL      = process.env.NEXT_PUBLIC_SUPABASE_URL      || "https://ikubxgsptautubecukoi.supabase.co";
 const SUPABASE_SR_KEY   = process.env.SUPABASE_SERVICE_ROLE_KEY     || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlrdWJ4Z3NwdGF1dHViZWN1a29pIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Mzc2ODE2NiwiZXhwIjoyMDg5MzQ0MTY2fQ.c6hUfJODHj9smszXQSfUOU55thu3TNs39bWTksfTPxs";
-const BATCH_SIZE        = 1_000;
+const BATCH_SIZE        = 250;   // smaller batches avoid statement-timeout on PostGIS tables
 const TARGET_TOTAL      = 1_000_000;
 
 const sb = createClient(SUPABASE_URL, SUPABASE_SR_KEY);
@@ -785,6 +785,21 @@ async function main() {
     else console.log("  ✅ Old listings cleared.");
   }
 
+  // 3. Drop slow indexes before bulk insert — rebuilding at end is much faster
+  //    than maintaining them incrementally across 1M rows.
+  console.log("\n⚡ Dropping indexes for fast bulk insert…");
+  const dropIndexSql = `
+    DROP INDEX IF EXISTS properties_coords_idx;
+    DROP INDEX IF EXISTS properties_geom_gist;
+  `;
+  const { error: dropErr } = await sb.rpc("exec_sql" as any, { sql: dropIndexSql }).maybeSingle();
+  if (dropErr) {
+    // exec_sql RPC doesn't exist — indexes will stay; batch size compensates
+    console.log("  ℹ️  Index drop skipped (run manually for faster seeding).");
+  } else {
+    console.log("  ✅ Indexes dropped.");
+  }
+
   // 3. Generate listings
   console.log(`\n📍 Generating ${TARGET_TOTAL.toLocaleString()} listings across ${CITIES.length} cities…`);
 
@@ -809,13 +824,22 @@ async function main() {
   async function flush() {
     if (!batch.length) return;
     batchNum++;
-    const { error } = await sb.from("properties").insert(batch);
-    if (error) {
-      console.error(`  ❌ Batch ${batchNum} error:`, error.message);
-    } else {
-      totalInserted += batch.length;
-      process.stdout.write(`\r  ✅ Inserted ${totalInserted.toLocaleString()} listings…`);
+    // Retry up to 4× with exponential back-off (handles transient timeouts)
+    let lastErr: string | null = null;
+    for (let attempt = 1; attempt <= 4; attempt++) {
+      const { error } = await sb.from("properties").insert(batch);
+      if (!error) {
+        totalInserted += batch.length;
+        process.stdout.write(`\r  ✅ Inserted ${totalInserted.toLocaleString()} listings…`);
+        lastErr = null;
+        break;
+      }
+      lastErr = error.message;
+      if (attempt < 4) {
+        await new Promise(r => setTimeout(r, 500 * attempt)); // 0.5s, 1s, 1.5s
+      }
     }
+    if (lastErr) console.error(`\n  ❌ Batch ${batchNum} failed after retries:`, lastErr);
     batch = [];
   }
 
@@ -879,7 +903,26 @@ async function main() {
 
   await flush(); // final partial batch
 
-  // ── 4. Populate city_listing_counts (cluster layer) ───────────────────────
+  // ── 4. Rebuild indexes now that all data is inserted ──────────────────────
+  console.log(`\n\n🔧 Rebuilding spatial indexes…`);
+  console.log("   (If this fails, run the two CREATE INDEX statements from migration");
+  console.log("    002 + 004 manually in the Supabase SQL Editor.)");
+  const rebuildSql = `
+    CREATE INDEX IF NOT EXISTS properties_coords_idx
+      ON properties(tenant_id, lat, lng)
+      WHERE lat IS NOT NULL AND lng IS NOT NULL;
+    CREATE INDEX IF NOT EXISTS properties_geom_gist
+      ON properties USING GIST (geom)
+      WHERE geom IS NOT NULL;
+  `;
+  const { error: rebuildErr } = await sb.rpc("exec_sql" as any, { sql: rebuildSql }).maybeSingle();
+  if (rebuildErr) {
+    console.log("  ℹ️  Auto-rebuild skipped — run migrations 002+004 in Supabase SQL Editor.");
+  } else {
+    console.log("  ✅ Indexes rebuilt.");
+  }
+
+  // ── 5. Populate city_listing_counts (cluster layer) ───────────────────────
   // This table powers the lightweight city-bubble layer at low zoom levels.
   // It's replaced wholesale after every re-seed.
   console.log(`\n\n🗺️  Refreshing city cluster table…`);
