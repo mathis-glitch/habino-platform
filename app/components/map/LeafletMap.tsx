@@ -63,6 +63,16 @@ function MapFlyTo({ center, zoom }: { center: [number, number]; zoom: number }) 
   return null;
 }
 
+// Force Leaflet to recalculate dimensions after mount
+function MapSizer() {
+  const map = useMap();
+  useEffect(() => {
+    const t = setTimeout(() => map.invalidateSize(), 100);
+    return () => clearTimeout(t);
+  }, [map]);
+  return null;
+}
+
 interface LeafletMapProps {
   center:     [number, number];
   zoom?:      number;
@@ -95,6 +105,7 @@ export default function LeafletMap({
       />
 
       <MapFlyTo center={center} zoom={zoom} />
+      <MapSizer />
 
       {properties.map((p) => (
         <Marker

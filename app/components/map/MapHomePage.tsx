@@ -259,7 +259,7 @@ export function MapHomePage() {
     <div className="fixed inset-0 flex overflow-hidden">
 
       {/* ══════════════ LEFT — Map area ══════════════ */}
-      <div className="relative flex-1 h-full">
+      <div className="relative flex-1" style={{ height: "100dvh" }}>
 
         {/* Map canvas */}
         <div className="absolute inset-0">
@@ -372,7 +372,7 @@ export function MapHomePage() {
       </div>
 
       {/* ══════════════ RIGHT — AI chat sidebar (desktop only) ══════════════ */}
-      <div className="hidden md:flex flex-col w-[380px] border-l border-slate-100 bg-white overflow-hidden shrink-0">
+      <div className="hidden md:flex flex-col w-[380px] border-l border-slate-100 bg-white overflow-hidden shrink-0" style={{ height: "100dvh" }}>
         <AIChatPage sidebarMode />
       </div>
     </div>
