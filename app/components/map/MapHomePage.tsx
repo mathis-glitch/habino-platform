@@ -17,7 +17,7 @@ const LeafletMap = dynamic(() => import("./LeafletMap"), {
 // ── City coordinates (500+ cities worldwide) ─────────────────────────────────
 const CITY_COORDS: Record<string, [number, number]> = {
   // East Africa
-  "Nairobi":          [-1.2921,  36.8219], "Nairobi CBD":     [-1.2921,  36.8219],
+  "Nairobi":          [-1.2921,  36.8219], "Nairobi CBD":     [-1.2864,  36.8172],
   "Mombasa":          [-4.0435,  39.6682], "Kisumu":          [-0.0917,  34.7679],
   "Nakuru":           [-0.3031,  36.0800], "Eldoret":         [ 0.5143,  35.2698],
   "Dar es Salaam":    [-6.7924,  39.2083], "Zanzibar":        [-6.1648,  39.1989],
@@ -44,7 +44,7 @@ const CITY_COORDS: Record<string, [number, number]> = {
   "Bamako":           [12.6392,  -8.0029], "Conakry":         [ 9.6412, -13.5784],
   "Freetown":         [ 8.4657, -13.2317], "Monrovia":        [ 6.3005, -10.7969],
   "Ouagadougou":      [12.3714,  -1.5197], "Niamey":          [13.5137,   2.1098],
-  "Cotonou":          [ 6.3654,   2.4183], "Accra North":     [ 5.6800,  -0.2100],
+  "Cotonou":          [ 6.3654,   2.4183],
   "Bissau":           [11.8636, -15.5977],
 
   // North Africa
