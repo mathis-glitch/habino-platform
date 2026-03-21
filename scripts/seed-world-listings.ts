@@ -814,6 +814,22 @@ async function main() {
   }
 
   for (const { city, count } of cityListings) {
+    // Pre-compute stable neighbourhood centres for this city.
+    // Neighbourhoods are arranged in a ring around the city centre so listings
+    // spread realistically across the urban area rather than piling on one point.
+    // Ring radius scales with city importance (priceIndex 1–10 → ~4–17 km).
+    const cityRadius = 0.03 + city.priceIndex * 0.013; // degrees (~4 km … ~17 km)
+    const nbCount    = city.neighbourhoods.length;
+    // Rotate the ring per-city so rings don't all start at the same angle
+    const ringOffset = (city.lat % 1 + city.lng % 1) * Math.PI;
+    const nbCentres  = city.neighbourhoods.map((_, idx) => {
+      const angle = ringOffset + (idx / nbCount) * 2 * Math.PI;
+      return {
+        lat: city.lat + Math.sin(angle) * cityRadius,
+        lng: city.lng + Math.cos(angle) * cityRadius * 1.35, // slightly wider E-W
+      };
+    });
+
     for (let i = 0; i < count; i++) {
       const type        = pickWeighted(TYPE_WEIGHTS);
       const listingType = Math.random() < 0.42 ? "buy" : "rent";
@@ -823,9 +839,12 @@ async function main() {
       const desc        = pick(DESCS[type]);
       const agent       = pick(AGENT_NAMES);
 
-      // Jitter coordinates for neighbourhood-level spread (~±0.025°)
-      const lat = city.lat + (Math.random() - 0.5) * 0.05;
-      const lng = city.lng + (Math.random() - 0.5) * 0.05;
+      // Place listing near its neighbourhood centre with small local jitter (~1 km).
+      // This keeps same-neighbourhood listings visually grouped while the ring
+      // layout ensures city-wide spread and avoids everything piling on one point.
+      const nbCentre = nbCentres[city.neighbourhoods.indexOf(nb)];
+      const lat = nbCentre.lat + (Math.random() - 0.5) * 0.016; // ±~900 m
+      const lng = nbCentre.lng + (Math.random() - 0.5) * 0.022; // ±~1.1 km
 
       batch.push({
         tenant_id:     tenantId,

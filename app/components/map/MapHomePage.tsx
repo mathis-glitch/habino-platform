@@ -287,7 +287,10 @@ function haversine(lat1: number, lng1: number, lat2: number, lng2: number): numb
 // ── Coordinate assignment ──────────────────────────────────────────────────────
 // Uses actual lat/lng stored in the DB. Falls back to CITY_COORDS + hash jitter
 // for legacy rows that predate the coordinates migration.
-const MIN_DIST = 500; // metres
+//
+// MIN_DIST: only block truly co-incident pins (< 80 m).  The seed script now
+// spreads listings via a ring layout so aggressive dedup is no longer needed.
+const MIN_DIST = 80; // metres
 
 function withCoords(
   props: Property[],
@@ -313,7 +316,7 @@ function withCoords(
       lng = base[1] + hashDeg(nb + "_lng", 0.060) + hashDeg(p.id + "_lng", 0.006);
     }
 
-    // Skip if too close to an already-placed pin
+    // Skip only exactly co-incident pins (duplicate coordinates)
     const tooClose = working.some(([a, b]) => haversine(lat, lng, a, b) < MIN_DIST);
     if (tooClose) continue;
 
