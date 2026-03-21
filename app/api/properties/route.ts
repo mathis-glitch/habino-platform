@@ -34,7 +34,16 @@ export async function GET(request: NextRequest) {
 
   if (filters.listing_type)  query = query.eq("listing_type",  filters.listing_type);
   if (filters.property_type) query = query.eq("property_type", filters.property_type);
-  if (filters.city)          query = query.ilike("city", `%${filters.city}%`);
+
+  // cities = comma-separated exact list (map viewport batch); city = single ilike search
+  const citiesParam = searchParams.get("cities");
+  if (citiesParam) {
+    const cityList = citiesParam.split(",").map(c => c.trim()).filter(Boolean);
+    query = query.in("city", cityList);
+  } else if (filters.city) {
+    query = query.ilike("city", `%${filters.city}%`);
+  }
+
   if (filters.min_price)     query = query.gte("price", filters.min_price);
   if (filters.max_price)     query = query.lte("price", filters.max_price);
   if (filters.bedrooms)      query = query.eq("bedrooms", filters.bedrooms);

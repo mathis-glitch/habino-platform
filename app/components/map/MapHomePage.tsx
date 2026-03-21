@@ -85,75 +85,274 @@ const CITY_COORDS: Record<string, [number, number]> = {
 };
 
 
-function hashNum(s: string, salt: number): number {
-  let h = salt;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) & 0xfffff;
-  return ((h % 200) - 100) / 4000;
+// ── Deterministic hash helper ─────────────────────────────────────────────────
+function hashDeg(seed: string, range: number): number {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) & 0xfffff;
+  return ((h % 10000) / 10000 - 0.5) * 2 * range;
 }
 
-function withCoords(props: Property[]): PropertyWithCoords[] {
-  return props.flatMap((p) => {
+// ── Haversine distance in metres ──────────────────────────────────────────────
+function haversine(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// ── Natural coordinate assignment ─────────────────────────────────────────────
+// Each neighbourhood gets a fixed cluster centre (~±5 km from city centre).
+// Each property scatters around that centre (~±600 m).
+// Returns only properties whose pin is at least MIN_DIST metres from all placed pins.
+const MIN_DIST = 500; // metres
+
+function withCoords(
+  props: Property[],
+  placed: Array<[number, number]>,
+): PropertyWithCoords[] {
+  const result: PropertyWithCoords[] = [];
+  const working = [...placed];
+
+  for (const p of props) {
     const base = CITY_COORDS[p.city];
-    if (!base) return [];
-    return [{ ...p, lat: base[0] + hashNum(p.id, 1), lng: base[1] + hashNum(p.id, 2) }];
-  });
+    if (!base) continue;
+
+    // Neighbourhood cluster centre (deterministic, ±0.045° lat / ±0.06° lng ≈ ±5 km)
+    const nb  = p.neighbourhood || p.city;
+    const nbLat = base[0] + hashDeg(nb + "_lat", 0.045);
+    const nbLng = base[1] + hashDeg(nb + "_lng", 0.060);
+
+    // Individual property jitter within neighbourhood (±0.006° ≈ ±660 m)
+    const lat = nbLat + hashDeg(p.id + "_lat", 0.006);
+    const lng = nbLng + hashDeg(p.id + "_lng", 0.006);
+
+    // Skip if too close to an already-placed pin
+    const tooClose = working.some(([a, b]) => haversine(lat, lng, a, b) < MIN_DIST);
+    if (tooClose) continue;
+
+    working.push([lat, lng]);
+    result.push({ ...p, lat, lng });
+  }
+  return result;
 }
 
 function fmtFull(price: number, currency: string) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 0 }).format(price);
 }
 
-// ── Property bottom sheet ─────────────────────────────────────────────────────
-function PropertySheet({ property, onClose }: { property: PropertyWithCoords; onClose: () => void }) {
-  const img = property.images?.[0]?.url;
+// ── Property detail panel ─────────────────────────────────────────────────────
+import { TYPE_COLORS, TYPE_LABELS } from "./LeafletMap";
+
+function PropertyDetailPanel({ property, onClose }: { property: PropertyWithCoords; onClose: () => void }) {
+  const img      = property.images?.[0]?.url;
+  const color    = TYPE_COLORS[property.property_type] || "#6B7280";
+  const typeLabel = TYPE_LABELS[property.property_type] || property.property_type;
+  const priceFmt = fmtFull(property.price, property.currency);
+  const isRent   = property.listing_type === "rent";
+  const ppm      = property.area_sqm && property.area_sqm > 0
+    ? fmtFull(Math.round(property.price / property.area_sqm), property.currency) + "/m²"
+    : null;
+  const isResidential = ["apartment","house","villa"].includes(property.property_type);
+  const initials = (property.agent_name || "HA").split(" ").map(w => w[0]).join("").toUpperCase().slice(0,2);
+
   return (
     <>
-      <div className="fixed inset-0 z-[400] bg-black/10" onClick={onClose} />
-      <div className="fixed bottom-0 left-0 right-0 z-[410] bg-white rounded-t-3xl shadow-2xl animate-in slide-in-from-bottom duration-250"
-        style={{ paddingBottom: "calc(52px + env(safe-area-inset-bottom))" }}>
-        <div className="flex justify-center pt-3 pb-2">
-          <div className="w-9 h-1 rounded-full bg-slate-200" />
+      {/* Backdrop (click-away) */}
+      <div className="fixed inset-0 z-[400]" onClick={onClose} />
+
+      {/* ── Desktop panel — bottom-left glass card ── */}
+      <div
+        className="hidden md:flex flex-col fixed z-[410] overflow-hidden"
+        style={{
+          left: "16px",
+          bottom: "calc(52px + env(safe-area-inset-bottom) + 16px)",
+          width: "clamp(340px, 28vw, 460px)",
+          maxHeight: "calc(100dvh - 120px)",
+          background: "rgba(255,255,255,0.92)",
+          backdropFilter: "blur(24px) saturate(1.5)",
+          WebkitBackdropFilter: "blur(24px) saturate(1.5)",
+          borderRadius: "20px",
+          boxShadow: "0 8px 40px rgba(0,0,0,0.14), 0 1px 0 rgba(255,255,255,0.8) inset",
+          border: "1px solid rgba(255,255,255,0.55)",
+        }}>
+
+        {/* Colour header stripe */}
+        <div className="shrink-0 flex items-center justify-between px-4 py-3"
+          style={{ background: `${color}18`, borderBottom: `2px solid ${color}30` }}>
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full" style={{ background: color }} />
+            <span className="text-xs font-bold uppercase tracking-widest" style={{ color }}>{typeLabel}</span>
+            <span className="text-xs text-slate-400 ml-1">{isRent ? "· For Rent" : "· For Sale"}</span>
+          </div>
+          <button onClick={onClose}
+            className="w-6 h-6 rounded-full bg-white/70 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
-        <div className="flex gap-4 px-5 pb-2">
-          <Link href={`/properties/${property.id}`}
-            className="relative w-24 h-20 rounded-2xl overflow-hidden bg-slate-100 shrink-0">
-            {img ? <Image src={img} alt={property.title} fill className="object-cover" />
-              : <div className="absolute inset-0 flex items-center justify-center text-2xl text-slate-300">🏠</div>}
-          </Link>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-lg font-bold text-slate-900">
-                  {fmtFull(property.price, property.currency)}
-                  {property.listing_type === "rent" && <span className="text-sm font-normal text-slate-400 ml-0.5">/mo</span>}
-                </p>
-                <p className="text-sm font-medium text-slate-700 mt-0.5 truncate">{property.title}</p>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  {[property.neighbourhood, property.city].filter(Boolean).join(", ")}
-                </p>
+
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto">
+
+          {/* Image */}
+          {img && (
+            <div className="relative w-full h-40 bg-slate-100">
+              <Image src={img} alt={property.title} fill className="object-cover" />
+            </div>
+          )}
+          {!img && (
+            <div className="w-full h-28 flex items-center justify-center text-5xl"
+              style={{ background: `${color}10` }}>
+              {property.property_type === "apartment" ? "🏢"
+                : property.property_type === "house" ? "🏠"
+                : property.property_type === "villa" ? "🏡"
+                : property.property_type === "office" ? "🏗️"
+                : property.property_type === "land" || property.property_type === "plot" ? "🌿"
+                : property.property_type === "hall" ? "🎪"
+                : property.property_type === "production" ? "🏭"
+                : "🏢"}
+            </div>
+          )}
+
+          <div className="px-4 pt-4 pb-2">
+            {/* Price */}
+            <div className="flex items-baseline gap-1.5 mb-0.5">
+              <span className="text-2xl font-extrabold text-slate-900">{priceFmt}</span>
+              {isRent && <span className="text-sm text-slate-400 font-medium">/mo</span>}
+            </div>
+            <p className="text-sm font-medium text-slate-700 mb-0.5">{property.title}</p>
+            <p className="text-xs text-slate-400 mb-3">
+              {[property.neighbourhood, property.city].filter(Boolean).join(" · ")}
+            </p>
+
+            {/* Specs grid */}
+            <div className="grid grid-cols-4 gap-2 mb-3">
+              {isResidential && property.bedrooms > 0 && (
+                <div className="bg-slate-50 rounded-xl p-2 text-center">
+                  <p className="text-base font-bold text-slate-800">{property.bedrooms}</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">Beds</p>
+                </div>
+              )}
+              {isResidential && property.bathrooms > 0 && (
+                <div className="bg-slate-50 rounded-xl p-2 text-center">
+                  <p className="text-base font-bold text-slate-800">{property.bathrooms}</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">Baths</p>
+                </div>
+              )}
+              {property.area_sqm && (
+                <div className="bg-slate-50 rounded-xl p-2 text-center">
+                  <p className="text-base font-bold text-slate-800">{property.area_sqm}</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">m²</p>
+                </div>
+              )}
+              {ppm && (
+                <div className="rounded-xl p-2 text-center" style={{ background: `${color}12` }}>
+                  <p className="text-[11px] font-bold" style={{ color }}>{ppm}</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">per m²</p>
+                </div>
+              )}
+            </div>
+
+            {/* Description */}
+            {property.description && (
+              <p className="text-xs text-slate-500 leading-relaxed mb-3 line-clamp-3">
+                {property.description}
+              </p>
+            )}
+
+            {/* Agent */}
+            {property.agent_name && (
+              <div className="border border-slate-100 rounded-xl p-3 mb-3">
+                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-2">Agent</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
+                    style={{ background: color }}>{initials}</div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-slate-800">{property.agent_name}</p>
+                    {property.agent_email && (
+                      <a href={`mailto:${property.agent_email}`}
+                        className="text-xs text-slate-400 hover:underline truncate block">{property.agent_email}</a>
+                    )}
+                    {property.agent_phone && (
+                      <a href={`tel:${property.agent_phone}`}
+                        className="text-xs text-slate-400 hover:underline block">{property.agent_phone}</a>
+                    )}
+                  </div>
+                </div>
               </div>
-              <button onClick={onClose}
-                className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
-                <svg className="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="flex items-center gap-2.5 mt-2 text-xs text-slate-400">
-              {property.bedrooms > 0  && <span>{property.bedrooms} bd.</span>}
-              {property.bathrooms > 0 && <><span>·</span><span>{property.bathrooms} ba.</span></>}
-              {property.area_sqm      && <><span>·</span><span>{property.area_sqm} m²</span></>}
-            </div>
+            )}
           </div>
         </div>
-        <div className="flex gap-2 px-5 pb-3 pt-1">
+
+        {/* Action buttons */}
+        <div className="shrink-0 flex gap-2 px-4 py-3 border-t border-slate-100/60">
           <Link href={`/properties/${property.id}`}
-            className="flex-1 py-3 rounded-2xl text-sm font-semibold text-white text-center"
-            style={{ backgroundColor: "var(--color-primary)" }}>
-            View details
+            className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white text-center transition-opacity hover:opacity-90"
+            style={{ backgroundColor: color }}>
+            View listing
           </Link>
           <Link href={`/?chat=1&q=${encodeURIComponent(`Book a viewing for "${property.title}"`)}`}
-            className="px-4 py-3 rounded-2xl text-sm font-medium border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors whitespace-nowrap">
+            className="px-4 py-2.5 rounded-xl text-sm font-medium border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors whitespace-nowrap">
+            Ask AI
+          </Link>
+        </div>
+      </div>
+
+      {/* ── Mobile bottom sheet ── */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-[410] bg-white rounded-t-3xl shadow-2xl"
+        style={{ paddingBottom: "calc(52px + env(safe-area-inset-bottom))" }}>
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="w-9 h-1 rounded-full bg-slate-200" />
+        </div>
+
+        {/* Type stripe */}
+        <div className="flex items-center justify-between px-4 py-2"
+          style={{ borderBottom: `2px solid ${color}30` }}>
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full" style={{ background: color }} />
+            <span className="text-xs font-bold uppercase tracking-wider" style={{ color }}>{typeLabel}</span>
+            <span className="text-xs text-slate-400">{isRent ? "· Rent" : "· Sale"}</span>
+          </div>
+          <button onClick={onClose} className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center">
+            <svg className="w-3 h-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="px-4 pt-3 pb-2">
+          <div className="flex items-baseline gap-1 mb-0.5">
+            <span className="text-xl font-extrabold text-slate-900">{priceFmt}</span>
+            {isRent && <span className="text-xs text-slate-400">/mo</span>}
+          </div>
+          <p className="text-sm font-medium text-slate-700 truncate">{property.title}</p>
+          <p className="text-xs text-slate-400 mt-0.5">
+            {[property.neighbourhood, property.city].filter(Boolean).join(", ")}
+          </p>
+          <div className="flex items-center gap-3 mt-2 text-xs text-slate-500">
+            {isResidential && property.bedrooms > 0 && <span>{property.bedrooms} bd</span>}
+            {isResidential && property.bathrooms > 0 && <span>· {property.bathrooms} ba</span>}
+            {property.area_sqm && <span>· {property.area_sqm} m²</span>}
+            {ppm && <span style={{ color }}>· {ppm}</span>}
+          </div>
+          {property.agent_name && (
+            <p className="text-xs text-slate-400 mt-1.5">Agent: {property.agent_name}
+              {property.agent_phone && <> · <a href={`tel:${property.agent_phone}`} className="underline">{property.agent_phone}</a></>}
+            </p>
+          )}
+        </div>
+
+        <div className="flex gap-2 px-4 pb-3">
+          <Link href={`/properties/${property.id}`}
+            className="flex-1 py-3 rounded-2xl text-sm font-semibold text-white text-center"
+            style={{ backgroundColor: color }}>
+            View listing
+          </Link>
+          <Link href={`/?chat=1&q=${encodeURIComponent(`Book a viewing for "${property.title}"`)}`}
+            className="px-4 py-3 rounded-2xl text-sm font-medium border border-slate-200 text-slate-600 whitespace-nowrap">
             Ask AI
           </Link>
         </div>
@@ -221,10 +420,11 @@ export function MapHomePage() {
   // Track which city names have already been fetched so we don't re-fetch on every pan
   const loadedCities = useRef<Set<string>>(new Set());
 
+  // Current placed coordinates (for minimum-distance filtering across batches)
+  const placedRef = useRef<Array<[number, number]>>([]);
+
   // Called by LeafletMap whenever the viewport changes (pan / zoom)
   const handleBoundsChange = useCallback(async (bounds: MapBounds) => {
-    // Find all known cities whose centre falls inside the current viewport
-    // Expand bounds slightly so pins near edges appear before the city center scrolls in
     const pad = 0.5;
     const visibleCities = Object.entries(CITY_COORDS)
       .filter(([, [lat, lng]]) =>
@@ -236,29 +436,33 @@ export function MapHomePage() {
 
     if (!visibleCities.length) return;
 
-    // Mark as loading immediately to prevent duplicate requests
+    // Mark all as loading immediately to prevent duplicate requests
     visibleCities.forEach(c => loadedCities.current.add(c));
 
-    // Fetch up to 15 cities in parallel, 60 listings each
-    const chunks = visibleCities.slice(0, 15);
-    const results = await Promise.all(
-      chunks.map(city =>
-        fetch(`/api/properties?city=${encodeURIComponent(city)}&limit=60&sort=newest`)
-          .then(r => r.ok ? r.json() : { data: [] })
-          .then(d => withCoords(d.data ?? []))
-          .catch(() => [] as PropertyWithCoords[])
-      )
-    );
+    // Single batched API call — one query, all visible cities
+    const batch = visibleCities.slice(0, 20); // max 20 cities per batch
+    const res = await fetch(
+      `/api/properties?cities=${encodeURIComponent(batch.join(","))}&limit=400&sort=newest`
+    ).catch(() => null);
+    if (!res?.ok) return;
 
-    const fresh = results.flat();
+    const json = await res.json().catch(() => ({ data: [] }));
+    const raw: Property[] = json.data ?? [];
+    if (!raw.length) return;
+
+    // Assign coords with minimum-distance deduplication across all existing pins
+    const fresh = withCoords(raw, placedRef.current);
     if (!fresh.length) return;
+
+    // Update placed coords reference
+    fresh.forEach(p => placedRef.current.push([p.lat, p.lng]));
 
     setProperties(prev => {
       const seen = new Set(prev.map(p => p.id));
       const added = fresh.filter(p => !seen.has(p.id));
-      // Cap total pins at 800 for performance — keep the newest additions
       const merged = [...prev, ...added];
-      return merged.length > 800 ? merged.slice(merged.length - 800) : merged;
+      // Cap at 1000 pins — drop oldest when over limit
+      return merged.length > 1000 ? merged.slice(merged.length - 1000) : merged;
     });
   }, []);
 
@@ -344,8 +548,8 @@ export function MapHomePage() {
         </div>
       )}
 
-      {/* Property sheet */}
-      {selected && <PropertySheet property={selected} onClose={() => setSelected(null)} />}
+      {/* Property detail panel */}
+      {selected && <PropertyDetailPanel property={selected} onClose={() => setSelected(null)} />}
     </div>
   );
 }
