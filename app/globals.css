@@ -30,6 +30,10 @@
   ::-webkit-scrollbar-thumb  { background: #CBD5E1; border-radius: 99px; }
   ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
 
+  /* Prevent browser UA stylesheet from overriding button text color,
+     which causes SVGs using currentColor to render in browser-default blue */
+  button { color: inherit; }
+
   /* Focus rings use primary color */
   input:focus, select:focus, textarea:focus, button:focus-visible {
     outline: 2px solid var(--color-primary);

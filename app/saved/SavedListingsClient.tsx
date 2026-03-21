@@ -206,7 +206,7 @@ function DetailDrawer({
                   <div className="w-8 h-8 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
                 ) : (
                   <>
-                    <div className="w-12 h-12 rounded-2xl bg-white border-2 border-dashed border-slate-300 group-hover:border-slate-400 flex items-center justify-center transition-colors">
+                    <div className="w-12 h-12 rounded-2xl bg-white border-2 border-dashed border-slate-300 group-hover:border-slate-400 flex items-center justify-center transition-colors text-slate-400 group-hover:text-slate-500">
                       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                           d="M12 4v16m8-8H4" />
