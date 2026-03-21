@@ -1,16 +1,11 @@
-import { Suspense } from "react";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
-import { AIChatPage } from "./components/chat/AIChatPage";
+import dynamic from "next/dynamic";
+
+// Map homepage must be client-side only (Leaflet is not SSR-safe)
+const MapHomePage = dynamic(
+  () => import("./components/map/MapHomePage").then((m) => ({ default: m.MapHomePage })),
+  { ssr: false }
+);
 
 export default function HomePage() {
-  return (
-    <>
-      <Header />
-      <Suspense fallback={null}>
-        <AIChatPage />
-      </Suspense>
-      <Footer />
-    </>
-  );
+  return <MapHomePage />;
 }

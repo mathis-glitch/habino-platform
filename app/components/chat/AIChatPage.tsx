@@ -442,7 +442,7 @@ function MicButton({ onResult, lang, size = "md" }: { onResult: (t: string) => v
 }
 
 // ── Main component ───────────────────────────────────────────────────────────
-export function AIChatPage() {
+export function AIChatPage({ initialQuery }: { initialQuery?: string } = {}) {
   const [messages, setMessages]       = useState<ChatMessage[]>([]);
   const [input, setInput]             = useState("");
   const [loading, setLoading]         = useState(false);
@@ -470,7 +470,7 @@ export function AIChatPage() {
 
   useEffect(() => { inputRef.current?.focus(); }, []);
 
-  // Auto-send ?q= query param (e.g. from "Book a Viewing" in Saved drawer)
+  // Auto-send ?q= query param OR initialQuery prop
   // Also handle ?wizard=profile to start the profile setup interview
   useEffect(() => {
     const q      = searchParams.get("q");
@@ -480,6 +480,8 @@ export function AIChatPage() {
       if (wizard === "profile") {
         sendMessage("I want to set up my profile");
         window.history.replaceState(null, "", "/");
+      } else if (initialQuery) {
+        sendMessage(initialQuery);
       } else if (q) {
         sendMessage(decodeURIComponent(q));
         window.history.replaceState(null, "", "/");
