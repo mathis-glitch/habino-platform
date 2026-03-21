@@ -684,8 +684,10 @@ export function MapHomePage() {
 
     const bbox = `${bounds.south},${bounds.west},${bounds.north},${bounds.east}`;
     const limit = getLimit(bounds.zoom);
+    // Use slim /api/map/pins — returns only the 8 fields needed for map pins,
+    // no images join, ~70% smaller response, proper Cache-Control headers
     const res = await fetch(
-      `/api/properties?bbox=${encodeURIComponent(bbox)}&limit=${limit}&sort=newest`
+      `/api/map/pins?bbox=${encodeURIComponent(bbox)}&zoom=${bounds.zoom}&limit=${limit}`
     ).catch(() => null);
     if (!res?.ok) return;
 

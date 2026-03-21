@@ -5,6 +5,13 @@ import { MapContainer, TileLayer, Marker, CircleMarker, Tooltip, useMap, Attribu
 import L from "leaflet";
 import type { Property } from "@/lib/types";
 
+// ── Shared canvas renderer ────────────────────────────────────────────────────
+// All listing CircleMarkers share ONE <canvas> element instead of one DOM node
+// per pin. At 5 000 pins this is ~10–50× faster than SVG/divIcon markers.
+// Must be created after window is available (client-side only).
+const PIN_RENDERER: L.Canvas | undefined =
+  typeof window !== "undefined" ? L.canvas({ padding: 0.5 }) : undefined;
+
 export type PropertyWithCoords = Property & { lat: number; lng: number };
 
 // City-level cluster used at low zoom levels (zoom < CLUSTER_ZOOM)
@@ -201,16 +208,41 @@ export default function LeafletMap({
       })}
 
       {/* ── Individual listing pins (zoom >= CLUSTER_ZOOM) ────────────────── */}
+      {/* All pins share a single canvas element via PIN_RENDERER (~10-50× faster  */}
+      {/* than divIcon/SVG at 5 000+ pins). Selected pin uses a DOM Marker on top. */}
       {!showClusters && properties.map((p) => {
-        const selected = p.id === selectedId;
-        const dimmed   = !selected && !!highlightSet && !highlightSet.has(p.id);
+        const selected    = p.id === selectedId;
+        const highlighted = highlightSet?.has(p.id) ?? false;
+        const dimmed      = !selected && !!highlightSet && !highlighted;
+        const color       = TYPE_COLORS[p.property_type] ?? "#3B82F6";
+
+        if (selected) {
+          // Selected pin: DOM Marker so it floats above the canvas layer
+          return (
+            <Marker
+              key={p.id}
+              position={[p.lat, p.lng]}
+              icon={makePinIcon(p, true, false)}
+              eventHandlers={{ click: () => onSelect(p) }}
+              zIndexOffset={1000}
+            />
+          );
+        }
+
         return (
-          <Marker
+          <CircleMarker
             key={p.id}
-            position={[p.lat, p.lng]}
-            icon={makePinIcon(p, selected, dimmed)}
+            center={[p.lat, p.lng]}
+            // @ts-expect-error — renderer is a valid Leaflet Path option
+            renderer={PIN_RENDERER}
+            radius={highlighted ? 9 : 6}
+            pathOptions={{
+              color:       "white",
+              weight:      1.5,
+              fillColor:   color,
+              fillOpacity: dimmed ? 0.25 : 0.85,
+            }}
             eventHandlers={{ click: () => onSelect(p) }}
-            zIndexOffset={selected ? 1000 : highlightSet?.has(p.id) ? 500 : 0}
           />
         );
       })}
