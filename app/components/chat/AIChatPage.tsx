@@ -611,16 +611,16 @@ export function AIChatPage() {
   }
 
   const quickActions = [
-    { icon: "📝", text: "I want to list my property", label: "List a property" },
-    { icon: "📄", text: "Create a contract",          label: "Create a contract" },
-    { icon: "👤", text: "I want to set up my profile", label: "Set up profile" },
+    { icon: "📝", text: "Ich möchte eine Immobilie inserieren", label: "Inserieren" },
+    { icon: "📄", text: "Vertrag erstellen",                    label: "Vertrag" },
+    { icon: "👤", text: "Profil einrichten",                    label: "Profil" },
   ];
 
   const suggestions = [
-    { icon: "🏠", text: "Show apartments for rent" },
-    { icon: "💰", text: "What's available under $300k?" },
-    { icon: "🛏️", text: "I need a 3-bedroom home" },
-    { icon: "🏙️", text: "Show properties in Nairobi" },
+    { icon: "🏠", text: "Wohnungen zur Miete in Nairobi" },
+    { icon: "🏢", text: "Büroflächen in Addis Ababa" },
+    { icon: "🛏️", text: "3-Zimmer Wohnung unter 100.000 KES" },
+    { icon: "🏗️", text: "Grundstück kaufen in Cape Town" },
   ];
 
   const hasMessages = messages.length > 0;
@@ -637,14 +637,14 @@ export function AIChatPage() {
             <div className="text-center max-w-xl mb-10">
               <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 text-slate-500 text-xs font-semibold mb-5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse" />
-                AI-Powered Real Estate
+                KI-gestützte Immobiliensuche
               </div>
               <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 leading-tight tracking-tight mb-4">
-                Find your perfect<br />
-                <span style={{ color: "var(--color-primary)" }}>home with AI</span>
+                Deine Immobilie.<br />
+                <span style={{ color: "var(--color-primary)" }}>Gefunden per KI.</span>
               </h1>
-              <p className="text-slate-500 text-lg">
-                Describe what you&apos;re looking for — I&apos;ll find matching properties and book viewings. Property owner? I can list your property too.
+              <p className="text-slate-500 text-base md:text-lg">
+                Beschreibe was du suchst — ich finde passende Immobilien und buche Besichtigungen. Eigentümer? Ich helfe dir beim Inserieren.
               </p>
             </div>
 
@@ -796,7 +796,7 @@ export function AIChatPage() {
                 value={input}
                 onChange={(e) => { setInput(e.target.value); autoResize(e.target); }}
                 onKeyDown={handleKeyDown}
-                placeholder="Ask anything about properties..."
+                placeholder="Wonach suchst du? z.B. 3-Zi. Wohnung in Nairobi unter 80.000 KES..."
                 rows={1}
                 className="flex-1 bg-transparent text-sm text-slate-800 placeholder-slate-400 resize-none focus:outline-none leading-relaxed"
                 style={{ maxHeight: "120px" }}
@@ -814,7 +814,7 @@ export function AIChatPage() {
                 </svg>
               </button>
             </div>
-            <p className="text-center text-[11px] text-slate-300 mt-1.5">Enter to send · Tap 🎤 to speak</p>
+            <p className="text-center text-[11px] text-slate-300 mt-1.5">Enter zum Senden · 🎤 Spracheingabe</p>
           </div>
         </div>
     </main>

@@ -3,14 +3,24 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { createServiceClient } from "@/lib/supabase/server";
 import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
 import { PropertyCard } from "@/components/properties/PropertyCard";
 import { ImageGallery } from "../../components/properties/ImageGallery";
-import { BookingForm } from "../../components/properties/BookingForm";
-import { CopyLinkButton } from "@/components/ui/CopyLinkButton";
 import { PhotoEditPanel } from "@/components/properties/PhotoEditPanel";
+import { StickyContactBar, SaveButton } from "@/components/properties/PropertyDetailActions";
 import { Property } from "@/lib/types";
-import { formatPrice, formatArea } from "@/lib/utils";
+import { formatPrice } from "@/lib/utils";
+
+const PROP_TYPE_LABELS: Record<string, string> = {
+  apartment:  "Wohnung",
+  house:      "Haus",
+  villa:      "Villa",
+  commercial: "Gewerbe",
+  office:     "Büro",
+  hall:       "Halle",
+  production: "Produktion",
+  land:       "Grundstück",
+  plot:       "Baugrundstück",
+};
 
 export default async function PropertyDetailPage({
   params,
@@ -49,184 +59,153 @@ export default async function PropertyDetailPage({
     .limit(3);
 
   const specs = [
-    property.bedrooms  > 0 && { label: "Zimmer",    value: property.bedrooms },
-    property.bathrooms > 0 && { label: "Bäder",     value: property.bathrooms },
-    property.area_sqm  > 0 && { label: "m²",        value: property.area_sqm },
-    property.floor     != null && { label: "Etage",  value: property.floor },
-    property.parking   > 0 && { label: "Parkplätze", value: property.parking },
-  ].filter(Boolean) as { label: string; value: number }[];
+    property.bedrooms  > 0 && { icon: "🛏", label: "Zimmer",   value: property.bedrooms },
+    property.bathrooms > 0 && { icon: "🚿", label: "Bäder",    value: property.bathrooms },
+    property.area_sqm  > 0 && { icon: "📐", label: "m²",       value: property.area_sqm },
+  ].filter(Boolean) as { icon: string; label: string; value: number }[];
+
+  const typeLabel = PROP_TYPE_LABELS[property.property_type] ?? property.property_type;
+  const location  = [property.neighbourhood, property.city].filter(Boolean).join(", ");
 
   return (
     <>
       <Header />
-      <main className="max-w-5xl mx-auto px-4 py-8">
 
-        {/* Breadcrumb */}
-        <nav className="text-sm text-slate-400 mb-6 flex items-center gap-2 flex-wrap">
-          <Link href="/" className="hover:text-primary transition-colors">KI Agent</Link>
-          <span>/</span>
-          <Link href="/search" className="hover:text-primary transition-colors">Immobilien</Link>
-          <span>/</span>
-          <Link href={`/search?type=${property.listing_type}`} className="hover:text-primary transition-colors capitalize">
-            {property.listing_type === "buy" ? "Kaufen" : "Mieten"}
+      {/* ── Back bar ── */}
+      <div className="sticky top-14 z-40 bg-white/95 backdrop-blur-sm border-b border-slate-100">
+        <div className="max-w-5xl mx-auto px-4 h-10 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 transition-colors">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Zurück
           </Link>
-          <span>/</span>
-          <span className="text-slate-600 line-clamp-1">{property.title}</span>
-        </nav>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-          {/* ── Left: images + details ── */}
-          <div className="lg:col-span-2 flex flex-col gap-6">
-
-            <ImageGallery images={images} title={property.title} />
-
-            {/* Photo management — edit or add photos */}
-            <PhotoEditPanel propertyId={property.id} imageCount={images.length} />
-
-            {/* Title + location */}
-            <div>
-              <div className="flex items-start justify-between gap-3 flex-wrap">
-                <h1 className="text-2xl font-bold text-slate-900 leading-tight">{property.title}</h1>
-                <span className="px-3 py-1 rounded-full text-sm font-semibold text-white shrink-0"
-                  style={{ backgroundColor: property.listing_type === "buy" ? "#3B82F6" : "var(--color-primary)" }}>
-                  {property.listing_type === "buy" ? "Kaufen" : "Mieten"}
-                </span>
-              </div>
-              <p className="text-slate-500 mt-2 flex items-center gap-1.5">
-                <svg className="w-4 h-4 shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                </svg>
-                {[property.address, property.neighbourhood, property.city].filter(Boolean).join(", ")}
-              </p>
-            </div>
-
-            {/* Price */}
-            <div className="bg-slate-50 rounded-xl p-5 flex items-center justify-between">
-              <div>
-                <p className="text-3xl font-bold text-slate-900">
-                  {formatPrice(property.price, property.currency)}
-                  {property.listing_type === "rent" && (
-                    <span className="text-lg font-normal text-slate-400 ml-1">/Monat</span>
-                  )}
-                </p>
-                {property.area_sqm && (
-                  <p className="text-sm text-slate-500 mt-0.5">
-                    {formatPrice(Math.round(property.price / property.area_sqm), property.currency)}/m²
-                  </p>
-                )}
-              </div>
-              <span className="px-3 py-1.5 rounded-xl text-sm font-medium bg-white border border-slate-200 text-slate-600 capitalize">
-                {property.property_type}
-              </span>
-            </div>
-
-            {/* Specs grid */}
-            {specs.length > 0 && (
-              <div className={`grid gap-3 ${specs.length >= 4 ? "grid-cols-4" : `grid-cols-${specs.length}`}`}>
-                {specs.map(({ label, value }) => (
-                  <div key={label} className="bg-white border border-slate-200 rounded-xl p-4 text-center shadow-sm">
-                    <p className="text-2xl font-bold text-slate-900">{value}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">{label}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Description */}
-            {property.description && (
-              <div>
-                <h2 className="font-semibold text-slate-800 mb-3 text-base">Objektbeschreibung</h2>
-                <p className="text-slate-600 leading-relaxed whitespace-pre-line">{property.description}</p>
-              </div>
-            )}
-
-            {/* Features */}
-            {property.features?.length > 0 && (
-              <div>
-                <h2 className="font-semibold text-slate-800 mb-3 text-base">Ausstattung</h2>
-                <div className="flex flex-wrap gap-2">
-                  {property.features.map((f: string) => (
-                    <span key={f} className="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-sm">{f}</span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* ── Right: contact + booking ── */}
-          <div className="flex flex-col gap-4">
-
-            {/* Price summary (mobile sticky) */}
-            <div className="hidden lg:block bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-              <p className="text-2xl font-bold text-slate-900">
-                {formatPrice(property.price, property.currency)}
-                {property.listing_type === "rent" && (
-                  <span className="text-base font-normal text-slate-400 ml-1">/Monat</span>
-                )}
-              </p>
-              <p className="text-sm text-slate-400 mt-0.5 capitalize">{property.property_type} · {property.city}</p>
-            </div>
-
-            {/* Booking form */}
-            <BookingForm propertyId={property.id} propertyTitle={property.title} />
-
-            {/* Agent contact */}
-            {(property.agent_name || property.agent_phone || property.agent_email) && (
-              <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-                <h3 className="font-semibold text-slate-800 mb-4 text-sm">Ansprechpartner</h3>
-                {property.agent_name && (
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0"
-                      style={{ backgroundColor: "var(--color-primary)" }}>
-                      {property.agent_name.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <p className="font-medium text-slate-800 text-sm">{property.agent_name}</p>
-                      <p className="text-xs text-slate-400">Listing Agent</p>
-                    </div>
-                  </div>
-                )}
-                <div className="flex flex-col gap-2">
-                  {property.agent_phone && (
-                    <a href={`tel:${property.agent_phone}`}
-                      className="w-full py-2.5 rounded-xl text-sm text-center font-medium text-white transition-opacity hover:opacity-90"
-                      style={{ backgroundColor: "var(--color-primary)" }}>
-                      📞 {property.agent_phone}
-                    </a>
-                  )}
-                  {property.agent_email && (
-                    <a href={`mailto:${property.agent_email}?subject=Anfrage: ${encodeURIComponent(property.title)}`}
-                      className="w-full py-2.5 rounded-xl text-sm text-center font-medium border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors">
-                      E-Mail schreiben
-                    </a>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Share */}
-            <div className="bg-white border border-slate-200 rounded-xl p-4 text-center shadow-sm">
-              <p className="text-xs text-slate-400 mb-2">Inserat teilen</p>
-              <CopyLinkButton />
-            </div>
+          <div className="flex items-center gap-2">
+            <SaveButton propertyId={property.id} />
           </div>
         </div>
+      </div>
 
-        {/* Similar */}
-        {similar && similar.length > 0 && (
-          <section className="mt-14">
-            <h2 className="font-semibold text-slate-800 text-lg mb-5">Ähnliche Inserate</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {(similar as Property[]).map((p) => (
-                <PropertyCard key={p.id} property={p} />
-              ))}
+      <main className="max-w-5xl mx-auto px-0 md:px-4 pb-40 md:pb-24">
+
+        {/* ── Gallery — edge-to-edge on mobile ── */}
+        <div className="md:rounded-2xl md:overflow-hidden md:mt-4">
+          <ImageGallery images={images} title={property.title} />
+        </div>
+
+        <div className="px-4 md:px-0">
+
+          {/* ── Price + badge ── */}
+          <div className="flex items-start justify-between gap-3 mt-5">
+            <div>
+              <p className="text-3xl font-black text-slate-900 tracking-tight">
+                {formatPrice(property.price, property.currency)}
+                {property.listing_type === "rent" && (
+                  <span className="text-lg font-normal text-slate-400 ml-1">/Mo.</span>
+                )}
+              </p>
+              {property.area_sqm > 0 && (
+                <p className="text-sm text-slate-400 mt-0.5">
+                  {formatPrice(Math.round(property.price / property.area_sqm), property.currency)}/m²
+                </p>
+              )}
             </div>
-          </section>
-        )}
+            <span
+              className="shrink-0 mt-1 px-3 py-1 rounded-full text-xs font-bold text-white"
+              style={{ backgroundColor: property.listing_type === "buy" ? "#3B82F6" : "var(--color-primary)" }}
+            >
+              {property.listing_type === "buy" ? "Kaufen" : "Mieten"}
+            </span>
+          </div>
+
+          {/* ── Title + location ── */}
+          <h1 className="text-xl font-bold text-slate-900 leading-snug mt-3">
+            {property.title}
+          </h1>
+          {location && (
+            <p className="flex items-center gap-1 text-sm text-slate-500 mt-1.5">
+              <svg className="w-3.5 h-3.5 shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              </svg>
+              {location}
+            </p>
+          )}
+
+          {/* ── Specs row ── */}
+          {specs.length > 0 && (
+            <div className="flex gap-3 mt-5">
+              {specs.map(({ icon, label, value }) => (
+                <div key={label}
+                  className="flex-1 bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
+                  <p className="text-xl font-bold text-slate-900">{value}</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">{label}</p>
+                </div>
+              ))}
+              <div className="flex-1 bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
+                <p className="text-base font-bold text-slate-900">{typeLabel}</p>
+                <p className="text-[11px] text-slate-400 mt-0.5">Typ</p>
+              </div>
+            </div>
+          )}
+
+          {/* ── Description ── */}
+          {property.description && (
+            <div className="mt-6">
+              <h2 className="font-semibold text-slate-800 mb-2 text-sm uppercase tracking-wide text-slate-400">
+                Beschreibung
+              </h2>
+              <p className="text-slate-600 leading-relaxed text-sm whitespace-pre-line">
+                {property.description}
+              </p>
+            </div>
+          )}
+
+          {/* ── Agent card ── */}
+          {(property.agent_name || property.agent_phone) && (
+            <div className="mt-6 bg-slate-50 rounded-2xl p-4 border border-slate-100">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Ansprechpartner</p>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
+                  style={{ backgroundColor: "var(--color-primary)" }}>
+                  {property.agent_name?.charAt(0).toUpperCase() ?? "A"}
+                </div>
+                <div className="min-w-0">
+                  <p className="font-semibold text-slate-800 text-sm truncate">{property.agent_name}</p>
+                  {property.agent_phone && (
+                    <p className="text-xs text-slate-400">{property.agent_phone}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Photo upload (owner only) ── */}
+          <div className="mt-4">
+            <PhotoEditPanel propertyId={property.id} imageCount={images.length} />
+          </div>
+
+          {/* ── Similar listings ── */}
+          {similar && similar.length > 0 && (
+            <section className="mt-8">
+              <h2 className="font-semibold text-slate-800 mb-4">Ähnliche Inserate</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {(similar as Property[]).map((p) => (
+                  <PropertyCard key={p.id} property={p} />
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
       </main>
-      <Footer />
+
+      {/* ── Sticky contact bar ── */}
+      <StickyContactBar
+        propertyId={property.id}
+        agentPhone={property.agent_phone}
+        agentEmail={property.agent_email}
+        propertyTitle={property.title}
+      />
     </>
   );
 }
