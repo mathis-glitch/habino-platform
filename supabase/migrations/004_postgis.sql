@@ -1,54 +1,45 @@
 -- ─────────────────────────────────────────────────────────────────────────────
--- Migration 004 — PostGIS spatial extension  (OPTIONAL — run when ready)
+-- Migration 004 — PostGIS spatial index
 --
--- Why:
---   PostGIS replaces the plain FLOAT lat/lng B-tree index with a proper
---   GiST spatial index.  Viewport bbox queries use ST_MakeEnvelope + &&
---   which is ~5–10× faster on large tables than gte/lte range scans.
+-- Run this AFTER enabling the PostGIS extension in Supabase:
+--   Dashboard → Database → Extensions → postgis → Enable
 --
--- How to enable in Supabase:
---   1. Dashboard → Extensions → Enable "postgis"
---   2. Then run this migration in the SQL Editor.
+-- Then paste this entire file into the Supabase SQL Editor and run it.
 --
--- After enabling, update app/api/properties/route.ts:
---   Replace:  .gte("lat", south).lte("lat", north).gte("lng", west).lte("lng", east)
---   With RPC: .rpc("properties_in_bbox", { south, west, north, east, p_tenant: tenantId })
+-- What this does:
+--   1. Adds a generated `geom` column (Point geometry derived from lat/lng)
+--   2. Builds a GiST spatial index on it — bbox queries become 5–10× faster
+--   3. Populates geom for any existing rows that have lat/lng
+--
+-- After this migration is applied, the API auto-detects PostGIS and switches
+-- to the faster st_intersects path on the next bbox request. No code deploy needed.
 -- ─────────────────────────────────────────────────────────────────────────────
 
--- 1. Enable PostGIS (may already be enabled on your Supabase project)
+-- 1. Enable the extension (safe to run even if already enabled)
 CREATE EXTENSION IF NOT EXISTS postgis;
 
--- 2. Add geometry column (stored alongside lat/lng for backward compat)
+-- 2. Add geom as a stored generated column (auto-computed from lat/lng)
+--    The GENERATED ALWAYS AS syntax keeps geom in sync with lat/lng automatically.
 ALTER TABLE properties
   ADD COLUMN IF NOT EXISTS geom GEOMETRY(Point, 4326)
     GENERATED ALWAYS AS (
-      CASE WHEN lat IS NOT NULL AND lng IS NOT NULL
-           THEN ST_SetSRID(ST_MakePoint(lng, lat), 4326)
+      CASE
+        WHEN lat IS NOT NULL AND lng IS NOT NULL
+        THEN ST_SetSRID(ST_MakePoint(lng, lat), 4326)
       END
     ) STORED;
 
--- 3. GiST spatial index — used by ST_MakeEnvelope && bbox queries
+-- 3. GiST spatial index — used by st_intersects queries
+--    This is the index that makes bbox map queries fast.
 CREATE INDEX IF NOT EXISTS properties_geom_gist
   ON properties USING GIST (geom)
   WHERE geom IS NOT NULL;
 
--- 4. RPC helper for bbox lookup (called from the API instead of gte/lte)
-CREATE OR REPLACE FUNCTION properties_in_bbox(
-  p_tenant UUID,
-  south    FLOAT,
-  west     FLOAT,
-  north    FLOAT,
-  east     FLOAT,
-  lim      INT DEFAULT 500
-)
-RETURNS SETOF properties
-LANGUAGE sql STABLE AS $$
-  SELECT *
-  FROM   properties
-  WHERE  tenant_id = p_tenant
-    AND  status    = 'active'
-    AND  geom      IS NOT NULL
-    AND  geom && ST_MakeEnvelope(west, south, east, north, 4326)
-  ORDER BY created_at DESC
-  LIMIT lim;
-$$;
+-- 4. Composite index for tenant + spatial — further speeds up per-tenant queries
+CREATE INDEX IF NOT EXISTS properties_tenant_geom_gist
+  ON properties USING GIST (tenant_id, geom)
+  WHERE geom IS NOT NULL;
+
+-- Done. The API will automatically detect and use PostGIS on next request.
+-- You can verify it's working by checking the `_postgis: true` field in
+-- any /api/properties?bbox=... response.

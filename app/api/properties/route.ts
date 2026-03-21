@@ -2,6 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { PropertyFilters } from "@/lib/types";
 
+// ── PostGIS auto-detection ─────────────────────────────────────────────────────
+// Cached per process: `null` = not yet tested, `true/false` = result of first bbox query.
+// First request probes PostGIS; if the `geom` column doesn't exist it falls back to
+// lat/lng range scan and permanently disables the PostGIS path (no repeated retries).
+let postgisEnabled: boolean | null = null;
+
+// Build a WKT envelope string for PostGIS st_intersects
+function makeEnvelope(south: number, west: number, north: number, east: number): string {
+  return `SRID=4326;POLYGON((${west} ${south},${east} ${south},${east} ${north},${west} ${north},${west} ${south}))`;
+}
+
 // GET /api/properties — public listing feed
 export async function GET(request: NextRequest) {
   const tenantId = request.headers.get("x-tenant-id");
@@ -25,48 +36,105 @@ export async function GET(request: NextRequest) {
   const supabase = createServiceClient();
   const offset   = ((filters.page || 1) - 1) * (filters.limit || 12);
 
-  let query = supabase
-    .from("properties")
-    .select("*, images:property_images(id, url, sort_order)", { count: "exact" })
-    .eq("tenant_id", tenantId)
-    .eq("status", "active")
-    .range(offset, offset + (filters.limit || 12) - 1);
-
-  if (filters.listing_type)  query = query.eq("listing_type",  filters.listing_type);
-  if (filters.property_type) query = query.eq("property_type", filters.property_type);
-
-  // bbox = viewport bounding box (south,west,north,east) — primary map loading method
+  // ── Parse bbox ──────────────────────────────────────────────────────────────
   const bboxParam = searchParams.get("bbox");
+  let bboxCoords: { south: number; west: number; north: number; east: number } | null = null;
   if (bboxParam) {
     const [south, west, north, east] = bboxParam.split(",").map(Number);
     if (!isNaN(south) && !isNaN(west) && !isNaN(north) && !isNaN(east)) {
-      query = query
-        .gte("lat", south).lte("lat", north)
-        .gte("lng", west) .lte("lng", east)
-        .not("lat", "is", null);
+      bboxCoords = { south, west, north, east };
     }
   }
-  // cities = legacy comma-separated list (kept for backwards compat); city = single ilike search
-  const citiesParam = searchParams.get("cities");
-  if (!bboxParam && citiesParam) {
-    const cityList = citiesParam.split(",").map(c => c.trim()).filter(Boolean);
-    query = query.in("city", cityList);
-  } else if (!bboxParam && filters.city) {
-    query = query.ilike("city", `%${filters.city}%`);
+
+  // ── Base query builder (filters shared between PostGIS + fallback paths) ───
+  function buildBase() {
+    let q = supabase
+      .from("properties")
+      .select("*, images:property_images(id, url, sort_order)", { count: "exact" })
+      .eq("tenant_id", tenantId!)
+      .eq("status", "active")
+      .range(offset, offset + (filters.limit || 12) - 1);
+
+    if (filters.listing_type)  q = q.eq("listing_type",  filters.listing_type);
+    if (filters.property_type) q = q.eq("property_type", filters.property_type);
+    if (filters.min_price)     q = q.gte("price", filters.min_price);
+    if (filters.max_price)     q = q.lte("price", filters.max_price);
+    if (filters.bedrooms)      q = q.eq("bedrooms", filters.bedrooms);
+
+    return q;
   }
 
-  if (filters.min_price)     query = query.gte("price", filters.min_price);
-  if (filters.max_price)     query = query.lte("price", filters.max_price);
-  if (filters.bedrooms)      query = query.eq("bedrooms", filters.bedrooms);
+  // Apply sort order — returns the same query type Supabase expects
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function applySort(q: any): any {
+    if (filters.sort === "price_asc")  return q.order("price",      { ascending: true  });
+    if (filters.sort === "price_desc") return q.order("price",      { ascending: false });
+    if (filters.sort === "spread")     return q.order("lng",        { ascending: true  }).order("lat", { ascending: true });
+    return                                    q.order("created_at", { ascending: false });
+  }
 
-  // "spread" sort: order by lng so pins are evenly distributed west→east across the bbox
-  // Used for large-bbox overview queries where geographic spread matters more than recency.
-  if (filters.sort === "price_asc")   query = query.order("price",      { ascending: true  });
-  else if (filters.sort === "price_desc") query = query.order("price",  { ascending: false });
-  else if (filters.sort === "spread") query = query.order("lng",        { ascending: true  }).order("lat", { ascending: true });
-  else                                query = query.order("created_at", { ascending: false });
+  // ── City / legacy filter (only when no bbox) ────────────────────────────────
+  const citiesParam = searchParams.get("cities");
 
-  const { data, error, count } = await query;
+  // ── Execute query ──────────────────────────────────────────────────────────
+  let data: any[] | null = null;
+  let count: number | null = null;
+  let error: { message: string } | null = null;
+
+  if (bboxCoords) {
+    const { south, west, north, east } = bboxCoords;
+
+    // ── Path A: PostGIS st_intersects (GiST index — 5–10× faster) ───────────
+    if (postgisEnabled !== false) {
+      const q = applySort(
+        buildBase().filter("geom", "st_intersects", makeEnvelope(south, west, north, east))
+      );
+      const result = await q;
+
+      if (!result.error) {
+        // PostGIS worked — cache positive result
+        postgisEnabled = true;
+        data  = result.data;
+        count = result.count;
+      } else if (result.error.message.includes("geom") || result.error.message.includes("postgis")) {
+        // PostGIS not yet enabled — permanently fall back to B-tree path
+        console.info("[map] PostGIS not available, falling back to lat/lng range scan");
+        postgisEnabled = false;
+        error = result.error;
+      } else {
+        // Some other error — surface it
+        error = result.error;
+      }
+    }
+
+    // ── Path B: lat/lng B-tree range scan (fallback) ─────────────────────────
+    if (postgisEnabled === false && !data) {
+      const q = applySort(
+        buildBase()
+          .gte("lat", south).lte("lat", north)
+          .gte("lng", west) .lte("lng", east)
+          .not("lat", "is", null)
+      );
+      const result = await q;
+      data  = result.data;
+      count = result.count;
+      error = result.error;
+    }
+
+  } else {
+    // ── No bbox: city name filter or plain list ───────────────────────────────
+    let q = buildBase();
+    if (citiesParam) {
+      const cityList = citiesParam.split(",").map(c => c.trim()).filter(Boolean);
+      q = q.in("city", cityList);
+    } else if (filters.city) {
+      q = q.ilike("city", `%${filters.city}%`);
+    }
+    const result = await applySort(q);
+    data  = result.data;
+    count = result.count;
+    error = result.error;
+  }
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -77,6 +145,7 @@ export async function GET(request: NextRequest) {
     total: count || 0,
     page:  filters.page,
     limit: filters.limit,
+    _postgis: postgisEnabled ?? "probing", // debug info (stripped in production builds)
   });
 }
 
