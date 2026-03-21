@@ -1,11 +1,22 @@
 "use client";
 
 import { useEffect, useCallback } from "react";
-import { MapContainer, TileLayer, Marker, useMap, AttributionControl } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, CircleMarker, Tooltip, useMap, AttributionControl } from "react-leaflet";
 import L from "leaflet";
 import type { Property } from "@/lib/types";
 
 export type PropertyWithCoords = Property & { lat: number; lng: number };
+
+// City-level cluster used at low zoom levels (zoom < CLUSTER_ZOOM)
+export type CityCluster = {
+  city:          string;
+  country:       string;
+  lat:           number;
+  lng:           number;
+  listing_count: number;
+};
+
+export const CLUSTER_ZOOM = 8; // switch from city bubbles → individual pins at this zoom
 
 export type MapBounds = {
   north: number; south: number;
@@ -123,13 +134,19 @@ interface LeafletMapProps {
   highlightedIds?:  string[];          // IDs returned by AI search — others are dimmed
   onSelect:         (p: PropertyWithCoords) => void;
   onBoundsChange?:  (b: MapBounds) => void;
+  // City-level cluster layer — shown at zoom < CLUSTER_ZOOM
+  cityClusters?:    CityCluster[];
+  currentZoom?:     number;
+  onCityClick?:     (c: CityCluster) => void;
 }
 
 export default function LeafletMap({
   center, zoom = 5, properties, selectedId, highlightedIds, onSelect, onBoundsChange,
+  cityClusters, currentZoom = zoom, onCityClick,
 }: LeafletMapProps) {
   const hasHighlight = highlightedIds && highlightedIds.length > 0;
   const highlightSet = hasHighlight ? new Set(highlightedIds) : null;
+  const showClusters = currentZoom < CLUSTER_ZOOM;
 
   return (
     <MapContainer
@@ -154,7 +171,37 @@ export default function LeafletMap({
       />
       <MapFlyTo center={center} zoom={zoom} />
       {onBoundsChange && <BoundsWatcher onBoundsChange={onBoundsChange} />}
-      {properties.map((p) => {
+
+      {/* ── City cluster layer (zoom < CLUSTER_ZOOM) ──────────────────────── */}
+      {showClusters && cityClusters?.map((c) => {
+        // Radius: logarithmic scale 6–30 px based on listing count
+        const r = Math.min(30, Math.max(6, Math.log2(c.listing_count + 1) * 3.2));
+        return (
+          <CircleMarker
+            key={`${c.city}|${c.country}`}
+            center={[c.lat, c.lng]}
+            radius={r}
+            pathOptions={{
+              color:       "#1d4ed8",
+              fillColor:   "#3b82f6",
+              fillOpacity: 0.55,
+              weight:      1.5,
+            }}
+            eventHandlers={{ click: () => onCityClick?.(c) }}
+          >
+            <Tooltip direction="top" offset={[0, -r]} opacity={0.9}>
+              <span style={{ fontWeight: 600 }}>{c.city}</span>
+              <br />
+              <span style={{ fontSize: "0.78em", color: "#555" }}>
+                {c.listing_count.toLocaleString()} listings
+              </span>
+            </Tooltip>
+          </CircleMarker>
+        );
+      })}
+
+      {/* ── Individual listing pins (zoom >= CLUSTER_ZOOM) ────────────────── */}
+      {!showClusters && properties.map((p) => {
         const selected = p.id === selectedId;
         const dimmed   = !selected && !!highlightSet && !highlightSet.has(p.id);
         return (

@@ -5,7 +5,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { Property } from "@/lib/types";
-import type { PropertyWithCoords, MapBounds } from "./LeafletMap";
+import type { PropertyWithCoords, MapBounds, CityCluster } from "./LeafletMap";
+import { CLUSTER_ZOOM as CITY_CLUSTER_ZOOM } from "./LeafletMap";
 import { AIChatPage } from "@/app/components/chat/AIChatPage";
 
 // Load Leaflet map client-side only (no SSR)
@@ -610,6 +611,8 @@ function HabinoPanel({ onClose }: { onClose: () => void }) {
 // ── Main component ────────────────────────────────────────────────────────────
 export function MapHomePage() {
   const [properties,     setProperties]     = useState<PropertyWithCoords[]>([]);
+  const [cityClusters,   setCityClusters]   = useState<CityCluster[]>([]);
+  const [currentZoom,    setCurrentZoom]    = useState(4);
   const [selected,       setSelected]       = useState<PropertyWithCoords | null>(null);
   const [chatOpen,       setChatOpen]       = useState(false);
   const [habinoOpen,     setHabinoOpen]     = useState(false);
@@ -657,33 +660,24 @@ export function MapHomePage() {
     });
   }, []);
 
-  // ── Global overview on mount: pre-warm 8 continental regions in parallel ──
-  // This ensures pins are visible worldwide before the user pans anywhere.
+  // ── Load city cluster layer on mount (replaces 8-region pre-warm) ──────────
+  // A single request for ~1 500 rows — loads in < 100 ms, shows bubbles worldwide
+  // before the user pans anywhere. Individual pins only load when zoomed to city level.
   useEffect(() => {
-    const CONTINENTAL_BBOXES = [
-      "15,-170,80,-50",    // North America
-      "-60,-90,15,-30",    // South America
-      "35,-30,80,40",      // Europe
-      "-35,-20,35,55",     // Africa
-      "0,40,45,80",        // Middle East / Central Asia
-      "-10,60,35,100",     // South Asia
-      "10,100,55,150",     // East Asia
-      "-50,100,0,180",     // Oceania & SE Asia
-    ];
-    Promise.all(
-      CONTINENTAL_BBOXES.map(bbox =>
-        fetch(`/api/properties?bbox=${encodeURIComponent(bbox)}&limit=80&sort=spread`)
-          .then(r => r.ok ? r.json() : { data: [] })
-          .catch(() => ({ data: [] }))
-      )
-    ).then(results => {
-      mergeListings(results.flatMap((j: { data?: Property[] }) => j.data ?? []));
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    fetch("/api/map/cities")
+      .then(r => r.ok ? r.json() : { data: [] })
+      .then((j: { data?: CityCluster[] }) => setCityClusters(j.data ?? []))
+      .catch(() => {});
   }, []);
 
   // ── Called by LeafletMap on pan / zoom ────────────────────────────────────
   const handleBoundsChange = useCallback(async (bounds: MapBounds) => {
+    setCurrentZoom(bounds.zoom);
+
+    // Below cluster-switch zoom: the city bubble layer is shown — no need to load
+    // individual pins until the user actually zooms into a city.
+    if (bounds.zoom < CITY_CLUSTER_ZOOM) return;
+
     const tileKey = getTileKey(bounds);
     if (loadedTiles.current.has(tileKey)) return;
     loadedTiles.current.add(tileKey);
@@ -699,8 +693,10 @@ export function MapHomePage() {
     mergeListings(json.data ?? []);
   }, [mergeListings]);
 
-  // Start centered on Africa/Middle East at zoom 4 to show global spread immediately
-  const mapCenter: [number, number] = [15, 30];
+
+  // Map centre + zoom — updated when user clicks a city bubble to fly in
+  const [mapCenter, setMapCenter] = useState<[number, number]>([15, 30]);
+  const [mapZoom,   setMapZoom]   = useState(4);
 
   // Mobile: full-screen chat overlay
   if (chatOpen) {
@@ -730,12 +726,19 @@ export function MapHomePage() {
       {/* ── LAYER 0: Full-screen map (fixed, always fills viewport) ── */}
       <LeafletMap
         center={mapCenter}
-        zoom={4}
+        zoom={mapZoom}
         properties={properties}
         selectedId={selected?.id ?? null}
         highlightedIds={highlightedIds}
         onSelect={setSelected}
         onBoundsChange={handleBoundsChange}
+        cityClusters={cityClusters}
+        currentZoom={currentZoom}
+        onCityClick={(c) => {
+          // Fly into the clicked city at zoom 12 — BoundsWatcher fires → pins load
+          setMapCenter([c.lat, c.lng]);
+          setMapZoom(12);
+        }}
       />
 
       {/* ── LAYER 1: All UI overlays (z-index above map's 0) ── */}

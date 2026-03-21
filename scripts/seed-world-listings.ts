@@ -788,12 +788,18 @@ async function main() {
   // 3. Generate listings
   console.log(`\n📍 Generating ${TARGET_TOTAL.toLocaleString()} listings across ${CITIES.length} cities…`);
 
-  // Calculate per-city count so total ≈ TARGET_TOTAL
-  // Larger priceIndex cities get more listings
-  const totalWeight = CITIES.reduce((s,c) => s + c.priceIndex, 0);
+  // ── Power-law distribution by city importance ─────────────────────────────
+  // Weight = priceIndex² → major cities (pi=10) get 100× more listings than
+  // tiny towns (pi=1).  With 1 500 cities this produces roughly:
+  //   priceIndex 10 → ~3 000–5 000 listings   (NYC, London, Tokyo)
+  //   priceIndex 8  → ~2 000 listings           (Berlin, Sydney)
+  //   priceIndex 5  → ~600 listings             (Nairobi, Cluj)
+  //   priceIndex 2  → ~60 listings              (small regional towns)
+  const w = (pi: number) => pi * pi;
+  const totalWeight  = CITIES.reduce((s, c) => s + w(c.priceIndex), 0);
   const cityListings: Array<{ city: CityDef; count: number }> = CITIES.map(city => ({
     city,
-    count: Math.round((city.priceIndex / totalWeight) * TARGET_TOTAL * 1.05),
+    count: Math.max(1, Math.round((w(city.priceIndex) / totalWeight) * TARGET_TOTAL * 1.05)),
   }));
 
   let batch: object[] = [];
@@ -873,9 +879,37 @@ async function main() {
 
   await flush(); // final partial batch
 
-  console.log(`\n\n🎉 Done! Inserted ${totalInserted.toLocaleString()} listings across ${CITIES.length} cities.`);
-  console.log("   Open Habino — pan anywhere on the map to see listings.");
-  console.log("   (Tip: run 'supabase db push' if you haven't applied migration 002 yet.)");
+  // ── 4. Populate city_listing_counts (cluster layer) ───────────────────────
+  // This table powers the lightweight city-bubble layer at low zoom levels.
+  // It's replaced wholesale after every re-seed.
+  console.log(`\n\n🗺️  Refreshing city cluster table…`);
+  const { error: delCityErr } = await sb
+    .from("city_listing_counts")
+    .delete()
+    .eq("tenant_id", tenantId);
+  if (delCityErr) console.warn("  ⚠️  Could not clear city clusters:", delCityErr.message);
+
+  const cityCountRows = cityListings.map(({ city, count }) => ({
+    tenant_id:     tenantId,
+    city:          city.city,
+    country:       city.country,
+    lat:           city.lat,
+    lng:           city.lng,
+    listing_count: count,
+  }));
+
+  // Insert in batches of 500
+  for (let i = 0; i < cityCountRows.length; i += 500) {
+    const { error: cityErr } = await sb
+      .from("city_listing_counts")
+      .insert(cityCountRows.slice(i, i + 500));
+    if (cityErr) console.warn(`  ⚠️  City cluster batch error:`, cityErr.message);
+  }
+  console.log(`  ✅ ${cityCountRows.length} city clusters written.`);
+
+  console.log(`\n🎉 Done! Inserted ${totalInserted.toLocaleString()} listings across ${CITIES.length} cities.`);
+  console.log("   Open Habino — the map now shows city bubbles at world zoom, pins when zoomed in.");
+  console.log("   (Tip: run migration 003_city_clusters.sql in Supabase SQL editor if you haven't yet.)");
 }
 
 main().catch(console.error);
