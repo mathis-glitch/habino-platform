@@ -1,11 +1,17 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 import { MapContainer, TileLayer, Marker, useMap, AttributionControl } from "react-leaflet";
 import L from "leaflet";
 import type { Property } from "@/lib/types";
 
 export type PropertyWithCoords = Property & { lat: number; lng: number };
+
+export type MapBounds = {
+  north: number; south: number;
+  east:  number; west:  number;
+  zoom:  number;
+};
 
 // Fix default icon path (Webpack / Next.js issue)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -47,15 +53,43 @@ function MapFlyTo({ center, zoom }: { center: [number, number]; zoom: number }) 
   return null;
 }
 
-interface LeafletMapProps {
-  center:     [number, number];
-  zoom?:      number;
-  properties: PropertyWithCoords[];
-  selectedId: string | null;
-  onSelect:   (p: PropertyWithCoords) => void;
+// Reports map bounds whenever the user pans or zooms
+function BoundsWatcher({ onBoundsChange }: { onBoundsChange: (b: MapBounds) => void }) {
+  const map = useMap();
+  const report = useCallback(() => {
+    const b = map.getBounds();
+    onBoundsChange({
+      north: b.getNorth(), south: b.getSouth(),
+      east:  b.getEast(),  west:  b.getWest(),
+      zoom:  map.getZoom(),
+    });
+  }, [map, onBoundsChange]);
+
+  useEffect(() => {
+    map.on("moveend", report);
+    map.on("zoomend", report);
+    map.whenReady(report);
+    return () => {
+      map.off("moveend", report);
+      map.off("zoomend", report);
+    };
+  }, [map, report]);
+
+  return null;
 }
 
-export default function LeafletMap({ center, zoom = 12, properties, selectedId, onSelect }: LeafletMapProps) {
+interface LeafletMapProps {
+  center:          [number, number];
+  zoom?:           number;
+  properties:      PropertyWithCoords[];
+  selectedId:      string | null;
+  onSelect:        (p: PropertyWithCoords) => void;
+  onBoundsChange?: (b: MapBounds) => void;
+}
+
+export default function LeafletMap({
+  center, zoom = 5, properties, selectedId, onSelect, onBoundsChange,
+}: LeafletMapProps) {
   return (
     <MapContainer
       center={center}
@@ -63,7 +97,6 @@ export default function LeafletMap({ center, zoom = 12, properties, selectedId, 
       zoomControl={false}
       scrollWheelZoom
       attributionControl={false}
-      // Fixed + full-viewport so Leaflet always has a measurable size
       style={{
         position: "fixed",
         inset: 0,
@@ -84,6 +117,7 @@ export default function LeafletMap({ center, zoom = 12, properties, selectedId, 
         maxZoom={19}
       />
       <MapFlyTo center={center} zoom={zoom} />
+      {onBoundsChange && <BoundsWatcher onBoundsChange={onBoundsChange} />}
       {properties.map((p) => (
         <Marker
           key={p.id}

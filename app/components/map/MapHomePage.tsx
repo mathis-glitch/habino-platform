@@ -1,11 +1,11 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { Property } from "@/lib/types";
-import type { PropertyWithCoords } from "./LeafletMap";
+import type { PropertyWithCoords, MapBounds } from "./LeafletMap";
 import { AIChatPage } from "@/app/components/chat/AIChatPage";
 
 // Load Leaflet map client-side only (no SSR)
@@ -215,26 +215,55 @@ function HabinoPanel({ onClose }: { onClose: () => void }) {
 export function MapHomePage() {
   const [properties,   setProperties]   = useState<PropertyWithCoords[]>([]);
   const [selected,     setSelected]     = useState<PropertyWithCoords | null>(null);
-  const [activeCity] = useState("Nairobi");
   const [chatOpen,     setChatOpen]     = useState(false);
   const [habinoOpen,   setHabinoOpen]   = useState(false);
 
-  // Fetch properties for active city
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      try {
-        const res = await fetch(`/api/properties?city=${encodeURIComponent(activeCity)}&limit=100&sort=newest`);
-        if (!res.ok || cancelled) return;
-        const json = await res.json();
-        setProperties(withCoords(json.data || []));
-      } catch { /* ignore */ }
-    }
-    load();
-    return () => { cancelled = true; };
-  }, [activeCity]);
+  // Track which city names have already been fetched so we don't re-fetch on every pan
+  const loadedCities = useRef<Set<string>>(new Set());
 
-  const mapCenter: [number, number] = CITY_COORDS[activeCity] ?? [-1.2921, 36.8219];
+  // Called by LeafletMap whenever the viewport changes (pan / zoom)
+  const handleBoundsChange = useCallback(async (bounds: MapBounds) => {
+    // Find all known cities whose centre falls inside the current viewport
+    // Expand bounds slightly so pins near edges appear before the city center scrolls in
+    const pad = 0.5;
+    const visibleCities = Object.entries(CITY_COORDS)
+      .filter(([, [lat, lng]]) =>
+        lat >= bounds.south - pad && lat <= bounds.north + pad &&
+        lng >= bounds.west  - pad && lng <= bounds.east  + pad
+      )
+      .map(([city]) => city)
+      .filter(city => !loadedCities.current.has(city));
+
+    if (!visibleCities.length) return;
+
+    // Mark as loading immediately to prevent duplicate requests
+    visibleCities.forEach(c => loadedCities.current.add(c));
+
+    // Fetch up to 15 cities in parallel, 60 listings each
+    const chunks = visibleCities.slice(0, 15);
+    const results = await Promise.all(
+      chunks.map(city =>
+        fetch(`/api/properties?city=${encodeURIComponent(city)}&limit=60&sort=newest`)
+          .then(r => r.ok ? r.json() : { data: [] })
+          .then(d => withCoords(d.data ?? []))
+          .catch(() => [] as PropertyWithCoords[])
+      )
+    );
+
+    const fresh = results.flat();
+    if (!fresh.length) return;
+
+    setProperties(prev => {
+      const seen = new Set(prev.map(p => p.id));
+      const added = fresh.filter(p => !seen.has(p.id));
+      // Cap total pins at 800 for performance — keep the newest additions
+      const merged = [...prev, ...added];
+      return merged.length > 800 ? merged.slice(merged.length - 800) : merged;
+    });
+  }, []);
+
+  // Start centered on Africa/Middle East at zoom 4 to show global spread immediately
+  const mapCenter: [number, number] = [15, 30];
 
   // Mobile: full-screen chat overlay
   if (chatOpen) {
@@ -264,10 +293,11 @@ export function MapHomePage() {
       {/* ── LAYER 0: Full-screen map (fixed, always fills viewport) ── */}
       <LeafletMap
         center={mapCenter}
-        zoom={12}
+        zoom={4}
         properties={properties}
         selectedId={selected?.id ?? null}
         onSelect={setSelected}
+        onBoundsChange={handleBoundsChange}
       />
 
       {/* ── LAYER 1: All UI overlays (z-index above map's 0) ── */}
