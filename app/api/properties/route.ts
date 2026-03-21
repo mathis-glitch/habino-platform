@@ -59,9 +59,12 @@ export async function GET(request: NextRequest) {
   if (filters.max_price)     query = query.lte("price", filters.max_price);
   if (filters.bedrooms)      query = query.eq("bedrooms", filters.bedrooms);
 
-  if (filters.sort === "price_asc")  query = query.order("price", { ascending: true });
-  else if (filters.sort === "price_desc") query = query.order("price", { ascending: false });
-  else query = query.order("created_at", { ascending: false });
+  // "spread" sort: order by lng so pins are evenly distributed west→east across the bbox
+  // Used for large-bbox overview queries where geographic spread matters more than recency.
+  if (filters.sort === "price_asc")   query = query.order("price",      { ascending: true  });
+  else if (filters.sort === "price_desc") query = query.order("price",  { ascending: false });
+  else if (filters.sort === "spread") query = query.order("lng",        { ascending: true  }).order("lat", { ascending: true });
+  else                                query = query.order("created_at", { ascending: false });
 
   const { data, error, count } = await query;
 

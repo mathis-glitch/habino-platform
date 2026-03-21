@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { Property } from "@/lib/types";
@@ -620,42 +620,81 @@ export function MapHomePage() {
   // Current placed coordinates (for minimum-distance filtering across batches)
   const placedRef = useRef<Array<[number, number]>>([]);
 
-  // Track which viewport tiles have already been fetched (prevents re-fetch on every pan)
-  // Key = "lat0,lng0,lat1,lng1" rounded to 1 decimal (≈ 11km grid)
+  // Track which viewport tiles have already been fetched (prevents re-fetch on every pan/zoom)
+  // Tile key is zoom-level-aware so zooming in always triggers a finer-grained load.
   const loadedTiles = useRef<Set<string>>(new Set());
 
-  // Called by LeafletMap whenever the viewport changes (pan / zoom)
-  const handleBoundsChange = useCallback(async (bounds: MapBounds) => {
-    // Round bounds to 1 decimal to create cache tiles (~11 km grid)
-    const r = (n: number) => Math.round(n * 10) / 10;
-    const tileKey = `${r(bounds.south)},${r(bounds.west)},${r(bounds.north)},${r(bounds.east)}`;
-    if (loadedTiles.current.has(tileKey)) return;
-    loadedTiles.current.add(tileKey);
+  // ── Zoom-aware tile helpers ───────────────────────────────────────────────
+  function getTileKey(bounds: MapBounds): string {
+    const z = bounds.zoom;
+    // Tile step halves every ~3 zoom levels → zooming in always creates new tile keys
+    const step = z <= 3 ? 180 : z <= 5 ? 30 : z <= 8 ? 6 : z <= 11 ? 1.5 : 0.3;
+    const snap = (n: number) => Math.floor(n / step) * step;
+    return `z${Math.floor(z / 3)}_${snap(bounds.south)}_${snap(bounds.west)}_${snap(bounds.north)}_${snap(bounds.east)}`;
+  }
+  function getLimit(zoom: number): number {
+    if (zoom <= 4) return 150;   // zoomed out: lighter query, fast response
+    if (zoom <= 7) return 250;   // regional view
+    if (zoom <= 10) return 400;  // city view
+    return 600;                  // street level: full detail
+  }
 
-    // Bbox query — fetches all properties within the visible viewport directly
-    const bbox = `${bounds.south},${bounds.west},${bounds.north},${bounds.east}`;
-    const res = await fetch(
-      `/api/properties?bbox=${encodeURIComponent(bbox)}&limit=500&sort=newest`
-    ).catch(() => null);
-    if (!res?.ok) return;
-
-    const json = await res.json().catch(() => ({ data: [] }));
-    const raw: Property[] = json.data ?? [];
+  // ── Merge raw DB listings into the pins state ─────────────────────────────
+  const mergeListings = useCallback((raw: Property[]) => {
     if (!raw.length) return;
-
     const fresh = withCoords(raw, placedRef.current);
     if (!fresh.length) return;
-
     fresh.forEach(p => placedRef.current.push([p.lat, p.lng]));
-
     setProperties(prev => {
       const seen = new Set(prev.map(p => p.id));
       const added = fresh.filter(p => !seen.has(p.id));
       const merged = [...prev, ...added];
-      // Cap at 3000 pins for performance
-      return merged.length > 3000 ? merged.slice(merged.length - 3000) : merged;
+      // Cap at 5000 visible pins for performance
+      return merged.length > 5000 ? merged.slice(merged.length - 5000) : merged;
     });
   }, []);
+
+  // ── Global overview on mount: pre-warm 8 continental regions in parallel ──
+  // This ensures pins are visible worldwide before the user pans anywhere.
+  useEffect(() => {
+    const CONTINENTAL_BBOXES = [
+      "15,-170,80,-50",    // North America
+      "-60,-90,15,-30",    // South America
+      "35,-30,80,40",      // Europe
+      "-35,-20,35,55",     // Africa
+      "0,40,45,80",        // Middle East / Central Asia
+      "-10,60,35,100",     // South Asia
+      "10,100,55,150",     // East Asia
+      "-50,100,0,180",     // Oceania & SE Asia
+    ];
+    Promise.all(
+      CONTINENTAL_BBOXES.map(bbox =>
+        fetch(`/api/properties?bbox=${encodeURIComponent(bbox)}&limit=80&sort=spread`)
+          .then(r => r.ok ? r.json() : { data: [] })
+          .catch(() => ({ data: [] }))
+      )
+    ).then(results => {
+      mergeListings(results.flatMap((j: { data?: Property[] }) => j.data ?? []));
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Called by LeafletMap on pan / zoom ────────────────────────────────────
+  const handleBoundsChange = useCallback(async (bounds: MapBounds) => {
+    const tileKey = getTileKey(bounds);
+    if (loadedTiles.current.has(tileKey)) return;
+    loadedTiles.current.add(tileKey);
+
+    const bbox = `${bounds.south},${bounds.west},${bounds.north},${bounds.east}`;
+    const limit = getLimit(bounds.zoom);
+    const res = await fetch(
+      `/api/properties?bbox=${encodeURIComponent(bbox)}&limit=${limit}&sort=newest`
+    ).catch(() => null);
+    if (!res?.ok) return;
+
+    const json = await res.json().catch(() => ({ data: [] }));
+    mergeListings(json.data ?? []);
+  }, [mergeListings]);
 
   // Start centered on Africa/Middle East at zoom 4 to show global spread immediately
   const mapCenter: [number, number] = [15, 30];

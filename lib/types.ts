@@ -256,5 +256,5 @@ export interface PropertyFilters {
   bedrooms?: number;
   page?: number;
   limit?: number;
-  sort?: "newest" | "price_asc" | "price_desc";
+  sort?: "newest" | "price_asc" | "price_desc" | "spread";
 }
