@@ -626,98 +626,62 @@ export function AIChatPage() {
   const hasMessages = messages.length > 0;
 
   return (
-    <main className="flex flex-col" style={{ minHeight: "calc(100vh - 64px - 60px)" }}>
+    <main className="flex flex-col" style={{ height: "calc(100dvh - 64px - 56px)" }}>
 
-      {/* ── Empty / Hero state ── */}
-      {!hasMessages && (
-        <div className="flex-1 flex flex-col items-center justify-center px-4 py-12">
+      {/* ── Scrollable content area ── */}
+      <div className="flex-1 overflow-y-auto">
 
-          {/* Headline */}
-          <div className="text-center max-w-xl mb-10">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 text-slate-500 text-xs font-semibold mb-5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse" />
-              AI-Powered Real Estate
+        {/* Hero state (no messages yet) */}
+        {!hasMessages && (
+          <div className="flex flex-col items-center justify-center px-4 py-12 min-h-full">
+            <div className="text-center max-w-xl mb-10">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 text-slate-500 text-xs font-semibold mb-5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse" />
+                AI-Powered Real Estate
+              </div>
+              <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 leading-tight tracking-tight mb-4">
+                Find your perfect<br />
+                <span style={{ color: "var(--color-primary)" }}>home with AI</span>
+              </h1>
+              <p className="text-slate-500 text-lg">
+                Describe what you&apos;re looking for — I&apos;ll find matching properties and book viewings. Property owner? I can list your property too.
+              </p>
             </div>
-            <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 leading-tight tracking-tight mb-4">
-              Find your perfect<br />
-              <span style={{ color: "var(--color-primary)" }}>home with AI</span>
-            </h1>
-            <p className="text-slate-500 text-lg">
-              Describe what you&apos;re looking for — I&apos;ll find matching properties and book viewings. Property owner? I can list your property too.
+
+            {/* Quick action buttons */}
+            <div className="flex flex-wrap justify-center gap-3 mb-4">
+              {quickActions.map((a) => (
+                <button key={a.text} onClick={() => sendMessage(a.text)}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white shadow-sm hover:opacity-90 active:scale-95 transition-all"
+                  style={{ backgroundColor: "var(--color-primary)" }}>
+                  <span>{a.icon}</span>
+                  {a.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Suggestion chips */}
+            <div className="grid grid-cols-2 gap-2.5 max-w-lg w-full">
+              {suggestions.map((s) => (
+                <button key={s.text} onClick={() => sendMessage(s.text)}
+                  className="flex items-center gap-3 text-left px-4 py-3 rounded-2xl border border-slate-200 bg-white hover:shadow-sm hover:border-slate-300 transition-all text-sm text-slate-600 font-medium">
+                  <span className="text-base">{s.icon}</span>
+                  {s.text}
+                </button>
+              ))}
+            </div>
+
+            <p className="text-xs text-slate-300 mt-8">
+              Are you a property agent?{" "}
+              <Link href="/admin" className="underline hover:text-slate-500 transition-colors">
+                Go to dashboard →
+              </Link>
             </p>
           </div>
+        )}
 
-          {/* Main input bar */}
-          <div className="w-full max-w-2xl mb-6">
-            <div className="flex items-end gap-3 bg-white border-2 border-slate-200 rounded-2xl px-5 py-4 focus-within:border-primary transition-all shadow-lg focus-within:shadow-xl">
-              <textarea
-                ref={inputRef}
-                value={input}
-                onChange={(e) => { setInput(e.target.value); autoResize(e.target); }}
-                onKeyDown={handleKeyDown}
-                placeholder="e.g. 3-bedroom apartment near the city centre under $400k..."
-                rows={1}
-                className="flex-1 bg-transparent text-base text-slate-800 placeholder-slate-400 resize-none focus:outline-none leading-relaxed"
-                style={{ maxHeight: "120px" }}
-              />
-              {/* Language picker */}
-              <LangPicker lang={voiceLang} onChange={setVoiceLang} />
-              {/* Mic */}
-              <MicButton onResult={onVoiceResult} lang={voiceLang.code} />
-              {/* Send */}
-              <button
-                onClick={() => sendMessage()}
-                disabled={!input.trim() || loading}
-                className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all disabled:opacity-30 hover:opacity-90 active:scale-95 shadow-sm"
-                style={{ backgroundColor: "var(--color-primary)" }}
-              >
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
-              </button>
-            </div>
-            <p className="text-center text-xs text-slate-300 mt-2">Press Enter to send · Tap 🎤 to speak</p>
-          </div>
-
-          {/* Quick action buttons */}
-          <div className="flex gap-3 mb-2">
-            {quickActions.map((a) => (
-              <button
-                key={a.text}
-                onClick={() => sendMessage(a.text)}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white shadow-sm hover:opacity-90 active:scale-95 transition-all"
-                style={{ backgroundColor: "var(--color-primary)" }}
-              >
-                <span>{a.icon}</span>
-                {a.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Suggestion chips */}
-          <div className="grid grid-cols-2 gap-2.5 max-w-lg w-full">
-            {suggestions.map((s) => (
-              <button key={s.text} onClick={() => sendMessage(s.text)}
-                className="flex items-center gap-3 text-left px-4 py-3 rounded-2xl border border-slate-200 bg-white hover:shadow-sm hover:border-slate-300 transition-all text-sm text-slate-600 font-medium">
-                <span className="text-base">{s.icon}</span>
-                {s.text}
-              </button>
-            ))}
-          </div>
-
-          {/* Subtle agent link */}
-          <p className="text-xs text-slate-300 mt-8">
-            Are you a property agent?{" "}
-            <Link href="/admin" className="underline hover:text-slate-500 transition-colors">
-              Go to dashboard →
-            </Link>
-          </p>
-        </div>
-      )}
-
-      {/* ── Message thread ── */}
-      {hasMessages && (
-        <div className="flex-1 overflow-y-auto">
+        {/* Message thread */}
+        {hasMessages && (
           <div className="max-w-2xl mx-auto px-4 py-8 flex flex-col gap-6">
             {messages.map((msg, i) => (
               <div key={i} className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
@@ -770,12 +734,12 @@ export function AIChatPage() {
             )}
             <div ref={bottomRef} />
           </div>
-        </div>
-      )}
+        )}
 
-      {/* ── Input bar (chat mode) ── */}
-      {hasMessages && (
-        <div className="border-t border-slate-200 bg-white py-4 px-4">
+      </div>{/* end scrollable */}
+
+      {/* ── Input bar — always visible at bottom ── */}
+      <div className="shrink-0 border-t border-slate-200 bg-white py-3 px-4">
           {/* Wizard progress bar */}
           {wizardState.step && (() => {
             // Determine which wizard is active and its steps/labels
@@ -850,10 +814,9 @@ export function AIChatPage() {
                 </svg>
               </button>
             </div>
-            <p className="text-center text-[11px] text-slate-300 mt-2">Enter to send · Tap 🎤 to speak</p>
+            <p className="text-center text-[11px] text-slate-300 mt-1.5">Enter to send · Tap 🎤 to speak</p>
           </div>
         </div>
-      )}
     </main>
   );
 }

@@ -954,26 +954,87 @@ Return {} if nothing is clear. Return ONLY valid JSON, no explanation.`,
   }
 }
 
-async function searchProperties(filters: Record<string, unknown>, tenantId: string) {
+// Cities grouped by proximity — used for nearby fallback
+const NEARBY_CITIES: Record<string, string[]> = {
+  // Ethiopia
+  "addis ababa": ["Dire Dawa", "Adama", "Mekelle"],
+  "dire dawa":   ["Addis Ababa", "Harar", "Adama"],
+  // Kenya
+  "nairobi":     ["Nakuru", "Thika", "Kiambu", "Machakos"],
+  "mombasa":     ["Kilifi", "Malindi", "Kwale", "Diani"],
+  "kisumu":      ["Nakuru", "Kericho", "Kisii"],
+  "nakuru":      ["Nairobi", "Eldoret", "Nyahururu"],
+  // South Africa
+  "cape town":       ["Stellenbosch", "Somerset West", "Paarl"],
+  "johannesburg":    ["Pretoria", "Midrand", "Centurion", "Sandton"],
+  "durban":          ["Pietermaritzburg", "Pinetown", "Ballito"],
+  "pretoria":        ["Johannesburg", "Centurion", "Midrand"],
+  // Tanzania
+  "dar es salaam":   ["Arusha", "Dodoma", "Mwanza"],
+  "arusha":          ["Dar es Salaam", "Moshi", "Kilimanjaro"],
+  // Uganda / Rwanda
+  "kampala":         ["Entebbe", "Jinja", "Wakiso"],
+  "entebbe":         ["Kampala", "Wakiso"],
+  "kigali":          ["Kampala", "Bujumbura"],
+  // Nigeria
+  "lagos":           ["Abuja", "Port Harcourt", "Ibadan"],
+  "abuja":           ["Lagos", "Kaduna", "Nasarawa"],
+  // Ghana
+  "accra":           ["Kumasi", "Tema", "Kasoa"],
+  // Egypt
+  "cairo":           ["Alexandria", "Giza", "Helwan"],
+  "alexandria":      ["Cairo", "Mansoura"],
+  // Morocco
+  "casablanca":      ["Rabat", "Marrakech", "Mohammedia"],
+  "marrakech":       ["Casablanca", "Agadir", "Fes"],
+  // UAE
+  "dubai":           ["Abu Dhabi", "Sharjah", "Ajman"],
+  "abu dhabi":       ["Dubai", "Al Ain", "Sharjah"],
+};
+
+async function searchProperties(
+  filters: Record<string, unknown>,
+  tenantId: string,
+): Promise<{ results: Record<string, unknown>[]; fallbackCities?: string[] }> {
   const supabase = createServiceClient();
-  let q = supabase
-    .from("properties")
-    .select("id, title, listing_type, property_type, price, currency, bedrooms, bathrooms, area_sqm, city, neighbourhood, status, images:property_images(id, url, sort_order)")
-    .eq("tenant_id", tenantId)
-    .eq("status", "active")
-    .order("created_at", { ascending: false })
-    .limit(6);
 
-  if (filters.listing_type)  q = q.eq("listing_type",  filters.listing_type);
-  if (filters.property_type) q = q.eq("property_type", filters.property_type);
-  if (filters.min_price)     q = q.gte("price",         filters.min_price);
-  if (filters.max_price)     q = q.lte("price",         filters.max_price);
-  if (filters.bedrooms)      q = q.gte("bedrooms",      filters.bedrooms);
-  if (filters.city)          q = q.ilike("city",        `%${filters.city}%`);
-  if (filters.neighbourhood) q = q.ilike("neighbourhood", `%${filters.neighbourhood}%`);
+  const buildQuery = (cityOverride?: string) => {
+    let q = supabase
+      .from("properties")
+      .select("id, title, listing_type, property_type, price, currency, bedrooms, bathrooms, area_sqm, city, neighbourhood, status, images:property_images(id, url, sort_order)")
+      .eq("tenant_id", tenantId)
+      .eq("status", "active")
+      .order("created_at", { ascending: false })
+      .limit(6);
+    const city = cityOverride ?? (filters.city as string | undefined);
+    if (filters.listing_type)  q = q.eq("listing_type",  filters.listing_type);
+    if (filters.property_type) q = q.eq("property_type", filters.property_type);
+    if (filters.min_price)     q = q.gte("price",         filters.min_price);
+    if (filters.max_price)     q = q.lte("price",         filters.max_price);
+    if (filters.bedrooms)      q = q.gte("bedrooms",      filters.bedrooms);
+    if (city)                  q = q.ilike("city",        `%${city}%`);
+    if (!cityOverride && filters.neighbourhood)
+                               q = q.ilike("neighbourhood", `%${filters.neighbourhood}%`);
+    return q;
+  };
 
-  const { data } = await q;
-  return data || [];
+  const { data: primary } = await buildQuery();
+  if ((primary?.length ?? 0) > 0) return { results: primary! };
+
+  // No results — try nearby cities
+  const searchedCity = (filters.city as string | undefined)?.toLowerCase();
+  if (searchedCity) {
+    const nearby = NEARBY_CITIES[searchedCity];
+    if (nearby?.length) {
+      for (const nearbyCity of nearby) {
+        const { data: nb } = await buildQuery(nearbyCity);
+        if ((nb?.length ?? 0) > 0) return { results: nb!, fallbackCities: nearby };
+      }
+      return { results: [], fallbackCities: nearby };
+    }
+  }
+
+  return { results: [] };
 }
 
 async function saveAppointment(details: Record<string, unknown>, tenantId: string) {
@@ -1076,15 +1137,27 @@ export async function POST(request: NextRequest) {
 
     // ── SEARCH intent ─────────────────────────────────────────────────────
     if (intent === "search") {
-      const filters    = await extractFilters(messages as ChatCompletionMessageParam[]);
-      const properties = await searchProperties(filters, tenantId);
+      const filters = await extractFilters(messages as ChatCompletionMessageParam[]);
+      const { results: properties, fallbackCities } = await searchProperties(filters, tenantId);
 
+      const searchedCity = filters.city as string | undefined;
       const propContext = properties.length
         ? properties.map((p: Record<string, unknown>) => {
             const price = typeof p.price === "number" ? p.price.toLocaleString("en-US") : p.price;
             return `• ${p.title} | ${p.listing_type === "buy" ? "For Sale" : "For Rent"} | ${p.currency} ${price} | ${p.bedrooms} bed | ${p.city} | ID: ${p.id}`;
           }).join("\n")
         : "No matching properties found.";
+
+      // Build context note for fallback or empty state
+      let fallbackNote = "";
+      if (searchedCity && properties.length > 0 && fallbackCities) {
+        const shownCity = (properties[0] as Record<string, unknown>).city as string;
+        fallbackNote = `\nNOTE: No results found in "${searchedCity}". Showing results from nearby "${shownCity}" instead. Mention this briefly and naturally.`;
+      } else if (searchedCity && properties.length === 0 && fallbackCities?.length) {
+        fallbackNote = `\nNOTE: No results in "${searchedCity}" or nearby cities (${fallbackCities.join(", ")}). Suggest the user broaden their search or try a different city. Do NOT suggest random cities far away.`;
+      } else if (properties.length === 0) {
+        fallbackNote = `\nNOTE: No results found. Suggest refining filters (price range, property type, or city).`;
+      }
 
       const lang = langInstruction(lastUserMsg);
       const completion = await openai.chat.completions.create({
@@ -1093,8 +1166,7 @@ export async function POST(request: NextRequest) {
           {
             role: "system",
             content: `You are an AI real estate assistant for ${tenant?.name || "this platform"}.
-${lang} Keep it brief (1–2 sentences). Results are shown as cards below — do not list them again, do not mention IDs.
-If no results found, suggest refining the search.
+${lang} Keep it brief (1–2 sentences). Results are shown as cards below — do not list them again, do not mention IDs.${fallbackNote}
 SEARCH RESULTS:\n${propContext}`,
           },
           ...(messages.slice(-8) as ChatCompletionMessageParam[]),
