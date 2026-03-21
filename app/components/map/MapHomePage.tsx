@@ -133,14 +133,12 @@ export function MapHomePage() {
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      setLoading(true);
       try {
         const res = await fetch(`/api/properties?city=${encodeURIComponent(activeCity)}&limit=100&sort=newest`);
         if (!res.ok || cancelled) return;
         const json = await res.json();
         setProperties(withCoords(json.data || []));
       } catch { /* ignore */ }
-      finally { if (!cancelled) setLoading(false); }
     }
     load();
     return () => { cancelled = true; };
@@ -163,7 +161,7 @@ export function MapHomePage() {
           <span className="text-sm font-semibold text-slate-800">KI-Suche</span>
         </div>
         <div className="flex-1 overflow-hidden">
-          <AIChatPage initialQuery={query} sidebarMode />
+          <AIChatPage sidebarMode />
         </div>
       </div>
     );
@@ -176,7 +174,7 @@ export function MapHomePage() {
       {/* ── LAYER 0: Full-screen map (fixed, always fills viewport) ── */}
       <LeafletMap
         center={mapCenter}
-        zoom={mapZoom}
+        zoom={12}
         properties={properties}
         selectedId={selected?.id ?? null}
         onSelect={setSelected}
