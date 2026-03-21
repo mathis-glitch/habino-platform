@@ -31,13 +31,11 @@ ALTER TABLE properties
 
 -- 3. GiST spatial index — used by st_intersects queries
 --    This is the index that makes bbox map queries fast.
+-- GiST only supports geometry columns — UUID can't be part of a GiST index.
+-- The existing B-tree index on tenant_id handles tenant filtering; PostGIS
+-- uses geom_gist for the spatial bbox lookup and Postgres combines both.
 CREATE INDEX IF NOT EXISTS properties_geom_gist
   ON properties USING GIST (geom)
-  WHERE geom IS NOT NULL;
-
--- 4. Composite index for tenant + spatial — further speeds up per-tenant queries
-CREATE INDEX IF NOT EXISTS properties_tenant_geom_gist
-  ON properties USING GIST (tenant_id, geom)
   WHERE geom IS NOT NULL;
 
 -- Done. The API will automatically detect and use PostGIS on next request.
