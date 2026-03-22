@@ -157,6 +157,13 @@ export async function POST(req: NextRequest) {
   // ✅ Tenant from middleware-injected header — always scoped correctly
   const tenantId = req.headers.get("x-tenant-id")?.trim() ?? "";
 
+  if (!tenantId) {
+    return new Response(
+      JSON.stringify({ error: "Tenant not resolved. Check NEXT_PUBLIC_DEV_TENANT_SLUG env var." }),
+      { status: 400 }
+    );
+  }
+
   const body        = await req.json();
   const rawMsgs: Array<{ role: string; content: string }> = body.messages ?? [];
   if (!rawMsgs.length) {

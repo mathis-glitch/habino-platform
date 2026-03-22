@@ -977,7 +977,7 @@ export function MapHomePage() {
   const [chatOpen,       setChatOpen]       = useState(false);
   const [habinoOpen,     setHabinoOpen]     = useState(false);
   const [highlightedIds, setHighlightedIds] = useState<string[]>([]);
-  const [rightView,      setRightView]      = useState<"listings" | "map" | "data">("listings");
+  const [outputMode,     setOutputMode]     = useState<"idle" | "listings" | "map" | "data">("idle");
   const [marketContext,  setMarketContext]  = useState<{ city: string; country: string; currency: string } | null>(null);
   const [mapCenter,      setMapCenter]      = useState<[number, number]>([20, 10]);
   const [mapZoom,        setMapZoom]        = useState(12);
@@ -988,7 +988,6 @@ export function MapHomePage() {
     if (props && props.length > 0) {
       const withC = withCoords(props, []);
       setProperties(withC);
-      // Extract market context from first property
       const first = props[0];
       if (first) {
         setMarketContext({
@@ -997,7 +996,6 @@ export function MapHomePage() {
           currency: first.currency || "USD",
         });
       }
-      // Auto-center map to centroid of results
       const withLatLng = props.filter(p => p.lat != null && p.lng != null);
       if (withLatLng.length > 0) {
         const avgLat = withLatLng.reduce((s, p) => s + p.lat!, 0) / withLatLng.length;
@@ -1006,38 +1004,36 @@ export function MapHomePage() {
         setMapZoom(12);
       }
     }
-    // Switch to listings view to show results
-    setRightView("listings");
+  }, []);
+
+  // Called by AIChatPage to auto-switch the output panel
+  const handleViewSuggested = useCallback((view: "listings" | "map" | "data") => {
+    setOutputMode(view);
   }, []);
 
   // ── Shared style constants ────────────────────────────────────────────────
   const HEADER_H = 56;
   const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
 
-  // ── Tab button helper ─────────────────────────────────────────────────────
-  function TabBtn({ view, label, badge }: { view: "listings" | "map" | "data"; label: string; badge?: number }) {
-    const active = rightView === view;
+  // ── Mode label for right panel header ────────────────────────────────────
+  const MODE_META = {
+    idle:     { label: "Results",      icon: "✦" },
+    listings: { label: properties.length > 0 ? `${properties.length} Listings` : "Listings", icon: "⊞" },
+    map:      { label: marketContext ? `Map · ${marketContext.city}` : "Map", icon: "🗺" },
+    data:     { label: marketContext ? `Market · ${marketContext.city}` : "Market Data", icon: "📊" },
+  };
+
+  // ── Subtle mode-switch pills ──────────────────────────────────────────────
+  function ModePill({ mode, label }: { mode: "listings" | "map" | "data"; label: string }) {
+    const active = outputMode === mode;
     return (
-      <button
-        onClick={() => setRightView(view)}
-        style={{
-          display: "flex", alignItems: "center", gap: 5,
-          padding: "7px 13px", borderRadius: 10, fontSize: 13, fontWeight: 600,
-          border: "none", cursor: "pointer", transition: "all .15s",
-          background: active ? "#0f172a" : "transparent",
-          color: active ? "white" : "#64748b",
-        }}>
-        {label}
-        {badge != null && badge > 0 && (
-          <span style={{
-            fontSize: 11, borderRadius: 99, padding: "1px 5px",
-            background: active ? "rgba(255,255,255,0.25)" : "#e2e8f0",
-            color: active ? "white" : "#475569",
-          }}>
-            {badge}
-          </span>
-        )}
-      </button>
+      <button onClick={() => setOutputMode(mode)} style={{
+        padding: "4px 10px", borderRadius: 99, fontSize: 11, fontWeight: 600,
+        border: `1px solid ${active ? "#0f172a" : "#e2e8f0"}`,
+        background: active ? "#0f172a" : "transparent",
+        color: active ? "white" : "#94a3b8",
+        cursor: "pointer", transition: "all .12s",
+      }}>{label}</button>
     );
   }
 
@@ -1053,7 +1049,7 @@ export function MapHomePage() {
         </div>
         <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
           <div style={{ position: "absolute", inset: 0 }}>
-            <AIChatPage sidebarMode onPropertiesFound={handlePropertiesFound} />
+            <AIChatPage sidebarMode onPropertiesFound={handlePropertiesFound} onViewSuggested={handleViewSuggested} />
           </div>
         </div>
       </div>
@@ -1092,23 +1088,32 @@ export function MapHomePage() {
         {/* Chat */}
         <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
           <div style={{ position: "absolute", inset: 0 }}>
-            <AIChatPage sidebarMode onPropertiesFound={handlePropertiesFound} />
+            <AIChatPage sidebarMode onPropertiesFound={handlePropertiesFound} onViewSuggested={handleViewSuggested} />
           </div>
         </div>
       </div>
 
       {/* ═══════════════════════════════════════════════════
-          RIGHT — Listings / Map / Data (50 %)
+          RIGHT — Dynamic Output Panel (50 %)
       ═══════════════════════════════════════════════════ */}
       <div style={{ width: isMobile ? "100%" : "50%", height: "100%", display: "flex", flexDirection: "column" }}>
 
-        {/* Tab header */}
-        <div style={{ height: HEADER_H, borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", padding: "0 12px", gap: 4, flexShrink: 0 }}>
-          <TabBtn view="listings" label="⊞ Listings" badge={properties.length} />
-          <TabBtn view="map"      label="🗺 Map" />
-          <TabBtn view="data"     label="📊 Data" />
+        {/* Smart header — shows current mode + subtle manual overrides */}
+        <div style={{ height: HEADER_H, borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", padding: "0 16px", gap: 8, flexShrink: 0 }}>
+          {/* Current mode indicator */}
+          <span style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>
+            {MODE_META[outputMode].icon} {MODE_META[outputMode].label}
+          </span>
           <div style={{ flex: 1 }} />
-          {properties.length === 0 && (
+          {/* Subtle manual override pills — only shown after first result */}
+          {outputMode !== "idle" && (
+            <div style={{ display: "flex", gap: 4 }}>
+              <ModePill mode="listings" label="Listings" />
+              <ModePill mode="map"      label="Map" />
+              <ModePill mode="data"     label="Data" />
+            </div>
+          )}
+          {outputMode === "idle" && (
             <span style={{ fontSize: 11, color: "#cbd5e1" }}>Ask the AI to search</span>
           )}
         </div>
@@ -1116,80 +1121,93 @@ export function MapHomePage() {
         {/* Content area */}
         <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
 
-          {/* MAP — always in DOM (keeps Leaflet alive), shown only when map tab active */}
+          {/* IDLE STATE */}
+          {outputMode === "idle" && (
+            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#94a3b8", padding: 32 }}>
+              <div style={{ width: 64, height: 64, borderRadius: 20, background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, marginBottom: 20 }}>✦</div>
+              <p style={{ fontSize: 16, fontWeight: 700, color: "#334155", marginBottom: 8 }}>Your results appear here</p>
+              <p style={{ fontSize: 13, textAlign: "center", lineHeight: 1.7, maxWidth: 300 }}>
+                Ask the AI on the left to search for properties, get market data, or find the location of a listing.
+              </p>
+              <div style={{ marginTop: 24, display: "flex", flexDirection: "column", gap: 8, width: "100%", maxWidth: 280 }}>
+                {[
+                  "Find 2-bed apartments for rent in Munich",
+                  "What's the market like in Schwabing?",
+                  "Show me villas under 500k in Dubai",
+                ].map(ex => (
+                  <div key={ex} style={{ padding: "10px 14px", borderRadius: 10, background: "#f8fafc", border: "1px solid #f1f5f9", fontSize: 12, color: "#64748b", fontStyle: "italic" }}>
+                    "{ex}"
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* MAP — always in DOM (keeps Leaflet alive) */}
           <div style={{
             position: "absolute", inset: 0,
-            visibility: rightView === "map" ? "visible" : "hidden",
-            pointerEvents: rightView === "map" ? "auto" : "none",
+            visibility: outputMode === "map" ? "visible" : "hidden",
+            pointerEvents: outputMode === "map" ? "auto" : "none",
           }}>
-            {properties.length === 0 && rightView === "map" ? (
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", color: "#94a3b8" }}>
-                <span style={{ fontSize: 48, marginBottom: 16 }}>🗺</span>
-                <p style={{ fontSize: 14, fontWeight: 600, color: "#475569", marginBottom: 8 }}>No results to map yet</p>
-                <p style={{ fontSize: 13, color: "#94a3b8", textAlign: "center", maxWidth: 280 }}>
-                  Ask the AI for properties — they'll appear here automatically.
-                </p>
-              </div>
-            ) : (
-              <LeafletMap
-                center={mapCenter}
-                zoom={mapZoom}
-                properties={properties}
-                selectedId={selected?.id ?? null}
-                highlightedIds={highlightedIds}
-                onSelect={setSelected}
-                onBoundsChange={() => {}}
-                cityClusters={[]}
-                currentZoom={mapZoom}
-                onCityClick={() => {}}
-              />
-            )}
+            <LeafletMap
+              center={mapCenter}
+              zoom={mapZoom}
+              properties={properties}
+              selectedId={selected?.id ?? null}
+              highlightedIds={highlightedIds}
+              onSelect={setSelected}
+              onBoundsChange={() => {}}
+              cityClusters={[]}
+              currentZoom={mapZoom}
+              onCityClick={() => {}}
+            />
           </div>
 
           {/* LISTINGS */}
           <div style={{
             position: "absolute", inset: 0, overflowY: "auto", background: "white",
-            visibility: rightView === "listings" ? "visible" : "hidden",
-            pointerEvents: rightView === "listings" ? "auto" : "none",
+            visibility: outputMode === "listings" ? "visible" : "hidden",
+            pointerEvents: outputMode === "listings" ? "auto" : "none",
           }}>
-            {properties.length === 0 ? (
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", color: "#94a3b8", padding: 32 }}>
-                <span style={{ fontSize: 48, marginBottom: 16 }}>🏠</span>
-                <p style={{ fontSize: 16, fontWeight: 600, color: "#475569", marginBottom: 8 }}>No listings yet</p>
-                <p style={{ fontSize: 13, textAlign: "center", lineHeight: 1.6, maxWidth: 300 }}>
-                  Ask the AI on the left to search for properties — e.g. "Find 2-bedroom apartments for rent in Nairobi".
-                </p>
-              </div>
-            ) : (
-              <div style={{ padding: 20 }}>
-                <div style={{ marginBottom: 14, display: "flex", alignItems: "baseline", gap: 8 }}>
+            <div style={{ padding: 20 }}>
+              {properties.length > 0 && (
+                <div style={{ marginBottom: 14, display: "flex", alignItems: "center", gap: 10 }}>
                   <span style={{ fontSize: 15, fontWeight: 700, color: "#0f172a" }}>{properties.length} results</span>
                   {marketContext && <span style={{ fontSize: 12, color: "#94a3b8" }}>in {marketContext.city}</span>}
+                  {marketContext && (
+                    <button onClick={() => setOutputMode("data")} style={{
+                      marginLeft: "auto", fontSize: 11, fontWeight: 600, color: "#8b5cf6",
+                      background: "#f5f3ff", border: "none", borderRadius: 8,
+                      padding: "4px 10px", cursor: "pointer",
+                    }}>
+                      📊 Market data →
+                    </button>
+                  )}
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16 }}>
-                  {properties.map(p => (
-                    <PropertyListingCard
-                      key={p.id}
-                      property={p}
-                      highlighted={highlightedIds.includes(p.id)}
-                      onSelect={() => {
-                        setSelected(p);
-                        setMapCenter([p.lat, p.lng]);
-                        setMapZoom(15);
-                        setRightView("map");
-                      }}
-                    />
-                  ))}
-                </div>
+              )}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16 }}>
+                {properties.map(p => (
+                  <PropertyListingCard
+                    key={p.id}
+                    property={p}
+                    highlighted={highlightedIds.includes(p.id)}
+                    onSelect={() => {
+                      setSelected(p);
+                      setMapCenter([p.lat, p.lng]);
+                      setMapZoom(15);
+                      setOutputMode("map");
+                    }}
+                  />
+                ))}
               </div>
-            )}
+            </div>
           </div>
 
           {/* DATA DASHBOARD */}
           <div style={{
             position: "absolute", inset: 0,
-            visibility: rightView === "data" ? "visible" : "hidden",
-            pointerEvents: rightView === "data" ? "auto" : "none",
+            visibility: outputMode === "data" ? "visible" : "hidden",
+            pointerEvents: outputMode === "data" ? "auto" : "none",
           }}>
             <MarketDataDashboard context={marketContext} properties={properties} />
           </div>

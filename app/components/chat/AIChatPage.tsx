@@ -466,14 +466,18 @@ function makeSuggestions(loc: UserLocation | null) {
 }
 
 // ── Main component ───────────────────────────────────────────────────────────
+const MARKET_KEYWORDS = /\b(market|price trend|average price|avg price|median price|price per m|days on market|demand|supply|year.?over.?year|yoy|appreciation|rental yield|vacancy|inventory|affordab)\b/i;
+
 export function AIChatPage({
   initialQuery,
   sidebarMode,
   onPropertiesFound,
+  onViewSuggested,
 }: {
   initialQuery?: string;
   sidebarMode?: boolean;
   onPropertiesFound?: (ids: string[], properties?: Property[]) => void;
+  onViewSuggested?: (view: "listings" | "map" | "data") => void;
 } = {}) {
   const [messages, setMessages]       = useState<ChatMessage[]>([]);
   const [input, setInput]             = useState("");
@@ -644,7 +648,12 @@ export function AIChatPage({
               // Final event — attach properties and highlight map pins
               const props = (parsed.properties as Property[] | undefined) ?? [];
               const ids   = (parsed.propertyIds as string[]  | undefined) ?? [];
-              if (ids.length > 0) onPropertiesFound?.(ids, props);
+              if (ids.length > 0) {
+                onPropertiesFound?.(ids, props);
+                onViewSuggested?.("listings");
+              } else if (MARKET_KEYWORDS.test(reply)) {
+                onViewSuggested?.("data");
+              }
               setMessages(prev => {
                 const updated = [...prev];
                 updated[assistantIdx] = {
@@ -666,7 +675,12 @@ export function AIChatPage({
         return;
       }
       if (data.wizard !== undefined) setWizardState(data.wizard);
-      if (data.propertyIds?.length > 0) onPropertiesFound?.(data.propertyIds, data.properties);
+      if (data.propertyIds?.length > 0) {
+        onPropertiesFound?.(data.propertyIds, data.properties);
+        onViewSuggested?.("listings");
+      } else if (MARKET_KEYWORDS.test(data.reply ?? "")) {
+        onViewSuggested?.("data");
+      }
 
       setMessages([...newMessages, {
         role: "assistant",
@@ -712,6 +726,74 @@ export function AIChatPage({
 
   return (
     <main className="flex flex-col" style={{ height: sidebarMode ? "100%" : "calc(100dvh - 56px - 58px)" }}>
+
+      {/* ── Input bar — fixed at TOP ── */}
+      <div className="shrink-0 border-b border-slate-200 bg-white px-4 pt-4 pb-3">
+          {/* Wizard progress bar */}
+          {wizardState.step && (() => {
+            const isProfile  = wizardState.step.startsWith("profile_");
+            const isContract = wizardState.step.startsWith("contract_");
+            const steps = isProfile
+              ? ["profile_name","profile_contact","profile_location","profile_identity","profile_confirm"]
+              : isContract
+              ? ["contract_landlord","contract_property","contract_tenant","contract_terms","contract_jurisdiction","contract_confirm"]
+              : ["listing_type","property_type","title","price","city","extras","confirm"];
+            const idx   = steps.indexOf(wizardState.step);
+            const total = steps.length;
+            const wizardName = isProfile ? "Profile setup" : isContract ? "Contract wizard" : "Listing wizard";
+            const labels: Record<string, string> = {
+              listing_type: "Sale or Rent", property_type: "Property type",
+              title: "Title", price: "Price", city: "City",
+              extras: "Details", confirm: "Review & publish",
+              edit_field: "Editing", edit_value: "Editing",
+              profile_name: "Your name", profile_contact: "Contact details",
+              profile_location: "Location", profile_identity: "Identity & language",
+              profile_confirm: "Review & save",
+              contract_landlord: "Landlord", contract_property: "Property",
+              contract_tenant: "Tenant", contract_terms: "Terms",
+              contract_jurisdiction: "Jurisdiction", contract_confirm: "Review & generate",
+            };
+            return (
+              <div className="mb-3">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">
+                    {wizardName} · {labels[wizardState.step] || wizardState.step}
+                  </span>
+                  <span className="text-[11px] text-slate-300">Step {Math.max(idx + 1, 1)} of {total}</span>
+                </div>
+                <div className="h-1 bg-slate-100 rounded-full overflow-hidden">
+                  <div className="h-full rounded-full transition-all duration-500"
+                    style={{ width: `${((Math.max(idx + 1, 1)) / total) * 100}%`, backgroundColor: "var(--color-primary)" }} />
+                </div>
+              </div>
+            );
+          })()}
+
+          <div className="flex items-end gap-2 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/10 transition-all shadow-sm">
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={(e) => { setInput(e.target.value); autoResize(e.target); }}
+              onKeyDown={handleKeyDown}
+              placeholder={userLocation ? `What are you looking for in ${userLocation.city}?` : "What are you looking for? e.g. 3-bed apartment in Munich…"}
+              rows={sidebarMode ? 3 : 2}
+              className="flex-1 bg-transparent text-sm text-slate-800 placeholder-slate-400 resize-none focus:outline-none leading-relaxed"
+              style={{ minHeight: sidebarMode ? 64 : 40, maxHeight: 160 }}
+            />
+            <div className="flex items-center gap-1 shrink-0">
+              <LangPicker lang={voiceLang} onChange={setVoiceLang} />
+              <MicButton onResult={onVoiceResult} lang={voiceLang.code} size="sm" />
+              <button onClick={() => sendMessage()} disabled={!input.trim() || loading}
+                className="w-9 h-9 rounded-xl flex items-center justify-center transition-all disabled:opacity-30 hover:opacity-90 active:scale-95 shadow-sm"
+                style={{ backgroundColor: "var(--color-primary)" }}>
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          {!sidebarMode && <p className="text-center text-[11px] text-slate-300 mt-1.5">Press Enter to send · 🎤 Voice input</p>}
+        </div>
 
       {/* ── Scrollable content area ── */}
       <div className="flex-1 overflow-y-auto">
@@ -837,86 +919,6 @@ export function AIChatPage({
         )}
 
       </div>{/* end scrollable */}
-
-      {/* ── Input bar — always visible at bottom ── */}
-      <div className="shrink-0 border-t border-slate-200 bg-white py-3 px-4">
-          {/* Wizard progress bar */}
-          {wizardState.step && (() => {
-            // Determine which wizard is active and its steps/labels
-            const isProfile  = wizardState.step.startsWith("profile_");
-            const isContract = wizardState.step.startsWith("contract_");
-
-            const steps = isProfile
-              ? ["profile_name","profile_contact","profile_location","profile_identity","profile_confirm"]
-              : isContract
-              ? ["contract_landlord","contract_property","contract_tenant","contract_terms","contract_jurisdiction","contract_confirm"]
-              : ["listing_type","property_type","title","price","city","extras","confirm"];
-
-            const idx   = steps.indexOf(wizardState.step);
-            const total = steps.length;
-            const wizardName = isProfile ? "Profile setup" : isContract ? "Contract wizard" : "Listing wizard";
-            const labels: Record<string, string> = {
-              listing_type: "Sale or Rent", property_type: "Property type",
-              title: "Title", price: "Price", city: "City",
-              extras: "Details", confirm: "Review & publish",
-              edit_field: "Editing", edit_value: "Editing",
-              profile_name: "Your name", profile_contact: "Contact details",
-              profile_location: "Location", profile_identity: "Identity & language",
-              profile_confirm: "Review & save",
-              contract_landlord: "Landlord", contract_property: "Property",
-              contract_tenant: "Tenant", contract_terms: "Terms",
-              contract_jurisdiction: "Jurisdiction", contract_confirm: "Review & generate",
-            };
-            return (
-              <div className="max-w-2xl mx-auto mb-3">
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">
-                    {wizardName} · {labels[wizardState.step] || wizardState.step}
-                  </span>
-                  <span className="text-[11px] text-slate-300">
-                    Step {Math.max(idx + 1, 1)} of {total}
-                  </span>
-                </div>
-                <div className="h-1 bg-slate-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all duration-500"
-                    style={{
-                      width: `${((Math.max(idx + 1, 1)) / total) * 100}%`,
-                      backgroundColor: "var(--color-primary)",
-                    }}
-                  />
-                </div>
-              </div>
-            );
-          })()}
-          <div className="max-w-2xl mx-auto">
-            <div className="flex items-end gap-2 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/10 transition-all shadow-sm">
-              <textarea
-                ref={inputRef}
-                value={input}
-                onChange={(e) => { setInput(e.target.value); autoResize(e.target); }}
-                onKeyDown={handleKeyDown}
-                placeholder={userLocation ? `What are you looking for in ${userLocation.city}?` : "What are you looking for? e.g. 3-bed apartment in Nairobi…"}
-                rows={sidebarMode ? 3 : 1}
-                className="flex-1 bg-transparent text-sm text-slate-800 placeholder-slate-400 resize-none focus:outline-none leading-relaxed"
-                style={{ maxHeight: "120px" }}
-              />
-              {/* Language picker */}
-              <LangPicker lang={voiceLang} onChange={setVoiceLang} />
-              {/* Mic */}
-              <MicButton onResult={onVoiceResult} lang={voiceLang.code} size="sm" />
-              {/* Send */}
-              <button onClick={() => sendMessage()} disabled={!input.trim() || loading}
-                className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center transition-all disabled:opacity-30 hover:opacity-90 active:scale-95 shadow-sm"
-                style={{ backgroundColor: "var(--color-primary)" }}>
-                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
-              </button>
-            </div>
-            {!sidebarMode && <p className="text-center text-[11px] text-slate-300 mt-1.5">Press Enter to send · 🎤 Voice input</p>}
-          </div>
-        </div>
     </main>
   );
 }
