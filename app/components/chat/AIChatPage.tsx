@@ -831,25 +831,58 @@ export function AIChatPage({
       {/* ── Scrollable content area ── */}
       <div className="flex-1 overflow-y-auto">
 
-        {/* ── Sidebar mode: no message thread — just a loading pulse ── */}
-        {sidebarMode && loading && (
-          <div className="flex items-center gap-3 px-4 pt-5">
-            <div className="w-7 h-7 rounded-xl shrink-0 flex items-center justify-center text-white text-xs font-bold"
-              style={{ background: "linear-gradient(135deg, var(--color-primary), var(--color-secondary))" }}>
-              ✨
-            </div>
-            <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
-              <span className="w-2 h-2 rounded-full bg-slate-300 animate-bounce" style={{ animationDelay: "0ms", animationDuration: "1s" }} />
-              <span className="w-2 h-2 rounded-full bg-slate-300 animate-bounce" style={{ animationDelay: "200ms", animationDuration: "1s" }} />
-              <span className="w-2 h-2 rounded-full bg-slate-300 animate-bounce" style={{ animationDelay: "400ms", animationDuration: "1s" }} />
-            </div>
+        {/* ── Sidebar message thread (compact — no property cards, those go right) ── */}
+        {sidebarMode && (hasMessages || loading) && (
+          <div className="px-3 py-4 flex flex-col gap-3">
+            {messages.map((msg, i) => (
+              <div key={i} className={`flex gap-2 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
+                {msg.role === "assistant" && (
+                  <div className="w-6 h-6 rounded-lg shrink-0 flex items-center justify-center text-white text-[10px] font-bold mt-0.5"
+                    style={{ background: "linear-gradient(135deg, var(--color-primary), var(--color-secondary))" }}>
+                    ✨
+                  </div>
+                )}
+                <div className="flex flex-col gap-1 max-w-[85%]">
+                  {msg.content && (
+                    <div className={`px-3 py-2 rounded-xl text-xs leading-relaxed whitespace-pre-wrap ${
+                      msg.role === "user"
+                        ? "text-white rounded-tr-sm"
+                        : "bg-white border border-slate-200 text-slate-700 rounded-tl-sm shadow-sm"
+                    }`} style={msg.role === "user" ? { backgroundColor: "var(--color-primary)" } : {}}>
+                      {msg.role === "assistant" ? renderText(msg.content) : msg.content}
+                    </div>
+                  )}
+                  {/* Show a subtle pill when properties were found */}
+                  {msg.properties && msg.properties.length > 0 && (
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-100 text-[11px] text-emerald-700 font-medium w-fit">
+                      <span>🏠</span> {msg.properties.length} results shown →
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+
+            {loading && (
+              <div className="flex gap-2">
+                <div className="w-6 h-6 rounded-lg shrink-0 flex items-center justify-center text-white text-[10px] font-bold"
+                  style={{ background: "linear-gradient(135deg, var(--color-primary), var(--color-secondary))" }}>
+                  ✨
+                </div>
+                <div className="bg-white border border-slate-200 rounded-xl rounded-tl-sm px-4 py-2.5 shadow-sm flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-300 animate-bounce" style={{ animationDelay: "0ms", animationDuration: "1s" }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-300 animate-bounce" style={{ animationDelay: "200ms", animationDuration: "1s" }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-300 animate-bounce" style={{ animationDelay: "400ms", animationDuration: "1s" }} />
+                </div>
+              </div>
+            )}
+            <div ref={bottomRef} />
           </div>
         )}
 
-        {/* Sidebar idle hint */}
-        {sidebarMode && !loading && (
-          <div className="flex flex-col items-center justify-center h-24 text-slate-300 text-xs">
-            {hasMessages ? "Results shown on the right →" : "Type a message or tap a suggestion above"}
+        {/* Sidebar empty hint */}
+        {sidebarMode && !hasMessages && !loading && (
+          <div className="flex flex-col items-center justify-center h-20 text-slate-300 text-xs">
+            Type a message or tap a suggestion above
           </div>
         )}
 
