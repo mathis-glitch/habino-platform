@@ -831,6 +831,28 @@ export function AIChatPage({
       {/* ── Scrollable content area ── */}
       <div className="flex-1 overflow-y-auto">
 
+        {/* ── Sidebar mode: no message thread — just a loading pulse ── */}
+        {sidebarMode && loading && (
+          <div className="flex items-center gap-3 px-4 pt-5">
+            <div className="w-7 h-7 rounded-xl shrink-0 flex items-center justify-center text-white text-xs font-bold"
+              style={{ background: "linear-gradient(135deg, var(--color-primary), var(--color-secondary))" }}>
+              ✨
+            </div>
+            <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
+              <span className="w-2 h-2 rounded-full bg-slate-300 animate-bounce" style={{ animationDelay: "0ms", animationDuration: "1s" }} />
+              <span className="w-2 h-2 rounded-full bg-slate-300 animate-bounce" style={{ animationDelay: "200ms", animationDuration: "1s" }} />
+              <span className="w-2 h-2 rounded-full bg-slate-300 animate-bounce" style={{ animationDelay: "400ms", animationDuration: "1s" }} />
+            </div>
+          </div>
+        )}
+
+        {/* Sidebar idle hint */}
+        {sidebarMode && !loading && (
+          <div className="flex flex-col items-center justify-center h-24 text-slate-300 text-xs">
+            {hasMessages ? "Results shown on the right →" : "Type a message or tap a suggestion above"}
+          </div>
+        )}
+
         {/* Hero state — full page mode only */}
         {!hasMessages && !sidebarMode && (
           <div className="flex flex-col items-center justify-center px-4 min-h-full py-12">
@@ -866,15 +888,8 @@ export function AIChatPage({
           </div>
         )}
 
-        {/* Sidebar empty state */}
-        {!hasMessages && sidebarMode && (
-          <div className="flex flex-col items-center justify-center h-32 text-slate-300 text-xs">
-            Type a message or tap a suggestion above
-          </div>
-        )}
-
-        {/* Message thread */}
-        {hasMessages && (
+        {/* Message thread — full page mode only */}
+        {hasMessages && !sidebarMode && (
           <div className="max-w-2xl mx-auto px-4 py-8 flex flex-col gap-6">
             {messages.map((msg, i) => (
               <div key={i} className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
