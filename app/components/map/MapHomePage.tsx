@@ -808,105 +808,128 @@ export function MapHomePage() {
   const [mapCenter, setMapCenter] = useState<[number, number]>([15, 30]);
   const [mapZoom,   setMapZoom]   = useState(4);
 
-  return (
-    <div className="fixed inset-0 flex bg-white" style={{ zIndex: 1 }}>
+  // ── Shared style constants ────────────────────────────────────────────────
+  const HEADER_H = 56; // px — top bar height for both panels
 
-      {/* ══════════════════════════════════════════════════════════════════════
-          MOBILE: Full-screen chat overlay (slide in when chatOpen)
-      ══════════════════════════════════════════════════════════════════════ */}
-      {chatOpen && (
-        <div className="md:hidden fixed inset-0 z-[500] bg-white flex flex-col">
-          <div className="flex items-center gap-3 px-4 h-14 border-b border-slate-100 shrink-0">
-            <button onClick={() => setChatOpen(false)}
-              className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-800">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              Map
-            </button>
-            <span className="text-sm font-semibold text-slate-800">AI Search</span>
-          </div>
-          <div className="flex-1 overflow-hidden">
+  // Is the viewport narrow enough to show mobile layout?
+  // We detect this with a simple window check; default to desktop (false) for SSR.
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+
+  // ── MOBILE: full-screen chat overlay ─────────────────────────────────────
+  if (isMobile && chatOpen) {
+    return (
+      <div style={{ position: "fixed", inset: 0, zIndex: 500, background: "white", display: "flex", flexDirection: "column" }}>
+        <div style={{ height: HEADER_H, borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", padding: "0 16px", gap: 12, flexShrink: 0 }}>
+          <button onClick={() => setChatOpen(false)} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 14, color: "#64748b", background: "none", border: "none", cursor: "pointer" }}>
+            ← Map
+          </button>
+          <span style={{ fontSize: 14, fontWeight: 600, color: "#1e293b" }}>AI Search</span>
+        </div>
+        <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
+          <div style={{ position: "absolute", inset: 0 }}>
             <AIChatPage sidebarMode onPropertiesFound={handlePropertiesFound} />
           </div>
         </div>
-      )}
+      </div>
+    );
+  }
 
-      {/* ══════════════════════════════════════════════════════════════════════
-          LEFT PANEL — AI Chat  (desktop only, 38 % width)
-      ══════════════════════════════════════════════════════════════════════ */}
-      <div
-        className="hidden md:flex flex-col shrink-0 border-r border-slate-100"
-        style={{ width: "clamp(300px, 38%, 500px)" }}
-      >
-        {/* Header bar */}
-        <div className="shrink-0 h-14 border-b border-slate-100 flex items-center px-5 gap-3">
-          <span className="text-base font-extrabold tracking-tight text-slate-900">habino</span>
-          <div className="flex-1" />
+  // ── DESKTOP: 50 / 50 split ────────────────────────────────────────────────
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 1, display: "flex", background: "white" }}>
+
+      {/* ═══════════════════════════════════════════════════
+          LEFT — AI Chat (50 %)
+      ═══════════════════════════════════════════════════ */}
+      <div style={{
+        width: isMobile ? "100%" : "50%",
+        height: "100%",
+        display: isMobile ? "none" : "flex",
+        flexDirection: "column",
+        borderRight: "1px solid #e2e8f0",
+        flexShrink: 0,
+      }}>
+        {/* Header */}
+        <div style={{ height: HEADER_H, borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", padding: "0 20px", gap: 12, flexShrink: 0 }}>
+          <span style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.02em" }}>habino</span>
+          <div style={{ flex: 1 }} />
           <button
             onClick={() => setHabinoOpen(o => !o)}
-            className="px-3 py-1.5 rounded-xl text-xs font-semibold text-white shadow-sm hover:opacity-90 transition-opacity"
-            style={{ backgroundColor: habinoOpen ? "var(--color-secondary)" : "var(--color-primary)" }}>
+            style={{
+              padding: "6px 12px", borderRadius: 10, fontSize: 12, fontWeight: 600,
+              color: "white", border: "none", cursor: "pointer",
+              backgroundColor: habinoOpen ? "var(--color-secondary)" : "var(--color-primary)",
+            }}>
             ☰ Menu
           </button>
         </div>
-        {/* Chat fills the rest */}
-        <div className="flex-1 overflow-hidden">
-          <AIChatPage sidebarMode onPropertiesFound={handlePropertiesFound} />
+        {/* Chat — fills remaining height via absolute inset so AIChatPage height:100% works */}
+        <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
+          <div style={{ position: "absolute", inset: 0 }}>
+            <AIChatPage sidebarMode onPropertiesFound={handlePropertiesFound} />
+          </div>
         </div>
       </div>
 
-      {/* ══════════════════════════════════════════════════════════════════════
-          RIGHT PANEL — Map / Listings toggle  (62 % desktop, full on mobile)
-      ══════════════════════════════════════════════════════════════════════ */}
-      <div className="flex-1 flex flex-col min-w-0">
-
-        {/* ── Toggle header (desktop) ─────────────────────────────────────── */}
-        <div className="hidden md:flex h-14 border-b border-slate-100 items-center px-4 gap-2 shrink-0">
+      {/* ═══════════════════════════════════════════════════
+          RIGHT — Map / Listings (50 %)
+      ═══════════════════════════════════════════════════ */}
+      <div style={{
+        width: isMobile ? "100%" : "50%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+      }}>
+        {/* Header with Map / Listings toggle */}
+        <div style={{ height: HEADER_H, borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", padding: "0 16px", gap: 8, flexShrink: 0 }}>
+          {/* Map button */}
           <button
             onClick={() => setRightView("map")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
-              rightView === "map"
-                ? "bg-slate-900 text-white shadow-sm"
-                : "text-slate-500 hover:bg-slate-100"
-            }`}
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-            </svg>
-            Map
+            style={{
+              display: "flex", alignItems: "center", gap: 6,
+              padding: "8px 14px", borderRadius: 10, fontSize: 13, fontWeight: 600,
+              border: "none", cursor: "pointer", transition: "all .15s",
+              background: rightView === "map" ? "#0f172a" : "transparent",
+              color: rightView === "map" ? "white" : "#64748b",
+            }}>
+            🗺 Map
           </button>
+          {/* Listings button */}
           <button
             onClick={() => setRightView("listings")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
-              rightView === "listings"
-                ? "bg-slate-900 text-white shadow-sm"
-                : "text-slate-500 hover:bg-slate-100"
-            }`}
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-            </svg>
-            Listings
+            style={{
+              display: "flex", alignItems: "center", gap: 6,
+              padding: "8px 14px", borderRadius: 10, fontSize: 13, fontWeight: 600,
+              border: "none", cursor: "pointer", transition: "all .15s",
+              background: rightView === "listings" ? "#0f172a" : "transparent",
+              color: rightView === "listings" ? "white" : "#64748b",
+            }}>
+            ⊞ Listings
             {properties.length > 0 && (
-              <span className={`text-xs rounded-full px-1.5 py-0.5 font-normal ${
-                rightView === "listings" ? "bg-white/20" : "bg-slate-200 text-slate-600"
-              }`}>
+              <span style={{
+                fontSize: 11, borderRadius: 99, padding: "1px 6px",
+                background: rightView === "listings" ? "rgba(255,255,255,0.25)" : "#e2e8f0",
+                color: rightView === "listings" ? "white" : "#475569",
+              }}>
                 {properties.length}
               </span>
             )}
           </button>
-          <div className="flex-1" />
+          <div style={{ flex: 1 }} />
           {currentZoom >= CITY_CLUSTER_ZOOM && properties.length === 0 && (
-            <span className="text-xs text-slate-400">Zoom or pan to load listings</span>
+            <span style={{ fontSize: 12, color: "#94a3b8" }}>Zoom in to load listings</span>
           )}
         </div>
 
-        {/* ── Content area ────────────────────────────────────────────────── */}
-        <div className="flex-1 relative min-h-0">
+        {/* Content area — fills remaining height */}
+        <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
 
-          {/* MAP — always mounted, invisible when listings view (keeps Leaflet alive) */}
-          <div className={`absolute inset-0 ${rightView === "listings" ? "invisible pointer-events-none" : ""}`}>
+          {/* MAP — always in DOM, hidden when listings view (keeps Leaflet initialised) */}
+          <div style={{
+            position: "absolute", inset: 0,
+            visibility: rightView === "listings" ? "hidden" : "visible",
+            pointerEvents: rightView === "listings" ? "none" : "auto",
+          }}>
             <LeafletMap
               center={mapCenter}
               zoom={mapZoom}
@@ -927,22 +950,22 @@ export function MapHomePage() {
 
           {/* LISTINGS GRID */}
           {rightView === "listings" && (
-            <div className="absolute inset-0 overflow-y-auto bg-white">
-              <div className="p-4 md:p-6">
+            <div style={{ position: "absolute", inset: 0, overflowY: "auto", background: "white" }}>
+              <div style={{ padding: 24 }}>
                 {properties.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-64 text-slate-400">
-                    <span className="text-4xl mb-3">🗺</span>
-                    <p className="text-sm font-medium text-center">
-                      Pan or zoom the map to see listings, or use AI Search to find properties.
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: 240, color: "#94a3b8" }}>
+                    <span style={{ fontSize: 40, marginBottom: 12 }}>🗺</span>
+                    <p style={{ fontSize: 14, fontWeight: 500, textAlign: "center" }}>
+                      Switch to Map and zoom into a city to load listings.
                     </p>
                     <button
                       onClick={() => setRightView("map")}
-                      className="mt-5 px-5 py-2.5 bg-slate-900 text-white text-sm font-semibold rounded-xl hover:bg-slate-800 transition-colors">
+                      style={{ marginTop: 20, padding: "10px 20px", background: "#0f172a", color: "white", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
                       Open Map
                     </button>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 20 }}>
                     {properties.map(p => (
                       <PropertyListingCard
                         key={p.id}
@@ -959,22 +982,22 @@ export function MapHomePage() {
         </div>
       </div>
 
-      {/* ══════════════════════════════════════════════════════════════════════
-          MOBILE — floating AI button
-      ══════════════════════════════════════════════════════════════════════ */}
-      <button
-        onClick={() => setChatOpen(true)}
-        className="md:hidden fixed z-[100] bottom-[72px] right-4 w-12 h-12 rounded-2xl text-white shadow-lg flex items-center justify-center text-xs font-bold"
-        style={{ backgroundColor: "var(--color-primary)" }}>
-        AI
-      </button>
-
-      {/* Habino menu panel (desktop) */}
-      {habinoOpen && (
-        <div className="hidden md:block">
-          <HabinoPanel onClose={() => setHabinoOpen(false)} />
-        </div>
+      {/* MOBILE — floating AI button (only shown on small screens) */}
+      {isMobile && (
+        <button
+          onClick={() => setChatOpen(true)}
+          style={{
+            position: "fixed", bottom: 72, right: 16, zIndex: 100,
+            width: 48, height: 48, borderRadius: 14,
+            background: "var(--color-primary)", color: "white",
+            border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700,
+          }}>
+          AI
+        </button>
       )}
+
+      {/* Habino menu panel */}
+      {habinoOpen && <HabinoPanel onClose={() => setHabinoOpen(false)} />}
 
       {/* Property detail panel */}
       {selected && <PropertyDetailPanel property={selected} onClose={() => setSelected(null)} />}
