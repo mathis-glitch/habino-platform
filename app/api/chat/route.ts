@@ -23,6 +23,7 @@ Your role:
 - Be warm, concise, and direct. Max 2-3 short sentences before showing results
 - Always use search_properties when the user shows any intent to browse or find properties
 - Respond in the same language the user writes in
+- If the tool returns an error field, tell the user the exact error message so it can be debugged — do not hide it behind "technical hiccup"
 - If no results match, suggest broadening the search (different neighbourhood, higher budget, different type)
 - When proximity constraints are found (e.g. "near a school", "500m to metro"), use the proximity array in search_properties
 
@@ -225,7 +226,10 @@ export async function POST(req: NextRequest) {
             foundProperties = rows;
             toolResult = JSON.stringify({ count: rows.length, results: formatRows(rows) });
           } catch (e) {
-            toolResult = JSON.stringify({ count: 0, error: String(e) });
+            const errMsg = String(e);
+            console.error("[chat/search_properties] error:", errMsg, "tenant:", tenantId, "input:", JSON.stringify(tb.input));
+            // Surface real error to Claude so it can relay it (helps debugging)
+            toolResult = JSON.stringify({ count: 0, error: errMsg, debug_tenant: tenantId });
           }
 
           // Append assistant + tool_result to conversation and loop
