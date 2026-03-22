@@ -608,6 +608,114 @@ function HabinoPanel({ onClose }: { onClose: () => void }) {
   );
 }
 
+// ── Deterministic "rating" from property ID (avoids hydration mismatch) ───────
+function pseudoRating(id: string): string {
+  let h = 0;
+  for (const c of id) h = (h * 31 + c.charCodeAt(0)) & 0xffff;
+  return (4.5 + (h % 50) / 100).toFixed(2);
+}
+
+// ── Airbnb-style property listing card ────────────────────────────────────────
+function PropertyListingCard({
+  property, onSelect, highlighted,
+}: {
+  property: PropertyWithCoords;
+  onSelect: () => void;
+  highlighted: boolean;
+}) {
+  const img   = (property as Property & { images?: { url: string }[] }).images?.[0]?.url;
+  const color = TYPE_COLORS[property.property_type] || "#6B7280";
+  const label = TYPE_LABELS[property.property_type] || property.property_type;
+  const isRent = property.listing_type === "rent";
+  const priceFmt = new Intl.NumberFormat("en-US", {
+    style: "currency", currency: property.currency, maximumFractionDigits: 0,
+  }).format(property.price);
+  const isResidential = ["apartment", "house", "villa"].includes(property.property_type);
+  const propEmoji =
+    property.property_type === "apartment" ? "🏢"
+    : property.property_type === "house"     ? "🏠"
+    : property.property_type === "villa"     ? "🏡"
+    : property.property_type === "office"    ? "🏗️"
+    : (property.property_type === "land" || property.property_type === "plot") ? "🌿"
+    : property.property_type === "hall"      ? "🎪"
+    : property.property_type === "production"? "🏭"
+    : "🏢";
+  const p = property as Property;
+
+  return (
+    <div
+      onClick={onSelect}
+      className="cursor-pointer group"
+      style={highlighted ? { borderRadius: 18, outline: `2px solid ${color}`, outlineOffset: 2 } : {}}
+    >
+      {/* ── Image ── */}
+      <div className="relative rounded-2xl overflow-hidden bg-slate-100" style={{ aspectRatio: "4/3" }}>
+        {img ? (
+          <Image src={img} alt={p.title} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center text-5xl" style={{ background: `${color}12` }}>
+            {propEmoji}
+          </div>
+        )}
+
+        {/* Type badge — top left */}
+        <div className="absolute top-3 left-3">
+          <span className="bg-white/95 text-slate-800 text-xs font-bold px-2.5 py-1 rounded-full shadow-sm">
+            {label}
+          </span>
+        </div>
+
+        {/* Heart — top right */}
+        <button className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center" onClick={e => e.stopPropagation()}>
+          <svg className="w-5 h-5 drop-shadow" fill="none" stroke="white" strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+          </svg>
+        </button>
+
+        {/* Rent / Sale — bottom left */}
+        <div className="absolute bottom-3 left-3">
+          <span className="text-white text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: isRent ? "#F59E0B" : color }}>
+            {isRent ? "For Rent" : "For Sale"}
+          </span>
+        </div>
+      </div>
+
+      {/* ── Details ── */}
+      <div className="mt-2.5 px-0.5">
+        <div className="flex items-start justify-between gap-2">
+          <p className="text-sm font-semibold text-slate-900 leading-snug line-clamp-1">
+            {label} in {p.city}
+          </p>
+          <div className="flex items-center gap-0.5 shrink-0 mt-px">
+            <svg className="w-3 h-3" viewBox="0 0 20 20" fill="#1e293b">
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            </svg>
+            <span className="text-xs font-medium text-slate-800">{pseudoRating(p.id)}</span>
+          </div>
+        </div>
+
+        <p className="text-sm text-slate-500 mt-0.5 line-clamp-1">{p.neighbourhood}</p>
+
+        {isResidential && (
+          <p className="text-xs text-slate-400 mt-0.5">
+            {[
+              p.bedrooms  > 0 ? `${p.bedrooms} bed`   : null,
+              p.bathrooms > 0 ? `${p.bathrooms} bath`  : null,
+              p.area_sqm      ? `${p.area_sqm} m²`     : null,
+            ].filter(Boolean).join(" · ")}
+          </p>
+        )}
+
+        <p className="text-sm mt-1.5">
+          <span className="font-semibold underline text-slate-900">{priceFmt}</span>
+          {isRent && <span className="text-slate-400 text-xs font-normal"> / month</span>}
+        </p>
+        <p className="text-xs text-slate-400 mt-0.5">Free cancellation</p>
+      </div>
+    </div>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 export function MapHomePage() {
   const [properties,     setProperties]     = useState<PropertyWithCoords[]>([]);
@@ -617,6 +725,7 @@ export function MapHomePage() {
   const [chatOpen,       setChatOpen]       = useState(false);
   const [habinoOpen,     setHabinoOpen]     = useState(false);
   const [highlightedIds, setHighlightedIds] = useState<string[]>([]);
+  const [rightView,      setRightView]      = useState<"map" | "listings">("map");
 
   // Called by AIChatPage when Claude returns matching properties
   const handlePropertiesFound = useCallback((ids: string[]) => {
@@ -645,19 +754,15 @@ export function MapHomePage() {
     return 600;                  // street level: full detail
   }
 
-  // ── Merge raw DB listings into the pins state ─────────────────────────────
-  const mergeListings = useCallback((raw: Property[]) => {
+  // ── Replace visible pins with current viewport's listings ────────────────
+  // Viewport-only: no accumulation — only the current bbox is shown as pins/cards.
+  // The tile cache (loadedTiles) prevents redundant API calls when panning back.
+  const replaceListings = useCallback((raw: Property[]) => {
     if (!raw.length) return;
-    const fresh = withCoords(raw, placedRef.current);
-    if (!fresh.length) return;
-    fresh.forEach(p => placedRef.current.push([p.lat, p.lng]));
-    setProperties(prev => {
-      const seen = new Set(prev.map(p => p.id));
-      const added = fresh.filter(p => !seen.has(p.id));
-      const merged = [...prev, ...added];
-      // Cap at 5000 visible pins for performance
-      return merged.length > 5000 ? merged.slice(merged.length - 5000) : merged;
-    });
+    placedRef.current = [];
+    const fresh = withCoords(raw, []);
+    placedRef.current = fresh.map(p => [p.lat, p.lng]);
+    setProperties(fresh);
   }, []);
 
   // ── Load city cluster layer on mount (replaces 8-region pre-warm) ──────────
@@ -674,78 +779,189 @@ export function MapHomePage() {
   const handleBoundsChange = useCallback(async (bounds: MapBounds) => {
     setCurrentZoom(bounds.zoom);
 
-    // Below cluster-switch zoom: the city bubble layer is shown — no need to load
-    // individual pins until the user actually zooms into a city.
+    // Below cluster-switch zoom: city bubbles are shown — skip individual pins.
     if (bounds.zoom < CITY_CLUSTER_ZOOM) return;
 
     const tileKey = getTileKey(bounds);
     if (loadedTiles.current.has(tileKey)) return;
     loadedTiles.current.add(tileKey);
 
+    // Trim tile cache to max 40 entries to prevent memory growth
+    if (loadedTiles.current.size > 40) {
+      const oldest = Array.from(loadedTiles.current)[0];
+      loadedTiles.current.delete(oldest);
+    }
+
     const bbox = `${bounds.south},${bounds.west},${bounds.north},${bounds.east}`;
     const limit = getLimit(bounds.zoom);
-    // Use slim /api/map/pins — returns only the 8 fields needed for map pins,
-    // no images join, ~70% smaller response, proper Cache-Control headers
     const res = await fetch(
       `/api/map/pins?bbox=${encodeURIComponent(bbox)}&zoom=${bounds.zoom}&limit=${limit}`
     ).catch(() => null);
     if (!res?.ok) return;
 
     const json = await res.json().catch(() => ({ data: [] }));
-    mergeListings(json.data ?? []);
-  }, [mergeListings]);
+    replaceListings(json.data ?? []);
+  }, [replaceListings]);
 
 
   // Map centre + zoom — updated when user clicks a city bubble to fly in
   const [mapCenter, setMapCenter] = useState<[number, number]>([15, 30]);
   const [mapZoom,   setMapZoom]   = useState(4);
 
-  // Mobile: full-screen chat overlay
-  if (chatOpen) {
-    return (
-      <div className="fixed inset-0 z-[500] bg-white flex flex-col">
-        <div className="flex items-center gap-3 px-4 h-14 border-b border-slate-100 shrink-0">
-          <button onClick={() => setChatOpen(false)}
-            className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-800">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Map
-          </button>
-          <span className="text-sm font-semibold text-slate-800">AI Search</span>
+  return (
+    <div className="fixed inset-0 flex bg-white" style={{ zIndex: 1 }}>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          MOBILE: Full-screen chat overlay (slide in when chatOpen)
+      ══════════════════════════════════════════════════════════════════════ */}
+      {chatOpen && (
+        <div className="md:hidden fixed inset-0 z-[500] bg-white flex flex-col">
+          <div className="flex items-center gap-3 px-4 h-14 border-b border-slate-100 shrink-0">
+            <button onClick={() => setChatOpen(false)}
+              className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-800">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Map
+            </button>
+            <span className="text-sm font-semibold text-slate-800">AI Search</span>
+          </div>
+          <div className="flex-1 overflow-hidden">
+            <AIChatPage sidebarMode onPropertiesFound={handlePropertiesFound} />
+          </div>
         </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          LEFT PANEL — AI Chat  (desktop only, 38 % width)
+      ══════════════════════════════════════════════════════════════════════ */}
+      <div
+        className="hidden md:flex flex-col shrink-0 border-r border-slate-100"
+        style={{ width: "clamp(300px, 38%, 500px)" }}
+      >
+        {/* Header bar */}
+        <div className="shrink-0 h-14 border-b border-slate-100 flex items-center px-5 gap-3">
+          <span className="text-base font-extrabold tracking-tight text-slate-900">habino</span>
+          <div className="flex-1" />
+          <button
+            onClick={() => setHabinoOpen(o => !o)}
+            className="px-3 py-1.5 rounded-xl text-xs font-semibold text-white shadow-sm hover:opacity-90 transition-opacity"
+            style={{ backgroundColor: habinoOpen ? "var(--color-secondary)" : "var(--color-primary)" }}>
+            ☰ Menu
+          </button>
+        </div>
+        {/* Chat fills the rest */}
         <div className="flex-1 overflow-hidden">
           <AIChatPage sidebarMode onPropertiesFound={handlePropertiesFound} />
         </div>
       </div>
-    );
-  }
 
-  return (
-    // Transparent root — the map sits behind everything via z-index: 0
-    <div className="fixed inset-0" style={{ zIndex: 1 }}>
+      {/* ══════════════════════════════════════════════════════════════════════
+          RIGHT PANEL — Map / Listings toggle  (62 % desktop, full on mobile)
+      ══════════════════════════════════════════════════════════════════════ */}
+      <div className="flex-1 flex flex-col min-w-0">
 
-      {/* ── LAYER 0: Full-screen map (fixed, always fills viewport) ── */}
-      <LeafletMap
-        center={mapCenter}
-        zoom={mapZoom}
-        properties={properties}
-        selectedId={selected?.id ?? null}
-        highlightedIds={highlightedIds}
-        onSelect={setSelected}
-        onBoundsChange={handleBoundsChange}
-        cityClusters={cityClusters}
-        currentZoom={currentZoom}
-        onCityClick={(c) => {
-          // Fly into the clicked city at zoom 12 — BoundsWatcher fires → pins load
-          setMapCenter([c.lat, c.lng]);
-          setMapZoom(12);
-        }}
-      />
+        {/* ── Toggle header (desktop) ─────────────────────────────────────── */}
+        <div className="hidden md:flex h-14 border-b border-slate-100 items-center px-4 gap-2 shrink-0">
+          <button
+            onClick={() => setRightView("map")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+              rightView === "map"
+                ? "bg-slate-900 text-white shadow-sm"
+                : "text-slate-500 hover:bg-slate-100"
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+            </svg>
+            Map
+          </button>
+          <button
+            onClick={() => setRightView("listings")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+              rightView === "listings"
+                ? "bg-slate-900 text-white shadow-sm"
+                : "text-slate-500 hover:bg-slate-100"
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+            </svg>
+            Listings
+            {properties.length > 0 && (
+              <span className={`text-xs rounded-full px-1.5 py-0.5 font-normal ${
+                rightView === "listings" ? "bg-white/20" : "bg-slate-200 text-slate-600"
+              }`}>
+                {properties.length}
+              </span>
+            )}
+          </button>
+          <div className="flex-1" />
+          {currentZoom >= CITY_CLUSTER_ZOOM && properties.length === 0 && (
+            <span className="text-xs text-slate-400">Zoom or pan to load listings</span>
+          )}
+        </div>
 
-      {/* ── LAYER 1: All UI overlays (z-index above map's 0) ── */}
+        {/* ── Content area ────────────────────────────────────────────────── */}
+        <div className="flex-1 relative min-h-0">
 
-      {/* Mobile: floating KI button */}
+          {/* MAP — always mounted, invisible when listings view (keeps Leaflet alive) */}
+          <div className={`absolute inset-0 ${rightView === "listings" ? "invisible pointer-events-none" : ""}`}>
+            <LeafletMap
+              center={mapCenter}
+              zoom={mapZoom}
+              properties={properties}
+              selectedId={selected?.id ?? null}
+              highlightedIds={highlightedIds}
+              onSelect={setSelected}
+              onBoundsChange={handleBoundsChange}
+              cityClusters={cityClusters}
+              currentZoom={currentZoom}
+              onCityClick={(c) => {
+                setMapCenter([c.lat, c.lng]);
+                setMapZoom(12);
+                setRightView("map");
+              }}
+            />
+          </div>
+
+          {/* LISTINGS GRID */}
+          {rightView === "listings" && (
+            <div className="absolute inset-0 overflow-y-auto bg-white">
+              <div className="p-4 md:p-6">
+                {properties.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-64 text-slate-400">
+                    <span className="text-4xl mb-3">🗺</span>
+                    <p className="text-sm font-medium text-center">
+                      Pan or zoom the map to see listings, or use AI Search to find properties.
+                    </p>
+                    <button
+                      onClick={() => setRightView("map")}
+                      className="mt-5 px-5 py-2.5 bg-slate-900 text-white text-sm font-semibold rounded-xl hover:bg-slate-800 transition-colors">
+                      Open Map
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
+                    {properties.map(p => (
+                      <PropertyListingCard
+                        key={p.id}
+                        property={p}
+                        highlighted={highlightedIds.length > 0 && highlightedIds.includes(p.id)}
+                        onSelect={() => { setSelected(p); setRightView("map"); }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          MOBILE — floating AI button
+      ══════════════════════════════════════════════════════════════════════ */}
       <button
         onClick={() => setChatOpen(true)}
         className="md:hidden fixed z-[100] bottom-[72px] right-4 w-12 h-12 rounded-2xl text-white shadow-lg flex items-center justify-center text-xs font-bold"
@@ -753,34 +969,7 @@ export function MapHomePage() {
         AI
       </button>
 
-      {/* ── AI Chat panel — floating glass box, desktop only, ≤25vw ── */}
-      <div
-        className="hidden md:flex flex-col z-[100] fixed overflow-hidden"
-        style={{
-          right: "16px",
-          top: "16px",
-          bottom: "calc(52px + env(safe-area-inset-bottom) + 16px)",
-          width: "clamp(300px, 25vw, 420px)",
-          background: "rgba(255,255,255,0.82)",
-          backdropFilter: "blur(24px) saturate(1.6)",
-          WebkitBackdropFilter: "blur(24px) saturate(1.6)",
-          borderRadius: "20px",
-          boxShadow: "0 8px 40px rgba(0,0,0,0.12), 0 1px 0 rgba(255,255,255,0.8) inset",
-          border: "1px solid rgba(255,255,255,0.55)",
-        }}>
-        {/* Panel top bar with Habino button */}
-        <div className="shrink-0 flex items-center justify-end px-4 pt-3 pb-0">
-          <button
-            onClick={() => setHabinoOpen((o) => !o)}
-            className="px-3 py-1.5 rounded-xl text-xs font-semibold text-white shadow-sm hover:opacity-90 active:scale-95 transition-all"
-            style={{ backgroundColor: habinoOpen ? "var(--color-secondary)" : "var(--color-primary)" }}>
-            Habino
-          </button>
-        </div>
-        <AIChatPage sidebarMode onPropertiesFound={handlePropertiesFound} />
-      </div>
-
-      {/* ── Habino control-centre panel (desktop) ── */}
+      {/* Habino menu panel (desktop) */}
       {habinoOpen && (
         <div className="hidden md:block">
           <HabinoPanel onClose={() => setHabinoOpen(false)} />

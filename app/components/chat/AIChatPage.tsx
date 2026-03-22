@@ -558,14 +558,19 @@ export function AIChatPage({
     if (inputRef.current) inputRef.current.style.height = "auto";
 
     const newMessages: ChatMessage[] = [...messages, { role: "user", content: userText }];
-    setMessages(newMessages);
+    // Add an empty streaming placeholder for the assistant reply
+    const assistantIdx = newMessages.length;
+    const withPlaceholder: ChatMessage[] = [
+      ...newMessages,
+      { role: "assistant", content: "", lang: detectLang(userText) },
+    ];
+    setMessages(withPlaceholder);
     setLoading(true);
 
     const currentProperty = pathname?.startsWith("/properties/")
       ? pathname.replace("/properties/", "") : undefined;
 
     try {
-      // Serialize properties into assistant messages so the AI has context for follow-ups
       const apiMessages = newMessages.map(({ role, content, properties }) => ({
         role,
         content: properties && properties.length > 0
@@ -577,6 +582,7 @@ export function AIChatPage({
             })))}]`
           : content,
       }));
+
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -586,47 +592,89 @@ export function AIChatPage({
           wizard: wizardState,
         }),
       });
-      const data = await res.json();
-      if (!res.ok || data.error) {
-        setMessages([...newMessages, { role: "assistant", content: `⚠️ Error: ${data.error || `HTTP ${res.status}`}` }]);
+
+      if (!res.ok || !res.body) {
+        setMessages([...newMessages, { role: "assistant", content: `⚠️ Error: HTTP ${res.status}` }]);
         return;
       }
-      // Update wizard state if returned by API
-      if (data.wizard !== undefined) {
-        setWizardState(data.wizard);
-      }
 
-      // If API returned profile_data, save it via the profile API (which handles auth)
-      let profileSaved: { success: boolean; error?: string } | undefined;
-      if (data.profile_data) {
-        try {
-          const saveRes = await fetch("/api/profile", {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(data.profile_data as ProfileData),
-          });
-          const saveData = await saveRes.json();
-          profileSaved = saveRes.ok
-            ? { success: true }
-            : { success: false, error: saveData.error ?? "Save failed" };
-        } catch (e: unknown) {
-          profileSaved = { success: false, error: e instanceof Error ? e.message : "Network error" };
+      const contentType = res.headers.get("content-type") ?? "";
+
+      // ── Streaming path (SSE) ─────────────────────────────────────────────
+      if (contentType.includes("text/event-stream")) {
+        const reader  = res.body.getReader();
+        const decoder = new TextDecoder();
+        let   buffer  = "";
+        let   reply   = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";   // keep incomplete last line
+
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            let parsed: Record<string, unknown>;
+            try { parsed = JSON.parse(line.slice(6)); } catch { continue; }
+
+            if (parsed.error) {
+              setMessages(prev => {
+                const updated = [...prev];
+                updated[assistantIdx] = { ...updated[assistantIdx], content: `⚠️ ${parsed.error}` };
+                return updated;
+              });
+              break;
+            }
+
+            if (parsed.t) {
+              // Text chunk — append to the streaming placeholder
+              reply += parsed.t as string;
+              const snap = reply;
+              setMessages(prev => {
+                const updated = [...prev];
+                updated[assistantIdx] = { ...updated[assistantIdx], content: snap };
+                return updated;
+              });
+            }
+
+            if (parsed.done) {
+              // Final event — attach properties and highlight map pins
+              const props = (parsed.properties as Property[] | undefined) ?? [];
+              const ids   = (parsed.propertyIds as string[]  | undefined) ?? [];
+              if (ids.length > 0) onPropertiesFound?.(ids);
+              setMessages(prev => {
+                const updated = [...prev];
+                updated[assistantIdx] = {
+                  ...updated[assistantIdx],
+                  properties: props.length > 0 ? props : undefined,
+                };
+                return updated;
+              });
+            }
+          }
         }
+        return; // streaming done
       }
 
-      // Notify parent (map) about matched property IDs so it can highlight pins
-      if (data.propertyIds && data.propertyIds.length > 0) {
-        onPropertiesFound?.(data.propertyIds);
+      // ── Fallback: plain JSON (non-streaming) ─────────────────────────────
+      const data = await res.json();
+      if (data.error) {
+        setMessages([...newMessages, { role: "assistant", content: `⚠️ Error: ${data.error}` }]);
+        return;
       }
+      if (data.wizard !== undefined) setWizardState(data.wizard);
+      if (data.propertyIds?.length > 0) onPropertiesFound?.(data.propertyIds);
 
       setMessages([...newMessages, {
         role: "assistant",
         content: data.reply ?? "",
-        properties: data.properties !== undefined ? data.properties : undefined,
+        properties: data.properties?.length > 0 ? data.properties : undefined,
         appointment: data.appointment,
         listing_created: data.listing_created,
         contract_created: data.contract_created,
-        profile_saved: profileSaved,
         wizard_chips: data.chips,
         filters: data.filters,
         lang: detectLang(userText),

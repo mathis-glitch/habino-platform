@@ -112,6 +112,18 @@ function MapFlyTo({ center, zoom }: { center: [number, number]; zoom: number }) 
   return null;
 }
 
+// Tells Leaflet to recalculate its size after the flex layout settles.
+// Required when the map is inside a split-view rather than full-screen fixed.
+function MapResizer() {
+  const map = useMap();
+  useEffect(() => {
+    // Small delay lets the browser finish layout before Leaflet measures the container
+    const t = setTimeout(() => { map.invalidateSize(); }, 80);
+    return () => clearTimeout(t);
+  }, [map]);
+  return null;
+}
+
 function BoundsWatcher({ onBoundsChange }: { onBoundsChange: (b: MapBounds) => void }) {
   const map = useMap();
   const report = useCallback(() => {
@@ -155,7 +167,11 @@ export default function LeafletMap({
   const highlightSet = hasHighlight ? new Set(highlightedIds) : null;
   const showClusters = currentZoom < CLUSTER_ZOOM;
 
+  // The outer div provides a positioned block for the MapContainer to fill.
+  // This is required for Leaflet to calculate its dimensions correctly inside
+  // a flex layout (as opposed to the old full-screen fixed approach).
   return (
+    <div style={{ position: "relative", width: "100%", height: "100%" }}>
     <MapContainer
       center={center}
       zoom={zoom}
@@ -163,8 +179,7 @@ export default function LeafletMap({
       scrollWheelZoom
       attributionControl={false}
       style={{
-        position: "fixed", inset: 0,
-        width: "100vw", height: "100dvh",
+        position: "absolute", inset: 0,
         background: "#f0ede8", zIndex: 0,
       }}
     >
@@ -177,6 +192,7 @@ export default function LeafletMap({
         attribution="" subdomains="abcd" maxZoom={19}
       />
       <MapFlyTo center={center} zoom={zoom} />
+      <MapResizer />
       {onBoundsChange && <BoundsWatcher onBoundsChange={onBoundsChange} />}
 
       {/* ── City cluster layer (zoom < CLUSTER_ZOOM) ──────────────────────── */}
@@ -233,8 +249,7 @@ export default function LeafletMap({
           <CircleMarker
             key={p.id}
             center={[p.lat, p.lng]}
-            // @ts-expect-error — renderer is a valid Leaflet Path option
-            renderer={PIN_RENDERER}
+            renderer={PIN_RENDERER as unknown as L.Renderer}
             radius={highlighted ? 9 : 6}
             pathOptions={{
               color:       "white",
@@ -247,5 +262,6 @@ export default function LeafletMap({
         );
       })}
     </MapContainer>
+    </div>
   );
 }

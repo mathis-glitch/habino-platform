@@ -562,10 +562,18 @@ function generateNeighbourhoods(city: string): string[] {
 }
 
 // ── Merge city lists (GeoNames > EXTENDED_CITIES > built-in CITIES) ──────────
-// Priority: GeoNames (26k real cities) → EXTENDED_CITIES (1 200) → built-in (436)
-// The built-in detailed cities already in CITIES above are always kept as-is.
+// Deduplication is by CITY NAME only (case-insensitive), not name|country.
+// This prevents "Addis Ababa|ET" (GeoNames) and "Addis Ababa|Ethiopia" (manual)
+// from both entering CITIES and generating duplicate listings with conflicting coords.
+//
+// When GeoNames has a more accurate lat/lng for a manually-defined city, we
+// update the manual entry's coordinates — GeoNames (population ≥ 15 000) is more
+// accurate than the manually-curated coordinates in this file.
 {
-  const existingKeys = new Set(CITIES.map(c => `${c.city}|${c.country}`));
+  // Dedup set: lowercase city names (ignores country code format differences)
+  const existingNames = new Map(
+    CITIES.map((c, i) => [c.city.toLowerCase().trim(), i])
+  );
 
   // Choose source: prefer GeoNames if available, else EXTENDED_CITIES
   const source: Array<[string,string,number,number,string,number]> =
@@ -578,14 +586,29 @@ function generateNeighbourhoods(city: string): string[] {
     console.log(`   Run 'npx tsx scripts/prepare-geonames.ts' for 20 000+ cities.`);
   }
 
+  let coordsUpdated = 0;
+
   for (const [name, country, lat, lng, currency, priceIndex] of source) {
-    // GeoNames uses 2-letter country codes; map to display name for the address field
-    const key = `${name}|${country}`;
-    if (!existingKeys.has(key)) {
-      CITIES.push({ city: name, country, lat, lng, currency, priceIndex,
-                    neighbourhoods: generateNeighbourhoods(name) });
-      existingKeys.add(key);
+    const lname = name.toLowerCase().trim();
+
+    if (existingNames.has(lname)) {
+      // City already in the manual list — update its coordinates to the more
+      // accurate GeoNames values so neighbourhood rings are placed correctly.
+      const idx = existingNames.get(lname)!;
+      CITIES[idx].lat = lat;
+      CITIES[idx].lng = lng;
+      coordsUpdated++;
+      continue;
     }
+
+    // New city from GeoNames — add with generated neighbourhood names
+    CITIES.push({ city: name, country, lat, lng, currency, priceIndex,
+                  neighbourhoods: generateNeighbourhoods(name) });
+    existingNames.set(lname, CITIES.length - 1);
+  }
+
+  if (coordsUpdated > 0) {
+    console.log(`   ✅ Updated coordinates for ${coordsUpdated} manually-defined cities using GeoNames data.`);
   }
 }
 
@@ -794,13 +817,34 @@ async function main() {
   console.log("──────────────────────────────────");
 
   // 1. Get tenant ID
-  const { data: tenants, error: tErr } = await sb.from("tenants").select("id,name").limit(5);
+  // Priority: --tenant=<slug> CLI arg → SEED_TENANT_SLUG env var → first tenant
+  const slugArg = process.argv.find(a => a.startsWith("--tenant="))?.split("=")[1]
+    ?? process.env.SEED_TENANT_SLUG
+    ?? process.env.NEXT_PUBLIC_DEV_TENANT_SLUG;
+
+  const { data: tenants, error: tErr } = await sb
+    .from("tenants")
+    .select("id,name,slug")
+    .limit(20);
+
   if (tErr || !tenants?.length) {
     console.error("❌ Could not fetch tenants:", tErr?.message);
     process.exit(1);
   }
-  const tenantId = tenants[0].id;
-  console.log(`✅ Using tenant: ${tenants[0].name} (${tenantId})`);
+
+  // Match by slug if provided, otherwise use first
+  const tenant = slugArg
+    ? tenants.find(t => t.slug === slugArg) ?? tenants[0]
+    : tenants[0];
+
+  if (slugArg && !tenants.find(t => t.slug === slugArg)) {
+    console.warn(`⚠️  Tenant slug "${slugArg}" not found — using first tenant instead.`);
+    console.warn(`   Available: ${tenants.map(t => t.slug).join(", ")}`);
+  }
+
+  const tenantId = tenant.id;
+  console.log(`✅ Using tenant: ${tenant.name} / slug: ${tenant.slug} (${tenantId})`);
+  console.log(`   Tip: use --tenant=<slug> or SEED_TENANT_SLUG env var to target a specific tenant.`);
 
   // 2. Clear existing listings for this tenant (clean re-seed)
   const { count: existing } = await sb.from("properties").select("id", { count:"exact", head:true }).eq("tenant_id", tenantId);
@@ -950,14 +994,10 @@ async function main() {
   }
 
   // ── 5. Populate city_listing_counts (cluster layer) ───────────────────────
-  // This table powers the lightweight city-bubble layer at low zoom levels.
-  // It's replaced wholesale after every re-seed.
+  // Uses upsert (onConflict: tenant_id, city, country) so duplicate city names
+  // in GeoNames (e.g. two "Springfield, USA") are handled gracefully instead of
+  // crashing the batch. Safe to re-run any number of times.
   console.log(`\n\n🗺️  Refreshing city cluster table…`);
-  const { error: delCityErr } = await sb
-    .from("city_listing_counts")
-    .delete()
-    .eq("tenant_id", tenantId);
-  if (delCityErr) console.warn("  ⚠️  Could not clear city clusters:", delCityErr.message);
 
   const cityCountRows = cityListings.map(({ city, count }) => ({
     tenant_id:     tenantId,
@@ -968,14 +1008,30 @@ async function main() {
     listing_count: count,
   }));
 
-  // Insert in batches of 500
+  let upsertedCount = 0;
+  let upsertErrors  = 0;
+
+  // Upsert in batches of 500 — conflict on (tenant_id, city, country) updates the count + coords
   for (let i = 0; i < cityCountRows.length; i += 500) {
     const { error: cityErr } = await sb
       .from("city_listing_counts")
-      .insert(cityCountRows.slice(i, i + 500));
-    if (cityErr) console.warn(`  ⚠️  City cluster batch error:`, cityErr.message);
+      .upsert(cityCountRows.slice(i, i + 500), {
+        onConflict:        "tenant_id,city,country",
+        ignoreDuplicates:  false,   // update listing_count on conflict
+      });
+    if (cityErr) {
+      console.warn(`  ⚠️  City cluster batch error:`, cityErr.message);
+      upsertErrors++;
+    } else {
+      upsertedCount += Math.min(500, cityCountRows.length - i);
+    }
   }
-  console.log(`  ✅ ${cityCountRows.length} city clusters written.`);
+
+  if (upsertErrors === 0) {
+    console.log(`  ✅ ${upsertedCount} city clusters upserted cleanly.`);
+  } else {
+    console.log(`  ⚠️  ${upsertedCount} upserted, ${upsertErrors} batch(es) had errors.`);
+  }
 
   console.log(`\n🎉 Done! Inserted ${totalInserted.toLocaleString()} listings across ${CITIES.length} cities.`);
   console.log("   Open Habino — the map now shows city bubbles at world zoom, pins when zoomed in.");

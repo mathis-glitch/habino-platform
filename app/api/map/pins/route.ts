@@ -24,7 +24,7 @@ function limitForZoom(zoom: number): number {
 
 export async function GET(request: NextRequest) {
   const tenantId = request.headers.get("x-tenant-id");
-  if (!tenantId) {
+  if (!tenantId?.trim()) {
     return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
   }
 

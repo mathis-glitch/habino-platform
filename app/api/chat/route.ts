@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 
 // ── Anthropic client ──────────────────────────────────────────────────────────
@@ -65,14 +65,8 @@ const TOOLS: Anthropic.Tool[] = [
           items: {
             type: "object",
             properties: {
-              poi_type: {
-                type: "string",
-                description: `Type of point of interest. Allowed values: ${POI_TYPE_LIST}`,
-              },
-              radius_m: {
-                type: "number",
-                description: "Search radius in metres. Default 500 for education/health, 800 for transport.",
-              },
+              poi_type: { type: "string", description: `Allowed values: ${POI_TYPE_LIST}` },
+              radius_m: { type: "number", description: "Search radius in metres." },
             },
             required: ["poi_type", "radius_m"],
           },
@@ -85,29 +79,22 @@ const TOOLS: Anthropic.Tool[] = [
 
 // ── Type helpers ──────────────────────────────────────────────────────────────
 type SearchInput = Record<string, unknown>;
-
-interface ProximityConstraint {
-  poi_type: string;
-  radius_m: number;
-}
+interface ProximityConstraint { poi_type: string; radius_m: number; }
 
 // ── Search executor ───────────────────────────────────────────────────────────
-async function execSearch(input: SearchInput): Promise<Record<string, unknown>[]> {
+async function execSearch(
+  input: SearchInput,
+  tenantId: string,
+): Promise<Record<string, unknown>[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = createServiceClient() as any;
-
   const proximity = (input.proximity as ProximityConstraint[] | undefined) ?? [];
 
-  // ── Path A: proximity search via PostGIS RPC ───────────────────────────────
-  // When the user specifies proximity constraints we use the find_properties_near_poi
-  // Postgres function (requires PostGIS + migration 006). Falls back to normal search
-  // if RPC is unavailable or POI table is empty.
+  // ── Path A: proximity search via PostGIS RPC ──────────────────────────────
   if (proximity.length > 0) {
-    // Use the first proximity constraint (most specific) — future: AND/OR chaining
     const p = proximity[0];
-
     const { data, error } = await sb.rpc("find_properties_near_poi", {
-      p_tenant_id:     null,            // RPC uses RLS — no tenant filter needed from here
+      p_tenant_id:     tenantId,            // ✅ tenant-isolated
       p_poi_type:      p.poi_type,
       p_radius_m:      p.radius_m,
       p_city:          input.city          ?? null,
@@ -119,36 +106,30 @@ async function execSearch(input: SearchInput): Promise<Record<string, unknown>[]
       p_min_bedrooms:  input.min_bedrooms  ?? null,
       p_lim:           Math.min(Number(input.limit) || 8, 20),
     });
-
-    if (!error && data && data.length > 0) {
-      return data as Record<string, unknown>[];
-    }
-
-    // If RPC failed or returned 0 results, fall through to normal search
-    if (error) {
-      console.warn("[/api/chat] proximity RPC error:", error.message, "— falling back to normal search");
-    }
+    if (!error && data?.length > 0) return data as Record<string, unknown>[];
+    if (error) console.warn("[/api/chat] proximity RPC:", error.message, "→ fallback");
   }
 
-  // ── Path B: standard filter search ────────────────────────────────────────
+  // ── Path B: standard filter search ───────────────────────────────────────
   let q = sb
     .from("properties")
     .select(
       "id,title,price,currency,city,neighbourhood,address,property_type,listing_type," +
-      "bedrooms,bathrooms,area_sqm,description,agent_name,agent_email,agent_phone,images,status"
+      "bedrooms,bathrooms,area_sqm,description,agent_name,agent_email,agent_phone,images,status,lat,lng"
     )
-    .eq("status", "active");
+    .eq("status",    "active")
+    .eq("tenant_id", tenantId); // ✅ always tenant-isolated
 
-  if (input.city)           q = q.ilike("city",           `%${input.city}%`);
-  if (input.neighbourhood)  q = q.ilike("neighbourhood",  `%${input.neighbourhood}%`);
-  if (input.property_type)  q = q.eq("property_type",     input.property_type);
-  if (input.listing_type)   q = q.eq("listing_type",      input.listing_type);
-  if (input.min_price)      q = q.gte("price",            input.min_price);
-  if (input.max_price)      q = q.lte("price",            input.max_price);
-  if (input.min_bedrooms)   q = q.gte("bedrooms",         input.min_bedrooms);
-  if (input.max_bedrooms)   q = q.lte("bedrooms",         input.max_bedrooms);
-  if (input.min_area_sqm)   q = q.gte("area_sqm",         input.min_area_sqm);
-  if (input.max_area_sqm)   q = q.lte("area_sqm",         input.max_area_sqm);
+  if (input.city)           q = q.ilike("city",          `%${input.city}%`);
+  if (input.neighbourhood)  q = q.ilike("neighbourhood", `%${input.neighbourhood}%`);
+  if (input.property_type)  q = q.eq("property_type",    input.property_type);
+  if (input.listing_type)   q = q.eq("listing_type",     input.listing_type);
+  if (input.min_price)      q = q.gte("price",           input.min_price);
+  if (input.max_price)      q = q.lte("price",           input.max_price);
+  if (input.min_bedrooms)   q = q.gte("bedrooms",        input.min_bedrooms);
+  if (input.max_bedrooms)   q = q.lte("bedrooms",        input.max_bedrooms);
+  if (input.min_area_sqm)   q = q.gte("area_sqm",        input.min_area_sqm);
+  if (input.max_area_sqm)   q = q.lte("area_sqm",        input.max_area_sqm);
 
   const limit = Math.min(Number(input.limit) || 8, 20);
   q = q.limit(limit).order("created_at", { ascending: false });
@@ -158,83 +139,123 @@ async function execSearch(input: SearchInput): Promise<Record<string, unknown>[]
   return (data ?? []) as Record<string, unknown>[];
 }
 
+function formatRows(rows: Record<string, unknown>[]) {
+  return rows.map(p => ({
+    id: p.id, title: p.title, price: p.price, currency: p.currency,
+    city: p.city, neighbourhood: p.neighbourhood,
+    property_type: p.property_type, listing_type: p.listing_type,
+    bedrooms: p.bedrooms, bathrooms: p.bathrooms, area_sqm: p.area_sqm,
+    lat: p.lat, lng: p.lng,
+    nearest_poi_name: p.nearest_poi_name,
+    nearest_poi_dist_m: p.nearest_poi_dist_m
+      ? Math.round(p.nearest_poi_dist_m as number) : undefined,
+  }));
+}
+
 // ── POST /api/chat ────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
-    const rawMsgs: Array<{ role: string; content: string }> = body.messages ?? [];
-    if (!rawMsgs.length) return NextResponse.json({ error: "No messages" }, { status: 400 });
+  // ✅ Tenant from middleware-injected header — always scoped correctly
+  const tenantId = req.headers.get("x-tenant-id")?.trim() ?? "";
 
-    const msgs: Anthropic.MessageParam[] = rawMsgs.map((m) => ({
-      role:    m.role as "user" | "assistant",
-      content: m.content,
-    }));
-
-    let foundProperties: Record<string, unknown>[] = [];
-
-    // First call
-    let res = await anthropic.messages.create({
-      model: "claude-sonnet-4-6", max_tokens: 1024,
-      system: SYSTEM_PROMPT, tools: TOOLS, messages: msgs,
-    });
-
-    // Tool-use loop (max 3 rounds)
-    let guard = 0;
-    while (res.stop_reason === "tool_use" && guard++ < 3) {
-      const tb = res.content.find((b): b is Anthropic.ToolUseBlock => b.type === "tool_use");
-      if (!tb) break;
-
-      let toolResult: string;
-      try {
-        const rows = await execSearch(tb.input as SearchInput);
-        foundProperties = rows;
-        const summary = rows.map((p) => ({
-          id:                   p.id,
-          title:                p.title,
-          price:                p.price,
-          currency:             p.currency,
-          city:                 p.city,
-          neighbourhood:        p.neighbourhood,
-          property_type:        p.property_type,
-          listing_type:         p.listing_type,
-          bedrooms:             p.bedrooms,
-          bathrooms:            p.bathrooms,
-          area_sqm:             p.area_sqm,
-          // proximity result fields (present only when RPC was used)
-          nearest_poi_name:     p.nearest_poi_name,
-          nearest_poi_dist_m:   p.nearest_poi_dist_m
-            ? Math.round(p.nearest_poi_dist_m as number)
-            : undefined,
-        }));
-        toolResult = JSON.stringify({ count: rows.length, results: summary });
-      } catch (e) {
-        toolResult = JSON.stringify({ count: 0, error: String(e) });
-      }
-
-      res = await anthropic.messages.create({
-        model: "claude-sonnet-4-6", max_tokens: 1024,
-        system: SYSTEM_PROMPT, tools: TOOLS,
-        messages: [
-          ...msgs,
-          { role: "assistant", content: res.content },
-          { role: "user", content: [{ type: "tool_result", tool_use_id: tb.id, content: toolResult }] },
-        ],
-      });
-    }
-
-    const reply = res.content
-      .filter((b): b is Anthropic.TextBlock => b.type === "text")
-      .map((b) => b.text)
-      .join("");
-
-    return NextResponse.json({
-      reply,
-      properties:  foundProperties,
-      propertyIds: foundProperties.map((p) => p.id as string),
-    });
-
-  } catch (err: unknown) {
-    console.error("[/api/chat]", err);
-    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 });
+  const body        = await req.json();
+  const rawMsgs: Array<{ role: string; content: string }> = body.messages ?? [];
+  if (!rawMsgs.length) {
+    return new Response(JSON.stringify({ error: "No messages" }), { status: 400 });
   }
+
+  const initMsgs: Anthropic.MessageParam[] = rawMsgs.map(m => ({
+    role:    m.role as "user" | "assistant",
+    content: m.content,
+  }));
+
+  let foundProperties: Record<string, unknown>[] = [];
+
+  // ── Streaming response ────────────────────────────────────────────────────
+  // Each turn is streamed. If Claude calls a tool the tool text isn't visible
+  // (it's just JSON), so the user just sees a brief pause before the reply streams.
+  const enc = new TextEncoder();
+  const send = (payload: Record<string, unknown>) =>
+    enc.encode(`data: ${JSON.stringify(payload)}\n\n`);
+
+  const readable = new ReadableStream({
+    async start(controller) {
+      try {
+        let currentMsgs = [...initMsgs];
+        let guard = 0;
+
+        while (guard++ < 4) {
+          // Start a streaming call
+          const stream = anthropic.messages.stream({
+            model:    "claude-sonnet-4-6",
+            max_tokens: 1024,
+            system:   SYSTEM_PROMPT,
+            tools:    TOOLS,
+            messages: currentMsgs,
+          });
+
+          // Forward text deltas to the client in real-time
+          stream.on("text", (text) => {
+            controller.enqueue(send({ t: text }));
+          });
+
+          // Wait for the full message (needed to extract tool calls)
+          const finalMsg = await stream.finalMessage();
+
+          if (finalMsg.stop_reason !== "tool_use") {
+            // No more tool calls — we're done
+            break;
+          }
+
+          // ── Tool call: execute search, then continue ────────────────────
+          const tb = finalMsg.content.find(
+            (b): b is Anthropic.ToolUseBlock => b.type === "tool_use"
+          );
+          if (!tb) break;
+
+          let toolResult: string;
+          try {
+            const rows  = await execSearch(tb.input as SearchInput, tenantId);
+            foundProperties = rows;
+            toolResult = JSON.stringify({ count: rows.length, results: formatRows(rows) });
+          } catch (e) {
+            toolResult = JSON.stringify({ count: 0, error: String(e) });
+          }
+
+          // Append assistant + tool_result to conversation and loop
+          currentMsgs = [
+            ...currentMsgs,
+            { role: "assistant" as const, content: finalMsg.content },
+            {
+              role: "user" as const,
+              content: [{
+                type:        "tool_result" as const,
+                tool_use_id: tb.id,
+                content:     toolResult,
+              }],
+            },
+          ];
+        }
+
+        // ── Done: send properties so frontend can highlight map pins ───────
+        controller.enqueue(send({
+          done:        true,
+          properties:  foundProperties,
+          propertyIds: foundProperties.map(p => p.id as string),
+        }));
+
+      } catch (err) {
+        controller.enqueue(send({ error: String(err) }));
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(readable, {
+    headers: {
+      "Content-Type":      "text/event-stream",
+      "Cache-Control":     "no-cache, no-transform",
+      "X-Accel-Buffering": "no",
+    },
+  });
 }
