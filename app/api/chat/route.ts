@@ -121,8 +121,9 @@ async function execSearch(
     .eq("status",    "active")
     .eq("tenant_id", tenantId); // ✅ always tenant-isolated
 
-  if (input.city)           q = q.ilike("city",          `%${input.city}%`);
-  if (input.neighbourhood)  q = q.ilike("neighbourhood", `%${input.neighbourhood}%`);
+  // Use ilike without leading wildcard so Postgres can use the city index
+  if (input.city)           q = q.ilike("city",          `${input.city}%`);
+  if (input.neighbourhood)  q = q.ilike("neighbourhood", `${input.neighbourhood}%`);
   if (input.property_type)  q = q.eq("property_type",    input.property_type);
   if (input.listing_type)   q = q.eq("listing_type",     input.listing_type);
   if (input.min_price)      q = q.gte("price",           input.min_price);
@@ -133,7 +134,8 @@ async function execSearch(
   if (input.max_area_sqm)   q = q.lte("area_sqm",        input.max_area_sqm);
 
   const limit = Math.min(Number(input.limit) || 8, 20);
-  q = q.limit(limit).order("created_at", { ascending: false });
+  // No ORDER BY — avoids full sort on 6.5M rows; index lookup is fast enough
+  q = q.limit(limit);
 
   const { data, error } = await q;
   if (error) throw new Error(error.message);
