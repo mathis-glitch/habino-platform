@@ -255,7 +255,16 @@ export async function POST(req: NextRequest) {
         }));
 
       } catch (err) {
-        controller.enqueue(send({ error: String(err) }));
+        const msg = String(err);
+        const friendly = msg.includes("overloaded")
+          ? "The AI is currently under heavy load. Please try again in a moment."
+          : msg.includes("timeout") || msg.includes("timed out")
+          ? "The request timed out. Please try again."
+          : msg.includes("401") || msg.includes("authentication")
+          ? "API authentication error. Check the ANTHROPIC_API_KEY."
+          : "Something went wrong. Please try again.";
+        controller.enqueue(send({ t: friendly }));
+        controller.enqueue(send({ done: true, properties: [], propertyIds: [] }));
       } finally {
         controller.close();
       }
