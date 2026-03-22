@@ -116,7 +116,8 @@ async function execSearch(
     .from("properties")
     .select(
       "id,title,price,currency,city,neighbourhood,address,property_type,listing_type," +
-      "bedrooms,bathrooms,area_sqm,description,agent_name,agent_email,agent_phone,images,status,lat,lng"
+      "bedrooms,bathrooms,area_sqm,description,agent_name,agent_email,agent_phone,status,lat,lng," +
+      "images:property_images(url,is_primary)"
     )
     .eq("status",    "active")
     .eq("tenant_id", tenantId); // ✅ always tenant-isolated
