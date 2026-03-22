@@ -47,34 +47,29 @@ export async function middleware(request: NextRequest) {
     }
   );
 
+  // Use service role key for tenant lookup to bypass RLS
+  // (tenants table may have RLS that blocks anon reads)
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+
+  async function lookupTenant(column: string, value: string) {
+    const res = await fetch(
+      `${supabaseUrl}/rest/v1/tenants?${column}=eq.${encodeURIComponent(value)}&is_active=eq.true&select=id,slug&limit=1`,
+      { headers: { "apikey": serviceKey, "Authorization": `Bearer ${serviceKey}` } }
+    ).catch(() => null);
+    if (!res?.ok) return null;
+    const rows = await res.json().catch(() => []);
+    return Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+  }
+
   const slug = getTenantSlug(hostname);
 
   if (slug) {
-    // Subdomain-based lookup
-    const { data: tenant } = await supabase
-      .from("tenants")
-      .select("id, slug, is_active")
-      .eq("slug", slug)
-      .eq("is_active", true)
-      .single();
-
-    if (tenant) {
-      tenantId   = tenant.id;
-      tenantSlug = tenant.slug;
-    }
+    const tenant = await lookupTenant("slug", slug);
+    if (tenant) { tenantId = tenant.id; tenantSlug = tenant.slug; }
   } else if (isCustomDomain(hostname)) {
-    // Custom domain lookup
-    const { data: tenant } = await supabase
-      .from("tenants")
-      .select("id, slug, is_active")
-      .eq("custom_domain", hostname)
-      .eq("is_active", true)
-      .single();
-
-    if (tenant) {
-      tenantId   = tenant.id;
-      tenantSlug = tenant.slug;
-    }
+    const tenant = await lookupTenant("custom_domain", hostname);
+    if (tenant) { tenantId = tenant.id; tenantSlug = tenant.slug; }
   }
 
   // ── 2. Refresh session (must happen before tenant headers are set) ───────────
