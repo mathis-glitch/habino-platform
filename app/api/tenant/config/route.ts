@@ -4,7 +4,7 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 // GET /api/tenant/config — public config for current tenant
 export async function GET(request: NextRequest) {
   const tenantId = request.headers.get("x-tenant-id");
-  if (!tenantId) {
+  if (!tenantId?.trim()) {
     return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
   }
 
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
 // PUT /api/tenant/config — update config (operator auth required)
 export async function PUT(request: NextRequest) {
   const tenantId = request.headers.get("x-tenant-id");
-  if (!tenantId) {
+  if (!tenantId?.trim()) {
     return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
   }
 

@@ -11,7 +11,7 @@ const GUEST_DAILY_LIMIT = 5;
 // POST /api/market/insights
 export async function POST(request: NextRequest) {
   const tenantId = request.headers.get("x-tenant-id");
-  if (!tenantId) {
+  if (!tenantId?.trim()) {
     return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
   }
 

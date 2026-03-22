@@ -1,12 +1,11 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { Property } from "@/lib/types";
-import type { PropertyWithCoords, MapBounds, CityCluster } from "./LeafletMap";
-import { CLUSTER_ZOOM as CITY_CLUSTER_ZOOM } from "./LeafletMap";
+import type { PropertyWithCoords } from "./LeafletMap";
 import { AIChatPage } from "@/app/components/chat/AIChatPage";
 
 // Load Leaflet map client-side only (no SSR)
@@ -716,104 +715,331 @@ function PropertyListingCard({
   );
 }
 
+// ── Deterministic city hash for simulated market data ─────────────────────────
+function cityHash(s: string): number {
+  let h = 5381;
+  for (const c of s) h = ((h << 5) + h + c.charCodeAt(0)) & 0x7fffffff;
+  return h;
+}
+
+// ── Market Data Dashboard ─────────────────────────────────────────────────────
+function MarketDataDashboard({
+  context,
+  properties,
+}: {
+  context: { city: string; country: string; currency: string } | null;
+  properties: PropertyWithCoords[];
+}) {
+  if (!context) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", color: "#94a3b8", padding: 32 }}>
+        <span style={{ fontSize: 48, marginBottom: 16 }}>📊</span>
+        <p style={{ fontSize: 16, fontWeight: 600, color: "#475569", marginBottom: 8, textAlign: "center" }}>Ask about a market</p>
+        <p style={{ fontSize: 13, textAlign: "center", lineHeight: 1.6, maxWidth: 320 }}>
+          Search for properties in the AI chat and the Data panel will show you market analytics for that city or neighbourhood.
+        </p>
+      </div>
+    );
+  }
+
+  const { city, country, currency } = context;
+  const h = cityHash(city + country);
+
+  // ── Derive real stats from actual search results ──────────────────────────
+  const rentProps  = properties.filter(p => p.listing_type === "rent");
+  const saleProps  = properties.filter(p => p.listing_type !== "rent");
+  const avgPrice   = properties.length
+    ? Math.round(properties.reduce((s, p) => s + p.price, 0) / properties.length)
+    : null;
+  const avgRent    = rentProps.length
+    ? Math.round(rentProps.reduce((s, p) => s + p.price, 0) / rentProps.length)
+    : null;
+  const propsWithArea = properties.filter(p => p.area_sqm && p.area_sqm > 0);
+  const avgPpm = propsWithArea.length
+    ? Math.round(propsWithArea.reduce((s, p) => s + p.price / p.area_sqm!, 0) / propsWithArea.length)
+    : null;
+
+  // Type breakdown
+  const typeCounts: Record<string, number> = {};
+  for (const p of properties) typeCounts[p.property_type] = (typeCounts[p.property_type] || 0) + 1;
+  const topTypes = Object.entries(typeCounts).sort((a, b) => b[1] - a[1]).slice(0, 4);
+  const maxTypeCount = topTypes[0]?.[1] ?? 1;
+
+  // ── Simulated 12-month price trend (deterministic from city hash) ─────────
+  const basePrice = avgPrice ?? (50000 + (h % 200000));
+  const months    = ["J","F","M","A","M","J","J","A","S","O","N","D"];
+  const trend: number[] = months.map((_, i) => {
+    const wave = Math.sin((i / 11) * Math.PI * 2 + (h % 100) / 50) * 0.06;
+    const drift = (i / 11) * ((h % 3 === 0) ? 0.12 : -0.04);
+    const noise = (((h >> i) & 0xf) / 15 - 0.5) * 0.05;
+    return Math.round(basePrice * (1 + wave + drift + noise));
+  });
+  const tMin = Math.min(...trend) * 0.96;
+  const tMax = Math.max(...trend) * 1.02;
+  const tRange = tMax - tMin;
+
+  // SVG dimensions
+  const SW = 280, SH = 88, PAD_X = 8, PAD_Y = 10;
+  const pts = trend.map((v, i) => {
+    const x = PAD_X + (i / 11) * (SW - PAD_X * 2);
+    const y = SH - PAD_Y - ((v - tMin) / tRange) * (SH - PAD_Y * 2);
+    return `${x},${y}`;
+  }).join(" ");
+
+  // Fill path
+  const firstPt = pts.split(" ")[0].split(",");
+  const lastPt  = pts.split(" ")[11].split(",");
+  const fillPath = `M ${firstPt[0]},${SH - PAD_Y} L ${pts.split(" ").map(p => p).join(" L ")} L ${lastPt[0]},${SH - PAD_Y} Z`;
+
+  // YoY change (last vs first month)
+  const yoy = ((trend[11] - trend[0]) / trend[0] * 100).toFixed(1);
+  const yoyUp = parseFloat(yoy) >= 0;
+
+  // Market sentiment (derived from hash + trend)
+  const sentimentScore = (h % 5);
+  const sentiments = ["Buyer's Market", "Slightly Buyer's", "Balanced", "Slightly Seller's", "Seller's Market"];
+  const sentimentColors = ["#2563eb", "#0891b2", "#8b5cf6", "#d97706", "#dc2626"];
+  const sentiment = sentiments[sentimentScore];
+  const sentimentColor = sentimentColors[sentimentScore];
+
+  // Days on market (simulated)
+  const dom = 18 + (h % 42);
+
+  // Format currency
+  const fmt = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 0, notation: n >= 1_000_000 ? "compact" : "standard" }).format(n);
+
+  const CARD = { background: "white", borderRadius: 14, padding: "14px 16px", border: "1px solid #f1f5f9", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" };
+  const LABEL = { fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase" as const, letterSpacing: "0.06em" };
+  const VALUE = { fontSize: 20, fontWeight: 800, color: "#0f172a", marginTop: 4, letterSpacing: "-0.02em" };
+  const SUB = { fontSize: 11, color: "#64748b", marginTop: 2 };
+
+  return (
+    <div style={{ position: "absolute", inset: 0, overflowY: "auto", background: "#f8fafc" }}>
+      <div style={{ padding: "20px 20px 32px" }}>
+
+        {/* City header */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+            <h2 style={{ fontSize: 22, fontWeight: 800, color: "#0f172a", margin: 0, letterSpacing: "-0.03em" }}>{city}</h2>
+            <span style={{ fontSize: 13, color: "#94a3b8", fontWeight: 500 }}>{country}</span>
+          </div>
+          <p style={{ fontSize: 12, color: "#64748b", margin: "4px 0 0" }}>
+            Real estate market overview · {properties.length > 0 ? `${properties.length} listings analysed` : "Simulated market data"}
+          </p>
+        </div>
+
+        {/* ── Key metric cards ── */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
+          <div style={CARD}>
+            <div style={LABEL}>Avg. Price</div>
+            <div style={VALUE}>{avgPrice ? fmt(avgPrice) : fmt(basePrice)}</div>
+            <div style={SUB}>{saleProps.length > 0 ? `${saleProps.length} for sale` : "for sale"}</div>
+          </div>
+          <div style={CARD}>
+            <div style={LABEL}>Avg. Rent / mo</div>
+            <div style={VALUE}>{avgRent ? fmt(avgRent) : fmt(Math.round(basePrice * 0.005))}</div>
+            <div style={SUB}>{rentProps.length > 0 ? `${rentProps.length} rentals` : "rentals"}</div>
+          </div>
+          <div style={CARD}>
+            <div style={LABEL}>Price / m²</div>
+            <div style={VALUE}>{avgPpm ? fmt(avgPpm) : fmt(Math.round(basePrice / (40 + h % 60)))}</div>
+            <div style={SUB}>{propsWithArea.length > 0 ? `from ${propsWithArea.length} listings` : "estimated"}</div>
+          </div>
+          <div style={CARD}>
+            <div style={LABEL}>Days on Market</div>
+            <div style={VALUE}>{dom}</div>
+            <div style={SUB}>avg. time to close</div>
+          </div>
+        </div>
+
+        {/* ── Price trend chart ── */}
+        <div style={{ ...CARD, marginBottom: 16 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <div>
+              <div style={LABEL}>12-Month Price Trend</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: yoyUp ? "#16a34a" : "#dc2626", marginTop: 2 }}>
+                {yoyUp ? "▲" : "▼"} {Math.abs(parseFloat(yoy))}% YoY
+              </div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: 11, color: "#94a3b8" }}>Peak</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>{fmt(Math.max(...trend))}</div>
+            </div>
+          </div>
+          <svg width="100%" viewBox={`0 0 ${SW} ${SH}`} style={{ display: "block" }}>
+            <defs>
+              <linearGradient id="trendGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={yoyUp ? "#16a34a" : "#dc2626"} stopOpacity="0.15" />
+                <stop offset="100%" stopColor={yoyUp ? "#16a34a" : "#dc2626"} stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            {/* Fill area */}
+            <path d={fillPath} fill="url(#trendGrad)" />
+            {/* Line */}
+            <polyline
+              points={pts}
+              fill="none"
+              stroke={yoyUp ? "#16a34a" : "#dc2626"}
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            {/* Month labels */}
+            {months.map((m, i) => (
+              <text key={m + i} x={PAD_X + (i / 11) * (SW - PAD_X * 2)} y={SH - 1} textAnchor="middle" fontSize="7" fill="#94a3b8">{m}</text>
+            ))}
+          </svg>
+        </div>
+
+        {/* ── Property type breakdown ── */}
+        {topTypes.length > 0 && (
+          <div style={{ ...CARD, marginBottom: 16 }}>
+            <div style={{ ...LABEL, marginBottom: 12 }}>Property Types</div>
+            {topTypes.map(([type, count]) => {
+              const color = TYPE_COLORS[type] || "#6B7280";
+              const label = TYPE_LABELS[type] || type;
+              const pct   = Math.round((count / properties.length) * 100);
+              return (
+                <div key={type} style={{ marginBottom: 8 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: "#475569" }}>{label}</span>
+                    <span style={{ fontSize: 12, color: "#64748b" }}>{count} · {pct}%</span>
+                  </div>
+                  <div style={{ height: 6, borderRadius: 99, background: "#f1f5f9", overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${(count / maxTypeCount) * 100}%`, background: color, borderRadius: 99 }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ── Rent vs Sale split ── */}
+        {(rentProps.length > 0 || saleProps.length > 0) && (
+          <div style={{ ...CARD, marginBottom: 16 }}>
+            <div style={{ ...LABEL, marginBottom: 12 }}>Listing Type Split</div>
+            <div style={{ display: "flex", gap: 12 }}>
+              {[
+                { label: "For Rent", count: rentProps.length, color: "#2563eb" },
+                { label: "For Sale", count: saleProps.length, color: "#2E7D46" },
+              ].map(({ label, count, color }) => (
+                <div key={label} style={{ flex: 1, padding: "10px 12px", borderRadius: 10, background: "#f8fafc", border: "1px solid #f1f5f9", textAlign: "center" }}>
+                  <div style={{ fontSize: 18, fontWeight: 800, color }}>{count}</div>
+                  <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>{label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── Market health ── */}
+        <div style={CARD}>
+          <div style={{ ...LABEL, marginBottom: 12 }}>Market Health</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{
+              width: 44, height: 44, borderRadius: 99, display: "flex", alignItems: "center", justifyContent: "center",
+              background: `${sentimentColor}18`, border: `2px solid ${sentimentColor}40`,
+              fontSize: 20,
+            }}>
+              {sentimentScore <= 1 ? "🐂" : sentimentScore === 2 ? "⚖️" : sentimentScore === 3 ? "🔥" : "🚀"}
+            </div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: sentimentColor }}>{sentiment}</div>
+              <div style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
+                {sentimentScore <= 1 ? "More supply than demand — good time to buy." : sentimentScore === 2 ? "Supply and demand are roughly balanced." : "High demand, low supply — competitive market."}
+              </div>
+            </div>
+          </div>
+          {/* Sentiment bar */}
+          <div style={{ marginTop: 12, height: 6, borderRadius: 99, background: "linear-gradient(to right, #2563eb, #8b5cf6, #dc2626)", position: "relative" }}>
+            <div style={{
+              position: "absolute", top: "50%", transform: "translate(-50%, -50%)",
+              left: `${(sentimentScore / 4) * 100}%`,
+              width: 12, height: 12, borderRadius: 99, background: "white",
+              border: `2.5px solid ${sentimentColor}`, boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+            }} />
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+            <span style={{ fontSize: 9, color: "#2563eb", fontWeight: 600 }}>BUYER'S</span>
+            <span style={{ fontSize: 9, color: "#dc2626", fontWeight: 600 }}>SELLER'S</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 export function MapHomePage() {
   const [properties,     setProperties]     = useState<PropertyWithCoords[]>([]);
-  const [cityClusters,   setCityClusters]   = useState<CityCluster[]>([]);
-  const [currentZoom,    setCurrentZoom]    = useState(4);
   const [selected,       setSelected]       = useState<PropertyWithCoords | null>(null);
   const [chatOpen,       setChatOpen]       = useState(false);
   const [habinoOpen,     setHabinoOpen]     = useState(false);
   const [highlightedIds, setHighlightedIds] = useState<string[]>([]);
-  const [rightView,      setRightView]      = useState<"map" | "listings">("map");
+  const [rightView,      setRightView]      = useState<"listings" | "map" | "data">("listings");
+  const [marketContext,  setMarketContext]  = useState<{ city: string; country: string; currency: string } | null>(null);
+  const [mapCenter,      setMapCenter]      = useState<[number, number]>([20, 10]);
+  const [mapZoom,        setMapZoom]        = useState(12);
 
   // Called by AIChatPage when Claude returns matching properties
-  const handlePropertiesFound = useCallback((ids: string[]) => {
+  const handlePropertiesFound = useCallback((ids: string[], props?: Property[]) => {
     setHighlightedIds(ids);
-  }, []);
-
-  // Current placed coordinates (for minimum-distance filtering across batches)
-  const placedRef = useRef<Array<[number, number]>>([]);
-
-  // Track which viewport tiles have already been fetched (prevents re-fetch on every pan/zoom)
-  // Tile key is zoom-level-aware so zooming in always triggers a finer-grained load.
-  const loadedTiles = useRef<Set<string>>(new Set());
-
-  // ── Zoom-aware tile helpers ───────────────────────────────────────────────
-  function getTileKey(bounds: MapBounds): string {
-    const z = bounds.zoom;
-    // Tile step halves every ~3 zoom levels → zooming in always creates new tile keys
-    const step = z <= 3 ? 180 : z <= 5 ? 30 : z <= 8 ? 6 : z <= 11 ? 1.5 : 0.3;
-    const snap = (n: number) => Math.floor(n / step) * step;
-    return `z${Math.floor(z / 3)}_${snap(bounds.south)}_${snap(bounds.west)}_${snap(bounds.north)}_${snap(bounds.east)}`;
-  }
-  function getLimit(zoom: number): number {
-    if (zoom <= 4) return 150;   // zoomed out: lighter query, fast response
-    if (zoom <= 7) return 250;   // regional view
-    if (zoom <= 10) return 400;  // city view
-    return 600;                  // street level: full detail
-  }
-
-  // ── Replace visible pins with current viewport's listings ────────────────
-  // Viewport-only: no accumulation — only the current bbox is shown as pins/cards.
-  // The tile cache (loadedTiles) prevents redundant API calls when panning back.
-  const replaceListings = useCallback((raw: Property[]) => {
-    if (!raw.length) return;
-    placedRef.current = [];
-    const fresh = withCoords(raw, []);
-    placedRef.current = fresh.map(p => [p.lat, p.lng]);
-    setProperties(fresh);
-  }, []);
-
-  // ── Load city cluster layer on mount (replaces 8-region pre-warm) ──────────
-  // A single request for ~1 500 rows — loads in < 100 ms, shows bubbles worldwide
-  // before the user pans anywhere. Individual pins only load when zoomed to city level.
-  useEffect(() => {
-    fetch("/api/map/cities")
-      .then(r => r.ok ? r.json() : { data: [] })
-      .then((j: { data?: CityCluster[] }) => setCityClusters(j.data ?? []))
-      .catch(() => {});
-  }, []);
-
-  // ── Called by LeafletMap on pan / zoom ────────────────────────────────────
-  const handleBoundsChange = useCallback(async (bounds: MapBounds) => {
-    setCurrentZoom(bounds.zoom);
-
-    // Below cluster-switch zoom: city bubbles are shown — skip individual pins.
-    if (bounds.zoom < CITY_CLUSTER_ZOOM) return;
-
-    const tileKey = getTileKey(bounds);
-    if (loadedTiles.current.has(tileKey)) return;
-    loadedTiles.current.add(tileKey);
-
-    // Trim tile cache to max 40 entries to prevent memory growth
-    if (loadedTiles.current.size > 40) {
-      const oldest = Array.from(loadedTiles.current)[0];
-      loadedTiles.current.delete(oldest);
+    if (props && props.length > 0) {
+      const withC = withCoords(props, []);
+      setProperties(withC);
+      // Extract market context from first property
+      const first = props[0];
+      if (first) {
+        setMarketContext({
+          city: first.city || "Unknown",
+          country: (first as Property & { country?: string }).country || "",
+          currency: first.currency || "USD",
+        });
+      }
+      // Auto-center map to centroid of results
+      const withLatLng = props.filter(p => p.lat != null && p.lng != null);
+      if (withLatLng.length > 0) {
+        const avgLat = withLatLng.reduce((s, p) => s + p.lat!, 0) / withLatLng.length;
+        const avgLng = withLatLng.reduce((s, p) => s + p.lng!, 0) / withLatLng.length;
+        setMapCenter([avgLat, avgLng]);
+        setMapZoom(12);
+      }
     }
-
-    const bbox = `${bounds.south},${bounds.west},${bounds.north},${bounds.east}`;
-    const limit = getLimit(bounds.zoom);
-    const res = await fetch(
-      `/api/map/pins?bbox=${encodeURIComponent(bbox)}&zoom=${bounds.zoom}&limit=${limit}`
-    ).catch(() => null);
-    if (!res?.ok) return;
-
-    const json = await res.json().catch(() => ({ data: [] }));
-    replaceListings(json.data ?? []);
-  }, [replaceListings]);
-
-
-  // Map centre + zoom — updated when user clicks a city bubble to fly in
-  const [mapCenter, setMapCenter] = useState<[number, number]>([15, 30]);
-  const [mapZoom,   setMapZoom]   = useState(4);
+    // Switch to listings view to show results
+    setRightView("listings");
+  }, []);
 
   // ── Shared style constants ────────────────────────────────────────────────
-  const HEADER_H = 56; // px — top bar height for both panels
-
-  // Is the viewport narrow enough to show mobile layout?
-  // We detect this with a simple window check; default to desktop (false) for SSR.
+  const HEADER_H = 56;
   const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+
+  // ── Tab button helper ─────────────────────────────────────────────────────
+  function TabBtn({ view, label, badge }: { view: "listings" | "map" | "data"; label: string; badge?: number }) {
+    const active = rightView === view;
+    return (
+      <button
+        onClick={() => setRightView(view)}
+        style={{
+          display: "flex", alignItems: "center", gap: 5,
+          padding: "7px 13px", borderRadius: 10, fontSize: 13, fontWeight: 600,
+          border: "none", cursor: "pointer", transition: "all .15s",
+          background: active ? "#0f172a" : "transparent",
+          color: active ? "white" : "#64748b",
+        }}>
+        {label}
+        {badge != null && badge > 0 && (
+          <span style={{
+            fontSize: 11, borderRadius: 99, padding: "1px 5px",
+            background: active ? "rgba(255,255,255,0.25)" : "#e2e8f0",
+            color: active ? "white" : "#475569",
+          }}>
+            {badge}
+          </span>
+        )}
+      </button>
+    );
+  }
 
   // ── MOBILE: full-screen chat overlay ─────────────────────────────────────
   if (isMobile && chatOpen) {
@@ -821,7 +1047,7 @@ export function MapHomePage() {
       <div style={{ position: "fixed", inset: 0, zIndex: 500, background: "white", display: "flex", flexDirection: "column" }}>
         <div style={{ height: HEADER_H, borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", padding: "0 16px", gap: 12, flexShrink: 0 }}>
           <button onClick={() => setChatOpen(false)} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 14, color: "#64748b", background: "none", border: "none", cursor: "pointer" }}>
-            ← Map
+            ← Back
           </button>
           <span style={{ fontSize: 14, fontWeight: 600, color: "#1e293b" }}>AI Search</span>
         </div>
@@ -863,7 +1089,7 @@ export function MapHomePage() {
             ☰ Menu
           </button>
         </div>
-        {/* Chat — fills remaining height via absolute inset so AIChatPage height:100% works */}
+        {/* Chat */}
         <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
           <div style={{ position: "absolute", inset: 0 }}>
             <AIChatPage sidebarMode onPropertiesFound={handlePropertiesFound} />
@@ -872,117 +1098,106 @@ export function MapHomePage() {
       </div>
 
       {/* ═══════════════════════════════════════════════════
-          RIGHT — Map / Listings (50 %)
+          RIGHT — Listings / Map / Data (50 %)
       ═══════════════════════════════════════════════════ */}
-      <div style={{
-        width: isMobile ? "100%" : "50%",
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
-      }}>
-        {/* Header with Map / Listings toggle */}
-        <div style={{ height: HEADER_H, borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", padding: "0 16px", gap: 8, flexShrink: 0 }}>
-          {/* Map button */}
-          <button
-            onClick={() => setRightView("map")}
-            style={{
-              display: "flex", alignItems: "center", gap: 6,
-              padding: "8px 14px", borderRadius: 10, fontSize: 13, fontWeight: 600,
-              border: "none", cursor: "pointer", transition: "all .15s",
-              background: rightView === "map" ? "#0f172a" : "transparent",
-              color: rightView === "map" ? "white" : "#64748b",
-            }}>
-            🗺 Map
-          </button>
-          {/* Listings button */}
-          <button
-            onClick={() => setRightView("listings")}
-            style={{
-              display: "flex", alignItems: "center", gap: 6,
-              padding: "8px 14px", borderRadius: 10, fontSize: 13, fontWeight: 600,
-              border: "none", cursor: "pointer", transition: "all .15s",
-              background: rightView === "listings" ? "#0f172a" : "transparent",
-              color: rightView === "listings" ? "white" : "#64748b",
-            }}>
-            ⊞ Listings
-            {properties.length > 0 && (
-              <span style={{
-                fontSize: 11, borderRadius: 99, padding: "1px 6px",
-                background: rightView === "listings" ? "rgba(255,255,255,0.25)" : "#e2e8f0",
-                color: rightView === "listings" ? "white" : "#475569",
-              }}>
-                {properties.length}
-              </span>
-            )}
-          </button>
+      <div style={{ width: isMobile ? "100%" : "50%", height: "100%", display: "flex", flexDirection: "column" }}>
+
+        {/* Tab header */}
+        <div style={{ height: HEADER_H, borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", padding: "0 12px", gap: 4, flexShrink: 0 }}>
+          <TabBtn view="listings" label="⊞ Listings" badge={properties.length} />
+          <TabBtn view="map"      label="🗺 Map" />
+          <TabBtn view="data"     label="📊 Data" />
           <div style={{ flex: 1 }} />
-          {currentZoom >= CITY_CLUSTER_ZOOM && properties.length === 0 && (
-            <span style={{ fontSize: 12, color: "#94a3b8" }}>Zoom in to load listings</span>
+          {properties.length === 0 && (
+            <span style={{ fontSize: 11, color: "#cbd5e1" }}>Ask the AI to search</span>
           )}
         </div>
 
-        {/* Content area — fills remaining height */}
+        {/* Content area */}
         <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
 
-          {/* MAP — always in DOM, hidden when listings view (keeps Leaflet initialised) */}
+          {/* MAP — always in DOM (keeps Leaflet alive), shown only when map tab active */}
           <div style={{
             position: "absolute", inset: 0,
-            visibility: rightView === "listings" ? "hidden" : "visible",
-            pointerEvents: rightView === "listings" ? "none" : "auto",
+            visibility: rightView === "map" ? "visible" : "hidden",
+            pointerEvents: rightView === "map" ? "auto" : "none",
           }}>
-            <LeafletMap
-              center={mapCenter}
-              zoom={mapZoom}
-              properties={properties}
-              selectedId={selected?.id ?? null}
-              highlightedIds={highlightedIds}
-              onSelect={setSelected}
-              onBoundsChange={handleBoundsChange}
-              cityClusters={cityClusters}
-              currentZoom={currentZoom}
-              onCityClick={(c) => {
-                setMapCenter([c.lat, c.lng]);
-                setMapZoom(12);
-                setRightView("map");
-              }}
-            />
+            {properties.length === 0 && rightView === "map" ? (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", color: "#94a3b8" }}>
+                <span style={{ fontSize: 48, marginBottom: 16 }}>🗺</span>
+                <p style={{ fontSize: 14, fontWeight: 600, color: "#475569", marginBottom: 8 }}>No results to map yet</p>
+                <p style={{ fontSize: 13, color: "#94a3b8", textAlign: "center", maxWidth: 280 }}>
+                  Ask the AI for properties — they'll appear here automatically.
+                </p>
+              </div>
+            ) : (
+              <LeafletMap
+                center={mapCenter}
+                zoom={mapZoom}
+                properties={properties}
+                selectedId={selected?.id ?? null}
+                highlightedIds={highlightedIds}
+                onSelect={setSelected}
+                onBoundsChange={() => {}}
+                cityClusters={[]}
+                currentZoom={mapZoom}
+                onCityClick={() => {}}
+              />
+            )}
           </div>
 
-          {/* LISTINGS GRID */}
-          {rightView === "listings" && (
-            <div style={{ position: "absolute", inset: 0, overflowY: "auto", background: "white" }}>
-              <div style={{ padding: 24 }}>
-                {properties.length === 0 ? (
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: 240, color: "#94a3b8" }}>
-                    <span style={{ fontSize: 40, marginBottom: 12 }}>🗺</span>
-                    <p style={{ fontSize: 14, fontWeight: 500, textAlign: "center" }}>
-                      Switch to Map and zoom into a city to load listings.
-                    </p>
-                    <button
-                      onClick={() => setRightView("map")}
-                      style={{ marginTop: 20, padding: "10px 20px", background: "#0f172a", color: "white", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
-                      Open Map
-                    </button>
-                  </div>
-                ) : (
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 20 }}>
-                    {properties.map(p => (
-                      <PropertyListingCard
-                        key={p.id}
-                        property={p}
-                        highlighted={highlightedIds.length > 0 && highlightedIds.includes(p.id)}
-                        onSelect={() => { setSelected(p); setRightView("map"); }}
-                      />
-                    ))}
-                  </div>
-                )}
+          {/* LISTINGS */}
+          <div style={{
+            position: "absolute", inset: 0, overflowY: "auto", background: "white",
+            visibility: rightView === "listings" ? "visible" : "hidden",
+            pointerEvents: rightView === "listings" ? "auto" : "none",
+          }}>
+            {properties.length === 0 ? (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", color: "#94a3b8", padding: 32 }}>
+                <span style={{ fontSize: 48, marginBottom: 16 }}>🏠</span>
+                <p style={{ fontSize: 16, fontWeight: 600, color: "#475569", marginBottom: 8 }}>No listings yet</p>
+                <p style={{ fontSize: 13, textAlign: "center", lineHeight: 1.6, maxWidth: 300 }}>
+                  Ask the AI on the left to search for properties — e.g. "Find 2-bedroom apartments for rent in Nairobi".
+                </p>
               </div>
-            </div>
-          )}
+            ) : (
+              <div style={{ padding: 20 }}>
+                <div style={{ marginBottom: 14, display: "flex", alignItems: "baseline", gap: 8 }}>
+                  <span style={{ fontSize: 15, fontWeight: 700, color: "#0f172a" }}>{properties.length} results</span>
+                  {marketContext && <span style={{ fontSize: 12, color: "#94a3b8" }}>in {marketContext.city}</span>}
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16 }}>
+                  {properties.map(p => (
+                    <PropertyListingCard
+                      key={p.id}
+                      property={p}
+                      highlighted={highlightedIds.includes(p.id)}
+                      onSelect={() => {
+                        setSelected(p);
+                        setMapCenter([p.lat, p.lng]);
+                        setMapZoom(15);
+                        setRightView("map");
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* DATA DASHBOARD */}
+          <div style={{
+            position: "absolute", inset: 0,
+            visibility: rightView === "data" ? "visible" : "hidden",
+            pointerEvents: rightView === "data" ? "auto" : "none",
+          }}>
+            <MarketDataDashboard context={marketContext} properties={properties} />
+          </div>
+
         </div>
       </div>
 
-      {/* MOBILE — floating AI button (only shown on small screens) */}
+      {/* MOBILE — floating AI button */}
       {isMobile && (
         <button
           onClick={() => setChatOpen(true)}

@@ -10,7 +10,7 @@ import { createServiceClient } from "@/lib/supabase/server";
  */
 export async function GET(request: NextRequest) {
   const tenantId = request.headers.get("x-tenant-id");
-  if (!tenantId) return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
+  if (!tenantId?.trim()) return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
 
   const { searchParams } = new URL(request.url);
   const city     = searchParams.get("city")     || "";

@@ -3,7 +3,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 
 export async function POST(request: NextRequest) {
   const tenantId = request.headers.get("x-tenant-id");
-  if (!tenantId) return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
+  if (!tenantId?.trim()) return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
 
   const body = await request.json();
   const { property_id, property_title, name, email, phone, preferred_date, message } = body;

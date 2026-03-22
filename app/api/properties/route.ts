@@ -5,7 +5,7 @@ import { PropertyFilters } from "@/lib/types";
 // GET /api/properties — public listing feed
 export async function GET(request: NextRequest) {
   const tenantId = request.headers.get("x-tenant-id");
-  if (!tenantId) {
+  if (!tenantId?.trim()) {
     return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
   }
 
@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
 // POST /api/properties — create listing (operator auth required)
 export async function POST(request: NextRequest) {
   const tenantId = request.headers.get("x-tenant-id");
-  if (!tenantId) {
+  if (!tenantId?.trim()) {
     return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
   }
 

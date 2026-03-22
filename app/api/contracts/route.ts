@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const tenantId = request.headers.get("x-tenant-id");
-  if (!tenantId) return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
+  if (!tenantId?.trim()) return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
 
   const supabase = createServiceClient();
   const body: GenerateContractPayload = await request.json();

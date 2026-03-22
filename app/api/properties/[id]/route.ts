@@ -8,7 +8,7 @@ export async function GET(
 ) {
   const { id }     = await params;
   const tenantId   = request.headers.get("x-tenant-id");
-  if (!tenantId) {
+  if (!tenantId?.trim()) {
     return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
   }
 
@@ -40,7 +40,7 @@ export async function PUT(
 ) {
   const { id }   = await params;
   const tenantId = request.headers.get("x-tenant-id");
-  if (!tenantId) return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
+  if (!tenantId?.trim()) return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -73,7 +73,7 @@ export async function DELETE(
 ) {
   const { id }   = await params;
   const tenantId = request.headers.get("x-tenant-id");
-  if (!tenantId) return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
+  if (!tenantId?.trim()) return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

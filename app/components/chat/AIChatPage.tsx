@@ -473,7 +473,7 @@ export function AIChatPage({
 }: {
   initialQuery?: string;
   sidebarMode?: boolean;
-  onPropertiesFound?: (ids: string[]) => void;
+  onPropertiesFound?: (ids: string[], properties?: Property[]) => void;
 } = {}) {
   const [messages, setMessages]       = useState<ChatMessage[]>([]);
   const [input, setInput]             = useState("");
@@ -644,7 +644,7 @@ export function AIChatPage({
               // Final event — attach properties and highlight map pins
               const props = (parsed.properties as Property[] | undefined) ?? [];
               const ids   = (parsed.propertyIds as string[]  | undefined) ?? [];
-              if (ids.length > 0) onPropertiesFound?.(ids);
+              if (ids.length > 0) onPropertiesFound?.(ids, props);
               setMessages(prev => {
                 const updated = [...prev];
                 updated[assistantIdx] = {
@@ -666,7 +666,7 @@ export function AIChatPage({
         return;
       }
       if (data.wizard !== undefined) setWizardState(data.wizard);
-      if (data.propertyIds?.length > 0) onPropertiesFound?.(data.propertyIds);
+      if (data.propertyIds?.length > 0) onPropertiesFound?.(data.propertyIds, data.properties);
 
       setMessages([...newMessages, {
         role: "assistant",

@@ -9,7 +9,7 @@ export async function POST(
 ) {
   const { id }   = await params;
   const tenantId = request.headers.get("x-tenant-id");
-  if (!tenantId) return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
+  if (!tenantId?.trim()) return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
 
   const supabase = createServiceClient();
 
@@ -82,7 +82,7 @@ export async function DELETE(
 ) {
   const { id }   = await params;
   const tenantId = request.headers.get("x-tenant-id");
-  if (!tenantId) return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
+  if (!tenantId?.trim()) return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
 
   const { searchParams } = new URL(request.url);
   const imageId = searchParams.get("imageId");
