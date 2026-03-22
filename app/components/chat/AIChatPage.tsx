@@ -727,8 +727,41 @@ export function AIChatPage({
   return (
     <main className="flex flex-col" style={{ height: sidebarMode ? "100%" : "calc(100dvh - 56px - 58px)" }}>
 
-      {/* ── Input bar — fixed at TOP ── */}
-      <div className="shrink-0 border-b border-slate-200 bg-white px-4 pt-4 pb-3">
+      {/* ── Sidebar welcome header — always visible ── */}
+      {sidebarMode && (
+        <div className="shrink-0 border-b border-slate-100 bg-white px-4 pt-4 pb-3">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold shadow-sm shrink-0"
+              style={{ background: "linear-gradient(135deg, var(--color-primary), var(--color-secondary))" }}>✨</div>
+            <div>
+              <p className="text-sm font-bold text-slate-900 leading-tight">Hi, I&apos;m Habino</p>
+              <p className="text-[11px] text-slate-400">I&apos;m here to help you find your perfect property.</p>
+            </div>
+            {userLocation && (
+              <div className="ml-auto flex items-center gap-1 px-2 py-1 rounded-full bg-slate-100 text-[10px] text-slate-400 font-medium shrink-0">
+                <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                {userLocation.city}
+              </div>
+            )}
+          </div>
+          {/* Suggestion chips — horizontal scroll */}
+          <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+            {suggestions.map((s) => (
+              <button key={s.text} onClick={() => sendMessage(s.text)}
+                className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white hover:border-slate-300 transition-all text-xs text-slate-600 font-medium whitespace-nowrap">
+                <span>{s.icon}</span>
+                {s.text}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Input bar ── */}
+      <div className="shrink-0 border-b border-slate-200 bg-white px-4 pt-3 pb-3">
           {/* Wizard progress bar */}
           {wizardState.step && (() => {
             const isProfile  = wizardState.step.startsWith("profile_");
@@ -798,67 +831,45 @@ export function AIChatPage({
       {/* ── Scrollable content area ── */}
       <div className="flex-1 overflow-y-auto">
 
-        {/* Hero state (no messages yet) */}
-        {!hasMessages && (
-          <div className={`flex flex-col items-center justify-center px-4 min-h-full ${sidebarMode ? "py-6" : "py-12"}`}>
-            <div className={`text-center max-w-xl ${sidebarMode ? "mb-6" : "mb-10"}`}>
-              {!sidebarMode && (
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 text-slate-500 text-xs font-semibold mb-5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse" />
-                  AI-powered property search
-                </div>
-              )}
-              {/* Location badge — shown when geo is resolved */}
-              {sidebarMode && userLocation && (
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-slate-400 text-[11px] font-medium mb-3">
-                  <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                  </svg>
-                  {userLocation.city}{userLocation.country ? `, ${userLocation.country}` : ""}
-                </div>
-              )}
-              <h1 className={`font-extrabold text-slate-900 leading-tight tracking-tight ${sidebarMode ? "text-2xl mb-1" : "text-4xl md:text-5xl mb-4"}`}>
-                {sidebarMode ? (
-                  <>Hi, I&apos;m Habino</>
-                ) : (
-                  <>Your property.<br /><span style={{ color: "var(--color-primary)" }}>Found by AI.</span></>
-                )}
-              </h1>
-              {sidebarMode && (
-                <p className="text-base font-medium text-slate-400 mb-4">I&apos;m here to help.</p>
-              )}
-              {!sidebarMode && (
-                <p className="text-slate-500 text-base md:text-lg">
-                  Describe what you&apos;re looking for — I&apos;ll find matching properties and book viewings.
-                </p>
-              )}
-            </div>
-
-            {/* Quick action buttons — full page only */}
-            {!sidebarMode && (
-              <div className="flex flex-wrap justify-center gap-3 mb-4">
-                {quickActions.map((a) => (
-                  <button key={a.text} onClick={() => sendMessage(a.text)}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white shadow-sm hover:opacity-90 active:scale-95 transition-all"
-                    style={{ backgroundColor: "var(--color-primary)" }}>
-                    <span>{a.icon}</span>
-                    {a.label}
-                  </button>
-                ))}
+        {/* Hero state — full page mode only */}
+        {!hasMessages && !sidebarMode && (
+          <div className="flex flex-col items-center justify-center px-4 min-h-full py-12">
+            <div className="text-center max-w-xl mb-10">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 text-slate-500 text-xs font-semibold mb-5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse" />
+                AI-powered property search
               </div>
-            )}
-
-            {/* Suggestion chips */}
-            <div className={`w-full ${sidebarMode ? "flex flex-col gap-2 max-w-full" : "grid grid-cols-2 gap-2.5 max-w-lg"}`}>
-              {suggestions.map((s) => (
-                <button key={s.text} onClick={() => sendMessage(s.text)}
-                  className="flex items-center gap-3 text-left px-4 py-3 rounded-2xl border border-slate-200 bg-white/60 hover:bg-white hover:shadow-sm hover:border-slate-300 transition-all text-sm text-slate-600 font-medium">
-                  <span className="text-base">{s.icon}</span>
-                  {s.text}
+              <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 leading-tight tracking-tight mb-4">
+                Your property.<br /><span style={{ color: "var(--color-primary)" }}>Found by AI.</span>
+              </h1>
+              <p className="text-slate-500 text-base md:text-lg">
+                Describe what you&apos;re looking for — I&apos;ll find matching properties and book viewings.
+              </p>
+            </div>
+            <div className="flex flex-wrap justify-center gap-3 mb-4">
+              {quickActions.map((a) => (
+                <button key={a.text} onClick={() => sendMessage(a.text)}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white shadow-sm hover:opacity-90 active:scale-95 transition-all"
+                  style={{ backgroundColor: "var(--color-primary)" }}>
+                  <span>{a.icon}</span>{a.label}
                 </button>
               ))}
             </div>
+            <div className="grid grid-cols-2 gap-2.5 max-w-lg w-full">
+              {suggestions.map((s) => (
+                <button key={s.text} onClick={() => sendMessage(s.text)}
+                  className="flex items-center gap-3 text-left px-4 py-3 rounded-2xl border border-slate-200 bg-white/60 hover:bg-white hover:shadow-sm hover:border-slate-300 transition-all text-sm text-slate-600 font-medium">
+                  <span className="text-base">{s.icon}</span>{s.text}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Sidebar empty state */}
+        {!hasMessages && sidebarMode && (
+          <div className="flex flex-col items-center justify-center h-32 text-slate-300 text-xs">
+            Type a message or tap a suggestion above
           </div>
         )}
 
