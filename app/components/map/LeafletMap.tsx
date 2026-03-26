@@ -145,23 +145,49 @@ function BoundsWatcher({ onBoundsChange }: { onBoundsChange: (b: MapBounds) => v
   return null;
 }
 
+// ── Neighbourhood label icon ──────────────────────────────────────────────────
+function makeNeighbourhoodIcon(name: string): L.DivIcon {
+  return L.divIcon({
+    className: "",
+    html: `<div style="
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      color: #334155;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      white-space: nowrap;
+      pointer-events: none;
+      text-shadow:
+        0 0 3px #fff, 0 0 3px #fff, 0 0 4px #fff,
+        1px 1px 0 #fff, -1px -1px 0 #fff,
+        1px -1px 0 #fff, -1px 1px 0 #fff;
+    ">${name}</div>`,
+    iconSize: undefined,
+    iconAnchor: [0, 0],
+  });
+}
+
+export type NeighbourhoodLabel = { name: string; lat: number; lng: number };
+
 interface LeafletMapProps {
-  center:           [number, number];
-  zoom?:            number;
-  properties:       PropertyWithCoords[];
-  selectedId:       string | null;
-  highlightedIds?:  string[];          // IDs returned by AI search — others are dimmed
-  onSelect:         (p: PropertyWithCoords) => void;
-  onBoundsChange?:  (b: MapBounds) => void;
-  // City-level cluster layer — shown at zoom < CLUSTER_ZOOM
-  cityClusters?:    CityCluster[];
-  currentZoom?:     number;
-  onCityClick?:     (c: CityCluster) => void;
+  center:               [number, number];
+  zoom?:                number;
+  properties:           PropertyWithCoords[];
+  selectedId:           string | null;
+  highlightedIds?:      string[];
+  onSelect:             (p: PropertyWithCoords) => void;
+  onBoundsChange?:      (b: MapBounds) => void;
+  cityClusters?:        CityCluster[];
+  currentZoom?:         number;
+  onCityClick?:         (c: CityCluster) => void;
+  /** Neighbourhood name labels shown on the map at city zoom levels */
+  neighbourhoodLabels?: NeighbourhoodLabel[];
 }
 
 export default function LeafletMap({
   center, zoom = 5, properties, selectedId, highlightedIds, onSelect, onBoundsChange,
-  cityClusters, currentZoom = zoom, onCityClick,
+  cityClusters, currentZoom = zoom, onCityClick, neighbourhoodLabels,
 }: LeafletMapProps) {
   const hasHighlight = highlightedIds && highlightedIds.length > 0;
   const highlightSet = hasHighlight ? new Set(highlightedIds) : null;
@@ -222,6 +248,17 @@ export default function LeafletMap({
           </CircleMarker>
         );
       })}
+
+      {/* ── Neighbourhood labels — visible between zoom 11 and 15 ─────────── */}
+      {neighbourhoodLabels && currentZoom >= 11 && currentZoom <= 15 && neighbourhoodLabels.map((nb) => (
+        <Marker
+          key={`nb-${nb.name}`}
+          position={[nb.lat, nb.lng]}
+          icon={makeNeighbourhoodIcon(nb.name)}
+          interactive={false}
+          zIndexOffset={-500}
+        />
+      ))}
 
       {/* ── Individual listing pins (zoom >= CLUSTER_ZOOM) ────────────────── */}
       {/* All pins share a single canvas element via PIN_RENDERER (~10-50× faster  */}

@@ -457,15 +457,23 @@ interface UserLocation { city: string; country: string; currency: string }
 function makeSuggestions(_loc: UserLocation | null) {
   return [
     { icon: "🏠", text: "Apartments for rent in Bole" },
+    { icon: "🛏️", text: "2-bedroom apartment in Kazanchis" },
+    { icon: "🏡", text: "3-bedroom house in CMC" },
+    { icon: "🏡", text: "Family home for rent in Megenagna" },
+    { icon: "🏘️", text: "Houses for sale in Ayat" },
+    { icon: "🌇", text: "Luxury villa in Bole" },
+    { icon: "💰", text: "Cheapest rentals in Addis Ababa" },
     { icon: "🏢", text: "Office space in Kazanchis" },
-    { icon: "🛏️", text: "3-bedroom house in CMC" },
+    { icon: "🏪", text: "Shop or retail unit in Merkato" },
+    { icon: "📦", text: "Warehouse for rent in Akaki Kaliti" },
     { icon: "🌿", text: "Land for sale in Yeka" },
-    { icon: "🏪", text: "Commercial space in Merkato" },
     { icon: "🏗️", text: "Residential plot in Sarbet" },
-    { icon: "💼", text: "Cheapest apartments under 20,000 ETB" },
-    { icon: "🏘️", text: "Family homes for sale in Megenagna" },
-    { icon: "🌇", text: "Luxury villa in Ayat" },
-    { icon: "📦", text: "Warehouse in Akaki Kaliti" },
+    { icon: "📐", text: "Large apartments over 150 m²" },
+    { icon: "🔑", text: "Studios for rent under 15,000 ETB" },
+    { icon: "🏢", text: "Offices over 300 m² in Bole" },
+    { icon: "🌄", text: "Villas for sale in Gerji" },
+    { icon: "🏪", text: "Event hall for rent in Piassa" },
+    { icon: "🏘️", text: "Affordable homes under 5M ETB" },
   ];
 }
 
@@ -765,7 +773,7 @@ export function AIChatPage({
       )}
 
       {/* ── Input bar ── */}
-      <div className="shrink-0 border-b border-slate-200 bg-white px-4 pt-3 pb-3">
+      <div className="shrink-0 border-b border-slate-200 bg-white px-2 pt-3 pb-3">
           {/* Wizard progress bar */}
           {wizardState.step && (() => {
             const isProfile  = wizardState.step.startsWith("profile_");
@@ -812,10 +820,10 @@ export function AIChatPage({
               value={input}
               onChange={(e) => { setInput(e.target.value); autoResize(e.target); }}
               onKeyDown={handleKeyDown}
-              placeholder={userLocation ? `What are you looking for in ${userLocation.city}?` : "What are you looking for? e.g. 3-bed apartment in Munich…"}
+              placeholder="What are you looking for? e.g. 3-bed apartment in Bole…"
               rows={sidebarMode ? 3 : 2}
-              className="flex-1 bg-transparent text-sm text-slate-800 placeholder-slate-400 resize-none focus:outline-none leading-relaxed"
-              style={{ minHeight: sidebarMode ? 64 : 40, maxHeight: 160 }}
+              className="flex-1 bg-transparent text-sm text-slate-800 placeholder-slate-400 focus:outline-none leading-relaxed"
+              style={{ minHeight: sidebarMode ? 64 : 40, maxHeight: 160, resize: "none" }}
             />
             <div className="flex items-center gap-1 shrink-0">
               <MicButton onResult={onVoiceResult} lang={voiceLang.code} size="sm" />
