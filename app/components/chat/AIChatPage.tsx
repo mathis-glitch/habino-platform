@@ -460,6 +460,12 @@ function makeSuggestions(_loc: UserLocation | null) {
     { icon: "🏢", text: "Office space in Kazanchis" },
     { icon: "🛏️", text: "3-bedroom house in CMC" },
     { icon: "🌿", text: "Land for sale in Yeka" },
+    { icon: "🏪", text: "Commercial space in Merkato" },
+    { icon: "🏗️", text: "Residential plot in Sarbet" },
+    { icon: "💼", text: "Cheapest apartments under 20,000 ETB" },
+    { icon: "🏘️", text: "Family homes for sale in Megenagna" },
+    { icon: "🌇", text: "Luxury villa in Ayat" },
+    { icon: "📦", text: "Warehouse in Akaki Kaliti" },
   ];
 }
 
@@ -745,11 +751,11 @@ export function AIChatPage({
               </div>
             )}
           </div>
-          {/* Suggestion chips — horizontal scroll */}
-          <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+          {/* Suggestion chips — wrapping grid */}
+          <div className="flex flex-wrap gap-2">
             {suggestions.map((s) => (
               <button key={s.text} onClick={() => sendMessage(s.text)}
-                className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white hover:border-slate-300 transition-all text-xs text-slate-600 font-medium whitespace-nowrap">
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white hover:border-slate-300 transition-all text-xs text-slate-600 font-medium whitespace-nowrap">
                 <span>{s.icon}</span>
                 {s.text}
               </button>
@@ -812,7 +818,6 @@ export function AIChatPage({
               style={{ minHeight: sidebarMode ? 64 : 40, maxHeight: 160 }}
             />
             <div className="flex items-center gap-1 shrink-0">
-              <LangPicker lang={voiceLang} onChange={setVoiceLang} />
               <MicButton onResult={onVoiceResult} lang={voiceLang.code} size="sm" />
               <button onClick={() => sendMessage()} disabled={!input.trim() || loading}
                 className="w-9 h-9 rounded-xl flex items-center justify-center transition-all disabled:opacity-30 hover:opacity-90 active:scale-95 shadow-sm"

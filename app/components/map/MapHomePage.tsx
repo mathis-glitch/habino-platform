@@ -18,6 +18,23 @@ const LeafletMap = dynamic(() => import("./LeafletMap"), {
 export const ADDIS_CENTER: [number, number] = [9.0192, 38.7525];
 export const ADDIS_ZOOM = 13;
 
+// ── Demo pins shown on the map before any search ──────────────────────────────
+// One pin per major property type, spread across Addis Ababa neighbourhoods.
+const IDLE_PINS: PropertyWithCoords[] = [
+  { id:"demo-1", tenant_id:"", title:"3-bedroom apartment in Bole",          description:null, listing_type:"rent",   property_type:"apartment",  price:45000,    currency:"ETB", bedrooms:3, bathrooms:2, area_sqm:120, city:"Addis Ababa", neighbourhood:"Bole",             address:null, agent_name:null, agent_phone:null, agent_email:null, status:"active", created_at:"", updated_at:"", lat:8.9945, lng:38.7975 },
+  { id:"demo-2", tenant_id:"", title:"Office space in Kazanchis",            description:null, listing_type:"rent",   property_type:"office",     price:85000,    currency:"ETB", bedrooms:0, bathrooms:0, area_sqm:250, city:"Addis Ababa", neighbourhood:"Kazanchis",        address:null, agent_name:null, agent_phone:null, agent_email:null, status:"active", created_at:"", updated_at:"", lat:9.0205, lng:38.7562 },
+  { id:"demo-3", tenant_id:"", title:"Family home in CMC",                   description:null, listing_type:"buy",    property_type:"house",      price:9500000,  currency:"ETB", bedrooms:4, bathrooms:3, area_sqm:280, city:"Addis Ababa", neighbourhood:"CMC",              address:null, agent_name:null, agent_phone:null, agent_email:null, status:"active", created_at:"", updated_at:"", lat:9.0555, lng:38.7868 },
+  { id:"demo-4", tenant_id:"", title:"Luxury villa in Ayat",                 description:null, listing_type:"buy",    property_type:"villa",      price:28000000, currency:"ETB", bedrooms:5, bathrooms:4, area_sqm:520, city:"Addis Ababa", neighbourhood:"Ayat",             address:null, agent_name:null, agent_phone:null, agent_email:null, status:"active", created_at:"", updated_at:"", lat:9.0415, lng:38.8355 },
+  { id:"demo-5", tenant_id:"", title:"Commercial unit in Merkato",           description:null, listing_type:"rent",   property_type:"commercial", price:55000,    currency:"ETB", bedrooms:0, bathrooms:0, area_sqm:180, city:"Addis Ababa", neighbourhood:"Merkato",          address:null, agent_name:null, agent_phone:null, agent_email:null, status:"active", created_at:"", updated_at:"", lat:9.0275, lng:38.7358 },
+  { id:"demo-6", tenant_id:"", title:"Land plot in Yeka",                    description:null, listing_type:"buy",    property_type:"land",       price:6500000,  currency:"ETB", bedrooms:0, bathrooms:0, area_sqm:800, city:"Addis Ababa", neighbourhood:"Yeka",             address:null, agent_name:null, agent_phone:null, agent_email:null, status:"active", created_at:"", updated_at:"", lat:9.0598, lng:38.8102 },
+  { id:"demo-7", tenant_id:"", title:"2-bedroom apartment in Megenagna",     description:null, listing_type:"rent",   property_type:"apartment",  price:32000,    currency:"ETB", bedrooms:2, bathrooms:1, area_sqm:85,  city:"Addis Ababa", neighbourhood:"Megenagna",        address:null, agent_name:null, agent_phone:null, agent_email:null, status:"active", created_at:"", updated_at:"", lat:9.0300, lng:38.7872 },
+  { id:"demo-8", tenant_id:"", title:"Event hall in Piassa",                 description:null, listing_type:"rent",   property_type:"hall",       price:120000,   currency:"ETB", bedrooms:0, bathrooms:4, area_sqm:600, city:"Addis Ababa", neighbourhood:"Piassa",           address:null, agent_name:null, agent_phone:null, agent_email:null, status:"active", created_at:"", updated_at:"", lat:9.0360, lng:38.7545 },
+  { id:"demo-9", tenant_id:"", title:"Warehouse in Akaki Kaliti",            description:null, listing_type:"rent",   property_type:"production", price:75000,    currency:"ETB", bedrooms:0, bathrooms:0, area_sqm:900, city:"Addis Ababa", neighbourhood:"Akaki Kaliti",     address:null, agent_name:null, agent_phone:null, agent_email:null, status:"active", created_at:"", updated_at:"", lat:8.8905, lng:38.7898 },
+  { id:"demo-10",tenant_id:"", title:"Residential plot in Sarbet",           description:null, listing_type:"buy",    property_type:"plot",       price:3200000,  currency:"ETB", bedrooms:0, bathrooms:0, area_sqm:350, city:"Addis Ababa", neighbourhood:"Sarbet",           address:null, agent_name:null, agent_phone:null, agent_email:null, status:"active", created_at:"", updated_at:"", lat:8.9970, lng:38.7558 },
+  { id:"demo-11",tenant_id:"", title:"Studio apartment in Lideta",           description:null, listing_type:"rent",   property_type:"apartment",  price:18000,    currency:"ETB", bedrooms:1, bathrooms:1, area_sqm:45,  city:"Addis Ababa", neighbourhood:"Lideta",           address:null, agent_name:null, agent_phone:null, agent_email:null, status:"active", created_at:"", updated_at:"", lat:9.0120, lng:38.7392 },
+  { id:"demo-12",tenant_id:"", title:"4-bedroom house in Kolfe Keranio",     description:null, listing_type:"buy",    property_type:"house",      price:7800000,  currency:"ETB", bedrooms:4, bathrooms:3, area_sqm:220, city:"Addis Ababa", neighbourhood:"Kolfe Keranio",    address:null, agent_name:null, agent_phone:null, agent_email:null, status:"active", created_at:"", updated_at:"", lat:9.0198, lng:38.6905 },
+];
+
 // ── Neighbourhood coordinates — Addis Ababa only ──────────────────────────────
 const CITY_COORDS: Record<string, [number, number]> = {
   // City centre fallback
@@ -25,43 +42,65 @@ const CITY_COORDS: Record<string, [number, number]> = {
   "Addis":            [ 9.0192,  38.7525],
 
   // ── Addis Ababa neighbourhoods ────────────────────────────────────────────
-  "Bole":             [ 8.9935,  38.7986],
-  "Bole Arabsa":      [ 8.9700,  38.8100],
+  // Core / central
   "Kazanchis":        [ 9.0200,  38.7557],
-  "Piassa":           [ 9.0355,  38.7543],
-  "Merkato":          [ 9.0271,  38.7352],
-  "CMC":              [ 9.0562,  38.7864],
-  "Sarbet":           [ 8.9973,  38.7561],
-  "Gerji":            [ 9.0107,  38.8200],
-  "Ayat":             [ 9.0411,  38.8352],
-  "Summit":           [ 9.0050,  38.8010],
-  "Megenagna":        [ 9.0296,  38.7869],
-  "Old Airport":      [ 8.9895,  38.7795],
-  "Arat Kilo":        [ 9.0414,  38.7542],
-  "Sidist Kilo":      [ 9.0486,  38.7634],
-  "Lideta":           [ 9.0117,  38.7394],
-  "Kolfe":            [ 9.0200,  38.6900],
+  "Kirkos":           [ 9.0050,  38.7700],
   "Arada":            [ 9.0368,  38.7480],
   "Addis Ketema":     [ 9.0310,  38.7300],
-  "Gulele":           [ 9.0780,  38.7400],
-  "Nifas Silk":       [ 8.9720,  38.7400],
-  "Nifas Silk-Lafto": [ 8.9720,  38.7400],
-  "Akaki":            [ 8.8900,  38.7900],
-  "Akaki Kality":     [ 8.8900,  38.7900],
-  "Yeka":             [ 9.0600,  38.8100],
-  "Kirkos":           [ 9.0050,  38.7700],
-  "Lafto":            [ 8.9600,  38.7300],
-  "Kera":             [ 9.0030,  38.7480],
   "Mexico":           [ 9.0155,  38.7486],
   "Stadium":          [ 9.0230,  38.7560],
-  "Urael":            [ 9.0150,  38.7750],
-  "Aware":            [ 9.0380,  38.7980],
-  "Gofa":             [ 8.9780,  38.7150],
-  "Kality":           [ 8.8780,  38.7750],
-  "Lamberet":         [ 9.0680,  38.7950],
-  "Jemo":             [ 8.9620,  38.7050],
+  "Hayahulet":        [ 9.0130,  38.7520],
+  "Kera":             [ 9.0030,  38.7480],
   "Tor Hailoch":      [ 9.0010,  38.7350],
+
+  // Bole / south-east
+  "Bole":             [ 8.9935,  38.7986],
+  "Bole Atlas":       [ 9.0010,  38.7870],
+  "Bole Medhanialem": [ 9.0070,  38.7790],
+  "Bole Arabsa":      [ 8.9700,  38.8100],
+  "Old Airport":      [ 8.9895,  38.7795],
+  "Summit":           [ 9.0050,  38.8010],
+  "Urael":            [ 9.0150,  38.7750],
+  "Gerji":            [ 9.0107,  38.8200],
+  "Saris":            [ 8.9780,  38.7750],
+
+  // North / north-east
+  "Piassa":           [ 9.0355,  38.7543],
+  "Arat Kilo":        [ 9.0414,  38.7542],
+  "Sidist Kilo":      [ 9.0486,  38.7634],
+  "Megenagna":        [ 9.0296,  38.7869],
+  "Aware":            [ 9.0380,  38.7980],
+  "Lamberet":         [ 9.0680,  38.7950],
+  "CMC":              [ 9.0562,  38.7864],
+  "CMC Michael":      [ 9.0500,  38.7900],
+  "Ayat":             [ 9.0411,  38.8352],
+  "Yeka":             [ 9.0600,  38.8100],
+
+  // North-west
+  "Merkato":          [ 9.0271,  38.7352],
+  "Gulele":           [ 9.0780,  38.7400],
+  "Gullele":          [ 9.0780,  38.7400],
+
+  // West
+  "Lideta":           [ 9.0117,  38.7394],
+  "Kolfe":            [ 9.0200,  38.6900],
+  "Kolfe Keranio":    [ 9.0200,  38.6900],
+
+  // South / south-west
+  "Sarbet":           [ 8.9973,  38.7561],
+  "Sar Bet":          [ 8.9973,  38.7561],
+  "Nifas Silk":       [ 8.9720,  38.7400],
+  "Nifas Silk-Lafto": [ 8.9720,  38.7400],
+  "Lafto":            [ 8.9600,  38.7300],
+  "Gofa":             [ 8.9780,  38.7150],
+  "Jemo":             [ 8.9620,  38.7050],
   "Lebu":             [ 8.9500,  38.7200],
+
+  // Far south (Akaki)
+  "Akaki":            [ 8.8900,  38.7900],
+  "Akaki Kaliti":     [ 8.8900,  38.7900],
+  "Akaki Kality":     [ 8.8900,  38.7900],
+  "Kality":           [ 8.8780,  38.7750],
 
   // Legacy fallback for any non-Addis data still in DB
   "Nairobi":          [-1.2921,  36.8219],
@@ -917,55 +956,58 @@ export function MapHomePage() {
         {/* Content area — position: relative so PropertyDetailPanel can be contained */}
         <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
 
-          {/* IDLE STATE */}
+          {/* IDLE STATE — floating hint over the live map */}
           {outputMode === "idle" && (
-            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#94a3b8", padding: 32 }}>
-              <div style={{ width: 64, height: 64, borderRadius: 20, background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, marginBottom: 20 }}>✦</div>
-              <p style={{ fontSize: 16, fontWeight: 700, color: "#334155", marginBottom: 8 }}>Your results appear here</p>
-              <p style={{ fontSize: 13, textAlign: "center", lineHeight: 1.7, maxWidth: 300 }}>
-                Ask the AI on the left to search for properties or find the location of a listing.
-              </p>
-              <div style={{ marginTop: 24, display: "flex", flexDirection: "column", gap: 8, width: "100%", maxWidth: 280 }}>
-                {[
-                  "Apartments for rent in Bole under 25,000 ETB",
-                  "Office space in Kazanchis",
-                  "Land for sale over 500 m² in Yeka",
-                ].map(ex => (
-                  <div key={ex} style={{ padding: "10px 14px", borderRadius: 10, background: "#f8fafc", border: "1px solid #f1f5f9", fontSize: 12, color: "#64748b", fontStyle: "italic" }}>
-                    &ldquo;{ex}&rdquo;
-                  </div>
-                ))}
-              </div>
+            <div style={{
+              position: "absolute", top: 16, left: "50%", transform: "translateX(-50%)",
+              zIndex: 500, pointerEvents: "none",
+              background: "rgba(255,255,255,0.92)", backdropFilter: "blur(8px)",
+              borderRadius: 14, padding: "10px 18px",
+              boxShadow: "0 2px 16px rgba(0,0,0,0.10)",
+              border: "1px solid rgba(226,232,240,0.8)",
+              display: "flex", alignItems: "center", gap: 8,
+              whiteSpace: "nowrap",
+            }}>
+              <span style={{ fontSize: 16 }}>✦</span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: "#475569" }}>
+                Ask the AI to search — results appear here
+              </span>
             </div>
           )}
 
           {/* ── MAP + DATA combined (always in DOM so Leaflet stays alive) ── */}
+          {/* Visible in both "idle" (demo pins, full height) and "map" (real pins + ticker) */}
           <div style={{
             position: "absolute", inset: 0, display: "flex", flexDirection: "column",
-            visibility: outputMode === "map" ? "visible" : "hidden",
-            pointerEvents: outputMode === "map" ? "auto" : "none",
+            visibility: (outputMode === "map" || outputMode === "idle") ? "visible" : "hidden",
+            pointerEvents: (outputMode === "map" || outputMode === "idle") ? "auto" : "none",
           }}>
-            {/* Map — top 65% */}
-            <div style={{ flex: "0 0 65%", position: "relative" }}>
+            {/* Map — full height in idle, top 65% in map+data mode */}
+            <div style={{ flex: outputMode === "idle" ? "1" : "0 0 65%", position: "relative" }}>
               <LeafletMap
                 center={mapCenter}
                 zoom={mapZoom}
-                properties={properties}
+                properties={outputMode === "idle" ? IDLE_PINS : properties}
                 selectedId={selected?.id ?? null}
-                highlightedIds={highlightedIds}
-                onSelect={(p) => { setSelected(p); setMapCenter([p.lat, p.lng]); setMapZoom(15); }}
+                highlightedIds={[]}
+                onSelect={(p) => {
+                  if (outputMode !== "idle") { setSelected(p); setMapCenter([p.lat, p.lng]); setMapZoom(15); }
+                }}
                 onBoundsChange={() => {}}
                 cityClusters={[]}
                 currentZoom={mapZoom}
                 onCityClick={() => {}}
               />
             </div>
-            {/* Divider */}
-            <div style={{ height: 1, background: "#e2e8f0", flexShrink: 0 }} />
-            {/* Rotating stats — bottom 35% */}
-            <div style={{ flex: "0 0 35%", position: "relative", overflow: "hidden" }}>
-              <MarketTicker properties={properties} context={marketContext} />
-            </div>
+            {/* Divider + rotating stats — only in map mode */}
+            {outputMode === "map" && (
+              <>
+                <div style={{ height: 1, background: "#e2e8f0", flexShrink: 0 }} />
+                <div style={{ flex: "0 0 35%", position: "relative", overflow: "hidden" }}>
+                  <MarketTicker properties={properties} context={marketContext} />
+                </div>
+              </>
+            )}
           </div>
 
           {/* LISTINGS */}
