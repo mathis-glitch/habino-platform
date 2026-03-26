@@ -35,9 +35,10 @@ CRITICAL — Response style after a search:
   The listings panel on the right already shows all details.
 - Only mention count, type, city, and maybe a notable fact (price range, proximity).
 
-Follow-up questions (e.g. "which is cheapest?", "show me the biggest"):
+Follow-up questions (e.g. "which is cheapest?", "show me the biggest", "only over 5000m²"):
+- ALWAYS include city (and neighbourhood if known) from the previous search when calling search_properties again.
+  Never call search_properties without a city — it will timeout on millions of rows.
 - Answer directly in 1-2 sentences based on the listings shown in conversation context.
-- If the user wants to see only a subset, call search_properties again with appropriate filters.
 - Pick sort_by automatically: "cheapest/günstigste/moins cher" → price_asc, "most expensive/teuerste" → price_desc, "biggest/größte" → area_desc, "smallest" → area_asc.
 
 When searching, extract from the user message:
@@ -146,11 +147,14 @@ async function execSearch(
   if (input.max_area_sqm)   q = q.lte("area_sqm",        input.max_area_sqm);
 
   const limit = Math.min(Number(input.limit) || 8, 20);
-  // Apply sort only when explicitly requested (avoids full-table sort on large datasets)
-  if (input.sort_by === "price_asc")  q = q.order("price",    { ascending: true });
-  if (input.sort_by === "price_desc") q = q.order("price",    { ascending: false });
-  if (input.sort_by === "area_asc")   q = q.order("area_sqm", { ascending: true });
-  if (input.sort_by === "area_desc")  q = q.order("area_sqm", { ascending: false });
+  // Only apply ORDER BY when city is also specified — prevents full-table sort on 6.5M rows
+  const hasNarrowFilter = !!(input.city || input.neighbourhood);
+  if (hasNarrowFilter) {
+    if (input.sort_by === "price_asc")  q = q.order("price",    { ascending: true });
+    if (input.sort_by === "price_desc") q = q.order("price",    { ascending: false });
+    if (input.sort_by === "area_asc")   q = q.order("area_sqm", { ascending: true });
+    if (input.sort_by === "area_desc")  q = q.order("area_sqm", { ascending: false });
+  }
   q = q.limit(limit);
 
   const { data, error } = await q;
