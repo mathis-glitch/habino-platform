@@ -454,14 +454,12 @@ const COUNTRY_CURRENCY: Record<string, string> = {
 
 interface UserLocation { city: string; country: string; currency: string }
 
-function makeSuggestions(loc: UserLocation | null) {
-  const city     = loc?.city     || "Nairobi";
-  const currency = loc?.currency || "KES";
+function makeSuggestions(_loc: UserLocation | null) {
   return [
-    { icon: "🏠", text: `Apartments for rent in ${city}` },
-    { icon: "🏢", text: `Office space in ${city}` },
-    { icon: "🛏️", text: `3-bedroom house under 100,000 ${currency}` },
-    { icon: "🏗️", text: `Land for sale in ${city}` },
+    { icon: "🏠", text: "Apartments for rent in Bole" },
+    { icon: "🏢", text: "Office space in Kazanchis" },
+    { icon: "🛏️", text: "3-bedroom house in CMC" },
+    { icon: "🌿", text: "Land for sale in Yeka" },
   ];
 }
 
