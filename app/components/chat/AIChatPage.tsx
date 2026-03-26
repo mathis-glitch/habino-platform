@@ -725,7 +725,7 @@ export function AIChatPage({
   const hasMessages = messages.length > 0;
 
   return (
-    <main className="flex flex-col" style={{ height: sidebarMode ? "100%" : "calc(100dvh - 56px - 58px)" }}>
+    <main className="flex flex-col min-h-0" style={{ height: sidebarMode ? "100%" : "calc(100dvh - 56px - 58px)" }}>
 
       {/* ── Sidebar welcome header — always visible ── */}
       {sidebarMode && (
@@ -829,7 +829,7 @@ export function AIChatPage({
         </div>
 
       {/* ── Scrollable content area ── */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto min-h-0">
 
         {/* ── Sidebar message thread (compact — no property cards, those go right) ── */}
         {sidebarMode && (hasMessages || loading) && (

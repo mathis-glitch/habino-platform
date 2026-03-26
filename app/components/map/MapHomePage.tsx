@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { Property } from "@/lib/types";
@@ -290,25 +290,29 @@ function haversine(lat1: number, lng1: number, lat2: number, lng2: number): numb
 //
 // MIN_DIST: only block truly co-incident pins (< 80 m).  The seed script now
 // spreads listings via a ring layout so aggressive dedup is no longer needed.
-const MIN_DIST = 80; // metres
+// Micro-jitter for truly co-located pins (same building) so they don't stack
+function jitterCoords(lat: number, lng: number, id: string, index: number): [number, number] {
+  const angle = (index * 137.508) * Math.PI / 180; // golden angle spread
+  const r = 0.00003 * index; // ~3m per step
+  return [lat + r * Math.cos(angle), lng + r * Math.sin(angle)];
+}
 
 function withCoords(
   props: Property[],
-  placed: Array<[number, number]>,
+  _placed: Array<[number, number]>,
 ): PropertyWithCoords[] {
   const result: PropertyWithCoords[] = [];
-  const working = [...placed];
+  // Track exact coordinates to detect co-location
+  const seen = new Map<string, number>(); // "lat,lng" → count
 
   for (const p of props) {
     let lat: number;
     let lng: number;
 
     if (p.lat != null && p.lng != null) {
-      // ✅ Real coordinates from DB — use directly
       lat = p.lat;
       lng = p.lng;
     } else {
-      // Legacy fallback: derive from CITY_COORDS + deterministic hash
       const base = CITY_COORDS[p.city];
       if (!base) continue;
       const nb = p.neighbourhood || p.city;
@@ -316,11 +320,14 @@ function withCoords(
       lng = base[1] + hashDeg(nb + "_lng", 0.060) + hashDeg(p.id + "_lng", 0.006);
     }
 
-    // Skip only exactly co-incident pins (duplicate coordinates)
-    const tooClose = working.some(([a, b]) => haversine(lat, lng, a, b) < MIN_DIST);
-    if (tooClose) continue;
+    // If two properties share exact same coords (same building), jitter slightly
+    const key = `${lat.toFixed(6)},${lng.toFixed(6)}`;
+    const count = seen.get(key) ?? 0;
+    if (count > 0) {
+      [lat, lng] = jitterCoords(lat, lng, p.id, count);
+    }
+    seen.set(key, count + 1);
 
-    working.push([lat, lng]);
     result.push({ ...p, lat, lng });
   }
   return result;
@@ -346,33 +353,7 @@ function PropertyDetailPanel({ property, onClose }: { property: PropertyWithCoor
   const initials = (property.agent_name || "HA").split(" ").map(w => w[0]).join("").toUpperCase().slice(0,2);
 
   return (
-    <>
-      {/* Backdrop (click-away) */}
-      <div className="fixed inset-0 z-[400]" onClick={onClose} />
-
-      {/* ── Desktop panel — centered in map area (left of AI panel) ── */}
-      <div
-        className="hidden md:flex items-center justify-center fixed z-[410]"
-        style={{
-          top: "70px",
-          bottom: "calc(52px + env(safe-area-inset-bottom) + 16px)",
-          left: "16px",
-          right: `calc(clamp(300px, 25vw, 420px) + 40px)`,
-          pointerEvents: "none",
-        }}>
-      <div
-        className="flex flex-col overflow-hidden"
-        style={{
-          pointerEvents: "auto",
-          width: "clamp(340px, 28vw, 460px)",
-          maxHeight: "100%",
-          background: "rgba(255,255,255,0.92)",
-          backdropFilter: "blur(24px) saturate(1.5)",
-          WebkitBackdropFilter: "blur(24px) saturate(1.5)",
-          borderRadius: "20px",
-          boxShadow: "0 8px 40px rgba(0,0,0,0.14), 0 1px 0 rgba(255,255,255,0.8) inset",
-          border: "1px solid rgba(255,255,255,0.55)",
-        }}>
+    <div className="flex flex-col overflow-hidden h-full" style={{ borderRadius: 20 }}>
 
         {/* Colour header stripe */}
         <div className="shrink-0 flex items-center justify-between px-4 py-3"
@@ -495,66 +476,7 @@ function PropertyDetailPanel({ property, onClose }: { property: PropertyWithCoor
             Ask AI
           </Link>
         </div>
-      </div>
-      </div>
-
-      {/* ── Mobile bottom sheet ── */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-[410] bg-white rounded-t-3xl shadow-2xl"
-        style={{ paddingBottom: "calc(52px + env(safe-area-inset-bottom))" }}>
-        <div className="flex justify-center pt-3 pb-1">
-          <div className="w-9 h-1 rounded-full bg-slate-200" />
-        </div>
-
-        {/* Type stripe */}
-        <div className="flex items-center justify-between px-4 py-2"
-          style={{ borderBottom: `2px solid ${color}30` }}>
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full" style={{ background: color }} />
-            <span className="text-xs font-bold uppercase tracking-wider" style={{ color }}>{typeLabel}</span>
-            <span className="text-xs text-slate-400">{isRent ? "· Rent" : "· Sale"}</span>
-          </div>
-          <button onClick={onClose} className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center">
-            <svg className="w-3 h-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        <div className="px-4 pt-3 pb-2">
-          <div className="flex items-baseline gap-1 mb-0.5">
-            <span className="text-xl font-extrabold text-slate-900">{priceFmt}</span>
-            {isRent && <span className="text-xs text-slate-400">/mo</span>}
-          </div>
-          <p className="text-sm font-medium text-slate-700 truncate">{property.title}</p>
-          <p className="text-xs text-slate-400 mt-0.5">
-            {[property.neighbourhood, property.city].filter(Boolean).join(", ")}
-          </p>
-          <div className="flex items-center gap-3 mt-2 text-xs text-slate-500">
-            {isResidential && property.bedrooms > 0 && <span>{property.bedrooms} bd</span>}
-            {isResidential && property.bathrooms > 0 && <span>· {property.bathrooms} ba</span>}
-            {property.area_sqm && <span>· {property.area_sqm} m²</span>}
-            {ppm && <span style={{ color }}>· {ppm}</span>}
-          </div>
-          {property.agent_name && (
-            <p className="text-xs text-slate-400 mt-1.5">Agent: {property.agent_name}
-              {property.agent_phone && <> · <a href={`tel:${property.agent_phone}`} className="underline">{property.agent_phone}</a></>}
-            </p>
-          )}
-        </div>
-
-        <div className="flex gap-2 px-4 pb-3">
-          <Link href={`/properties/${property.id}`}
-            className="flex-1 py-3 rounded-2xl text-sm font-semibold text-white text-center"
-            style={{ backgroundColor: color }}>
-            View listing
-          </Link>
-          <Link href={`/?chat=1&q=${encodeURIComponent(`Book a viewing for "${property.title}"`)}`}
-            className="px-4 py-3 rounded-2xl text-sm font-medium border border-slate-200 text-slate-600 whitespace-nowrap">
-            Ask AI
-          </Link>
-        </div>
-      </div>
-    </>
+    </div>
   );
 }
 
@@ -693,23 +615,37 @@ function PropertyListingCard({
           </div>
         </div>
 
-        <p className="text-sm text-slate-500 mt-0.5 line-clamp-1">{p.neighbourhood}</p>
+        <p className="text-xs text-slate-400 mt-0.5 line-clamp-1">{p.neighbourhood}</p>
 
-        {isResidential && (
-          <p className="text-xs text-slate-400 mt-0.5">
-            {[
-              p.bedrooms  > 0 ? `${p.bedrooms} bed`   : null,
-              p.bathrooms > 0 ? `${p.bathrooms} bath`  : null,
-              p.area_sqm      ? `${p.area_sqm} m²`     : null,
-            ].filter(Boolean).join(" · ")}
-          </p>
-        )}
+        {/* Specs: beds/baths for residential + m² for all + price/m² */}
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1">
+          {isResidential && p.bedrooms  > 0 && <span className="text-xs text-slate-500">{p.bedrooms} bed</span>}
+          {isResidential && p.bathrooms > 0 && <span className="text-xs text-slate-400">· {p.bathrooms} bath</span>}
+          {p.area_sqm && (
+            <span className="text-xs font-medium text-slate-600">{isResidential ? "·" : ""} {p.area_sqm.toLocaleString()} m²</span>
+          )}
+          {p.area_sqm && p.area_sqm > 0 && (
+            <span className="text-xs font-semibold" style={{ color }}>
+              · {new Intl.NumberFormat("en-US", { style: "currency", currency: p.currency, maximumFractionDigits: 0 }).format(Math.round(p.price / p.area_sqm))}/m²
+            </span>
+          )}
+        </div>
 
-        <p className="text-sm mt-1.5">
-          <span className="font-semibold underline text-slate-900">{priceFmt}</span>
-          {isRent && <span className="text-slate-400 text-xs font-normal"> / month</span>}
+        <p className="text-sm mt-1.5 font-semibold text-slate-900">
+          {priceFmt}{isRent && <span className="text-slate-400 text-xs font-normal"> / month</span>}
         </p>
-        <p className="text-xs text-slate-400 mt-0.5">Free cancellation</p>
+
+        {/* Agent / broker badge */}
+        {p.agent_name && (
+          <div className="flex items-center gap-1.5 mt-1.5">
+            <div className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[8px] font-bold shrink-0"
+              style={{ background: color }}>
+              {p.agent_name.split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0,2)}
+            </div>
+            <span className="text-[10px] text-slate-400 truncate">{p.agent_name}</span>
+            <span className="ml-auto shrink-0 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-100">Broker</span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -970,6 +906,67 @@ function MarketDataDashboard({
   );
 }
 
+// ── Rotating market ticker for Map+Data combined view ─────────────────────────
+function MarketTicker({ properties, context }: {
+  properties: PropertyWithCoords[];
+  context: { city: string; country: string; currency: string } | null;
+}) {
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick(t => t + 1), 4000);
+    return () => clearInterval(id);
+  }, []);
+
+  if (!context || properties.length === 0) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "#94a3b8", fontSize: 12 }}>
+        Search for properties to see market stats
+      </div>
+    );
+  }
+
+  const { city, currency } = context;
+  const fmt = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 0 }).format(n);
+
+  const propsWithArea = properties.filter(p => p.area_sqm && p.area_sqm > 0);
+  const avgPricePerM2 = propsWithArea.length > 0
+    ? Math.round(propsWithArea.reduce((s, p) => s + p.price / p.area_sqm!, 0) / propsWithArea.length) : 0;
+  const avgPrice = Math.round(properties.reduce((s, p) => s + p.price, 0) / properties.length);
+  const minPrice = Math.min(...properties.map(p => p.price));
+  const maxPrice = Math.max(...properties.map(p => p.price));
+  const rentCount = properties.filter(p => p.listing_type === "rent").length;
+  const buyCount  = properties.filter(p => p.listing_type === "buy").length;
+  const avgArea   = propsWithArea.length > 0
+    ? Math.round(propsWithArea.reduce((s, p) => s + p.area_sqm!, 0) / propsWithArea.length) : 0;
+
+  const stats = [
+    { label: "Ø Price/m²", value: avgPricePerM2 > 0 ? fmt(avgPricePerM2) : "—", sub: city, icon: "📐" },
+    { label: "Average Price", value: fmt(avgPrice), sub: `${properties.length} listings`, icon: "💰" },
+    { label: "Price Range", value: `${fmt(minPrice)} – ${fmt(maxPrice)}`, sub: city, icon: "📊" },
+    { label: "Ø Area", value: avgArea > 0 ? `${avgArea.toLocaleString()} m²` : "—", sub: "per listing", icon: "📏" },
+    { label: "For Rent", value: String(rentCount), sub: `${buyCount} for sale`, icon: "🏠" },
+  ].filter(s => s.value !== "—");
+
+  const stat = stats[tick % stats.length];
+
+  return (
+    <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 16px", background: "white" }}>
+      <div style={{ textAlign: "center", transition: "opacity .4s" }}>
+        <div style={{ fontSize: 22, marginBottom: 2 }}>{stat.icon}</div>
+        <div style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>{stat.label}</div>
+        <div style={{ fontSize: 22, fontWeight: 800, color: "#0f172a", lineHeight: 1.1 }}>{stat.value}</div>
+        <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>{stat.sub}</div>
+      </div>
+      {/* Dot indicators */}
+      <div style={{ position: "absolute", bottom: 8, left: 0, right: 0, display: "flex", justifyContent: "center", gap: 4 }}>
+        {stats.map((_, i) => (
+          <div key={i} style={{ width: 4, height: 4, borderRadius: 99, background: i === tick % stats.length ? "#0f172a" : "#e2e8f0", transition: "background .4s" }} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 export function MapHomePage() {
   const [properties,     setProperties]     = useState<PropertyWithCoords[]>([]);
@@ -977,7 +974,7 @@ export function MapHomePage() {
   const [chatOpen,       setChatOpen]       = useState(false);
   const [habinoOpen,     setHabinoOpen]     = useState(false);
   const [highlightedIds, setHighlightedIds] = useState<string[]>([]);
-  const [outputMode,     setOutputMode]     = useState<"idle" | "listings" | "map" | "data">("idle");
+  const [outputMode,     setOutputMode]     = useState<"idle" | "listings" | "map">("idle");
   const [marketContext,  setMarketContext]  = useState<{ city: string; country: string; currency: string } | null>(null);
   const [mapCenter,      setMapCenter]      = useState<[number, number]>([20, 10]);
   const [mapZoom,        setMapZoom]        = useState(12);
@@ -1007,8 +1004,9 @@ export function MapHomePage() {
   }, []);
 
   // Called by AIChatPage to auto-switch the output panel
+  // "data" maps to "map" since the combined Map+Data tab handles both
   const handleViewSuggested = useCallback((view: "listings" | "map" | "data") => {
-    setOutputMode(view);
+    setOutputMode(view === "data" ? "map" : view);
   }, []);
 
   // ── Shared style constants ────────────────────────────────────────────────
@@ -1019,12 +1017,11 @@ export function MapHomePage() {
   const MODE_META = {
     idle:     { label: "Results",      icon: "✦" },
     listings: { label: properties.length > 0 ? `${properties.length} Listings` : "Listings", icon: "⊞" },
-    map:      { label: marketContext ? `Map · ${marketContext.city}` : "Map", icon: "🗺" },
-    data:     { label: marketContext ? `Market · ${marketContext.city}` : "Market Data", icon: "📊" },
+    map:      { label: marketContext ? `Map · ${marketContext.city}` : "Map & Data", icon: "🗺" },
   };
 
   // ── Subtle mode-switch pills ──────────────────────────────────────────────
-  function ModePill({ mode, label }: { mode: "listings" | "map" | "data"; label: string }) {
+  function ModePill({ mode, label }: { mode: "listings" | "map"; label: string }) {
     const active = outputMode === mode;
     return (
       <button onClick={() => setOutputMode(mode)} style={{
@@ -1073,7 +1070,7 @@ export function MapHomePage() {
       }}>
         {/* Header */}
         <div style={{ height: HEADER_H, borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", padding: "0 20px", gap: 12, flexShrink: 0 }}>
-          <span style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.02em" }}>habino</span>
+          <Link href="/" style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.02em", textDecoration: "none" }}>habino</Link>
           <div style={{ flex: 1 }} />
           <button
             onClick={() => setHabinoOpen(o => !o)}
@@ -1096,21 +1093,18 @@ export function MapHomePage() {
       {/* ═══════════════════════════════════════════════════
           RIGHT — Dynamic Output Panel (50 %)
       ═══════════════════════════════════════════════════ */}
-      <div style={{ width: isMobile ? "100%" : "50%", height: "100%", display: "flex", flexDirection: "column" }}>
+      <div style={{ width: isMobile ? "100%" : "50%", height: "100%", display: "flex", flexDirection: "column", position: "relative" }}>
 
-        {/* Smart header — shows current mode + subtle manual overrides */}
-        <div style={{ height: HEADER_H, borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", padding: "0 16px", gap: 8, flexShrink: 0 }}>
-          {/* Current mode indicator */}
+        {/* Header */}
+        <div style={{ height: HEADER_H, borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", padding: "0 16px", gap: 8, flexShrink: 0, position: "relative", zIndex: 10, background: "white" }}>
           <span style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>
             {MODE_META[outputMode].icon} {MODE_META[outputMode].label}
           </span>
           <div style={{ flex: 1 }} />
-          {/* Subtle manual override pills — only shown after first result */}
           {outputMode !== "idle" && (
             <div style={{ display: "flex", gap: 4 }}>
               <ModePill mode="listings" label="Listings" />
-              <ModePill mode="map"      label="Map" />
-              <ModePill mode="data"     label="Data" />
+              <ModePill mode="map"      label="Map & Data" />
             </div>
           )}
           {outputMode === "idle" && (
@@ -1118,7 +1112,7 @@ export function MapHomePage() {
           )}
         </div>
 
-        {/* Content area */}
+        {/* Content area — position: relative so PropertyDetailPanel can be contained */}
         <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
 
           {/* IDLE STATE */}
@@ -1127,40 +1121,49 @@ export function MapHomePage() {
               <div style={{ width: 64, height: 64, borderRadius: 20, background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, marginBottom: 20 }}>✦</div>
               <p style={{ fontSize: 16, fontWeight: 700, color: "#334155", marginBottom: 8 }}>Your results appear here</p>
               <p style={{ fontSize: 13, textAlign: "center", lineHeight: 1.7, maxWidth: 300 }}>
-                Ask the AI on the left to search for properties, get market data, or find the location of a listing.
+                Ask the AI on the left to search for properties or find the location of a listing.
               </p>
               <div style={{ marginTop: 24, display: "flex", flexDirection: "column", gap: 8, width: "100%", maxWidth: 280 }}>
                 {[
                   "Find 2-bed apartments for rent in Munich",
-                  "What's the market like in Schwabing?",
-                  "Show me villas under 500k in Dubai",
+                  "Show me offices in Nairobi under 300,000 KES",
+                  "Land for sale over 5,000 m²",
                 ].map(ex => (
                   <div key={ex} style={{ padding: "10px 14px", borderRadius: 10, background: "#f8fafc", border: "1px solid #f1f5f9", fontSize: 12, color: "#64748b", fontStyle: "italic" }}>
-                    "{ex}"
+                    &ldquo;{ex}&rdquo;
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* MAP — always in DOM (keeps Leaflet alive) */}
+          {/* ── MAP + DATA combined (always in DOM so Leaflet stays alive) ── */}
           <div style={{
-            position: "absolute", inset: 0,
+            position: "absolute", inset: 0, display: "flex", flexDirection: "column",
             visibility: outputMode === "map" ? "visible" : "hidden",
             pointerEvents: outputMode === "map" ? "auto" : "none",
           }}>
-            <LeafletMap
-              center={mapCenter}
-              zoom={mapZoom}
-              properties={properties}
-              selectedId={selected?.id ?? null}
-              highlightedIds={highlightedIds}
-              onSelect={setSelected}
-              onBoundsChange={() => {}}
-              cityClusters={[]}
-              currentZoom={mapZoom}
-              onCityClick={() => {}}
-            />
+            {/* Map — top 65% */}
+            <div style={{ flex: "0 0 65%", position: "relative" }}>
+              <LeafletMap
+                center={mapCenter}
+                zoom={mapZoom}
+                properties={properties}
+                selectedId={selected?.id ?? null}
+                highlightedIds={highlightedIds}
+                onSelect={(p) => { setSelected(p); setMapCenter([p.lat, p.lng]); setMapZoom(15); }}
+                onBoundsChange={() => {}}
+                cityClusters={[]}
+                currentZoom={mapZoom}
+                onCityClick={() => {}}
+              />
+            </div>
+            {/* Divider */}
+            <div style={{ height: 1, background: "#e2e8f0", flexShrink: 0 }} />
+            {/* Rotating stats — bottom 35% */}
+            <div style={{ flex: "0 0 35%", position: "relative", overflow: "hidden" }}>
+              <MarketTicker properties={properties} context={marketContext} />
+            </div>
           </div>
 
           {/* LISTINGS */}
@@ -1175,12 +1178,12 @@ export function MapHomePage() {
                   <span style={{ fontSize: 15, fontWeight: 700, color: "#0f172a" }}>{properties.length} results</span>
                   {marketContext && <span style={{ fontSize: 12, color: "#94a3b8" }}>in {marketContext.city}</span>}
                   {marketContext && (
-                    <button onClick={() => setOutputMode("data")} style={{
+                    <button onClick={() => setOutputMode("map")} style={{
                       marginLeft: "auto", fontSize: 11, fontWeight: 600, color: "#8b5cf6",
                       background: "#f5f3ff", border: "none", borderRadius: 8,
                       padding: "4px 10px", cursor: "pointer",
                     }}>
-                      📊 Market data →
+                      🗺 Map & Data →
                     </button>
                   )}
                 </div>
@@ -1203,14 +1206,35 @@ export function MapHomePage() {
             </div>
           </div>
 
-          {/* DATA DASHBOARD */}
-          <div style={{
-            position: "absolute", inset: 0,
-            visibility: outputMode === "data" ? "visible" : "hidden",
-            pointerEvents: outputMode === "data" ? "auto" : "none",
-          }}>
-            <MarketDataDashboard context={marketContext} properties={properties} />
-          </div>
+          {/* PropertyDetailPanel — contained within right panel (no full-screen takeover) */}
+          {selected && (
+            <>
+              {/* Backdrop — only covers right panel content area */}
+              <div style={{ position: "absolute", inset: 0, zIndex: 40 }} onClick={() => setSelected(null)} />
+              {/* Panel card — centered in this area */}
+              <div style={{
+                position: "absolute", inset: 0, zIndex: 41,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                pointerEvents: "none",
+              }}>
+                <div style={{
+                  pointerEvents: "auto",
+                  width: "clamp(300px, 80%, 440px)",
+                  maxHeight: "90%",
+                  background: "rgba(255,255,255,0.96)",
+                  backdropFilter: "blur(20px)",
+                  WebkitBackdropFilter: "blur(20px)",
+                  borderRadius: 20,
+                  boxShadow: "0 8px 40px rgba(0,0,0,0.16)",
+                  border: "1px solid rgba(255,255,255,0.6)",
+                  overflow: "hidden",
+                  display: "flex", flexDirection: "column",
+                }}>
+                  <PropertyDetailPanel property={selected} onClose={() => setSelected(null)} />
+                </div>
+              </div>
+            </>
+          )}
 
         </div>
       </div>
@@ -1231,9 +1255,6 @@ export function MapHomePage() {
 
       {/* Habino menu panel */}
       {habinoOpen && <HabinoPanel onClose={() => setHabinoOpen(false)} />}
-
-      {/* Property detail panel */}
-      {selected && <PropertyDetailPanel property={selected} onClose={() => setSelected(null)} />}
     </div>
   );
 }
