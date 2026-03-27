@@ -195,13 +195,17 @@ function makeNeighbourhoodIcon(name: string): L.DivIcon {
 
 export type NeighbourhoodLabel = { name: string; lat: number; lng: number };
 
+/** Pixel position within the map container — used to anchor the popup card. */
+export type PinClickPosition = { x: number; y: number };
+
 interface LeafletMapProps {
   center:               [number, number];
   zoom?:                number;
   properties:           PropertyWithCoords[];
   selectedId:           string | null;
   highlightedIds?:      string[];
-  onSelect:             (p: PropertyWithCoords) => void;
+  /** Called when the user clicks a pin; includes pixel position within map container. */
+  onSelect:             (p: PropertyWithCoords, pos: PinClickPosition) => void;
   onBoundsChange?:      (b: MapBounds) => void;
   cityClusters?:        CityCluster[];
   currentZoom?:         number;
@@ -302,7 +306,10 @@ export default function LeafletMap({
               key={p.id}
               position={[p.lat, p.lng]}
               icon={makePinIcon(p, true, false)}
-              eventHandlers={{ click: () => onSelect(p) }}
+              eventHandlers={{
+                click: (e: L.LeafletMouseEvent) =>
+                  onSelect(p, { x: e.containerPoint.x, y: e.containerPoint.y }),
+              }}
               zIndexOffset={1000}
             />
           );
@@ -320,7 +327,10 @@ export default function LeafletMap({
               fillColor:   color,
               fillOpacity: dimmed ? 0.25 : 0.85,
             }}
-            eventHandlers={{ click: () => onSelect(p) }}
+            eventHandlers={{
+              click: (e: L.LeafletMouseEvent) =>
+                onSelect(p, { x: e.containerPoint.x, y: e.containerPoint.y }),
+            }}
           />
         );
       })}

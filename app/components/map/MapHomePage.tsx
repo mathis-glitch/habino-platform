@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { useCallback, useState, useEffect } from "react";
 import Link from "next/link";
 import type { Property } from "@/lib/types";
-import type { PropertyWithCoords, NeighbourhoodLabel } from "./LeafletMap";
+import type { PropertyWithCoords, NeighbourhoodLabel, PinClickPosition } from "./LeafletMap";
 import { AIChatPage } from "@/app/components/chat/AIChatPage";
 
 // Load Leaflet map client-side only (no SSR)
@@ -248,6 +248,58 @@ const CITY_COORDS: Record<string, [number, number]> = {
   "Nairobi":          [-1.2921,  36.8219],
 
 };
+
+// ── Generate 200 additional demo pins deterministically ───────────────────────
+// Uses a fast integer hash so every run produces the same results.
+// Called AFTER CITY_COORDS so we can reference its keys.
+function makeDemoPin(idx: number): PropertyWithCoords {
+  const TYPES = [
+    "apartment","house","villa","office","commercial","land","plot","production",
+  ] as const;
+  const NBS = Object.keys(CITY_COORDS).filter(
+    k => !["Addis Ababa","Addis","Nairobi"].includes(k)
+  );
+  // Three independent hash passes
+  const h  = ((idx * 2654435769) + 1013904223) >>> 0;
+  const h2 = ((h   * 1664525)    + 1013904223) >>> 0;
+  const h3 = ((h2  * 22695477)   + 1)          >>> 0;
+
+  const type = TYPES[h % TYPES.length];
+  const lt: "rent" | "buy" = (h2 & 1) ? "rent" : "buy";
+  const nb   = NBS[h3 % NBS.length];
+  const base = CITY_COORDS[nb] ?? [9.0192, 38.7525];
+
+  // Small deterministic jitter so pins don't stack exactly on top of each other
+  const lat = base[0] + ((h  >> 8) & 0x7f) * 0.00012 * ((h  & 2) ? 1 : -1);
+  const lng = base[1] + ((h2 >> 8) & 0x7f) * 0.00012 * ((h2 & 2) ? 1 : -1);
+
+  const isRes  = ["apartment","house","villa"].includes(type);
+  const bdr    = isRes ? 1 + (h  % 5) : 0;
+  const bath   = isRes ? 1 + (h2 % 3) : 0;
+  const area   = 35 + (h3 % 600);
+  const price  = lt === "rent"
+    ? 12000  + (h  % 90000)
+    : 2500000 + (h  % 30000000);
+
+  const id = `x${idx}`;
+  const label = (type.charAt(0).toUpperCase() + type.slice(1));
+  return {
+    id, tenant_id: "", title: `${label} in ${nb}`, description: null,
+    listing_type: lt,
+    property_type: type as import("@/lib/types").PropertyType,
+    price, currency: "ETB",
+    bedrooms: bdr, bathrooms: bath, area_sqm: area,
+    city: "Addis Ababa", neighbourhood: nb,
+    address: null, agent_name: getDemoAgent(id),
+    agent_phone: null, agent_email: null,
+    status: "active" as const, created_at: "", updated_at: "",
+    lat, lng,
+  };
+}
+
+const EXTRA_PINS  = Array.from({ length: 200 }, (_, i) => makeDemoPin(i + 101));
+// Full 300-listing pool used as the default idle state
+const ALL_DEMO_PINS: PropertyWithCoords[] = [...IDLE_PINS, ...EXTRA_PINS];
 
 // ── Neighbourhood labels shown on the map ────────────────────────────────────
 // Major districts only — shown as text overlays between zoom 11–15.
@@ -746,19 +798,34 @@ function PropertyListingCard({
     setImgErr(false);
   }
 
+  // ── Fixed card dimensions ─────────────────────────────────────────────────
+  // IMAGE_H + DETAILS_H = CARD_H. All cards are exactly this tall — no flex
+  // stretching, no aspect-ratio, no layout shift when images load or error.
+  const IMAGE_H   = 140;
+  const DETAILS_H = 84;
+  const CARD_H    = IMAGE_H + DETAILS_H; // 224 px
+
   return (
     <div
       onClick={onSelect}
       className="cursor-pointer group"
       style={{
-        height: "100%",
+        height: CARD_H,
+        width: "100%",
         display: "flex",
         flexDirection: "column",
-        ...(highlighted ? { borderRadius: 14, outline: `2px solid ${color}`, outlineOffset: 2 } : {}),
+        borderRadius: 12,
+        overflow: "hidden",
+        border: highlighted ? `2px solid ${color}` : "1px solid #f1f5f9",
+        boxShadow: highlighted
+          ? `0 0 0 2px ${color}40`
+          : "0 1px 4px rgba(0,0,0,0.06)",
+        background: "white",
+        transition: "box-shadow .15s, border-color .15s",
       }}
     >
-      {/* ── Image / Gallery ── */}
-      <div className="relative rounded-xl overflow-hidden bg-slate-100" style={{ aspectRatio: "4/3" }}>
+      {/* ── Image / Gallery — fixed 140 px height ── */}
+      <div className="relative overflow-hidden bg-slate-100" style={{ height: IMAGE_H, flexShrink: 0 }}>
         {!imgErr ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -823,31 +890,230 @@ function PropertyListingCard({
         )}
       </div>
 
-      {/* ── Details ── */}
-      <div className="mt-1.5 px-0.5 pb-1.5" style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-        {imgErr && <p className="text-[10px] font-semibold text-slate-700 mb-0.5">{priceFmt}{isRent && <span className="text-slate-400 font-normal">/mo</span>}</p>}
-        <p className="text-[10px] font-semibold text-slate-900 leading-tight line-clamp-1">{p.title}</p>
-        <p className="text-[9px] text-slate-400 mt-0.5 line-clamp-1">📍 {[p.neighbourhood, p.city].filter(Boolean).join(", ")}</p>
+      {/* ── Details — fixed 84 px, no overflow ── */}
+      <div style={{
+        height: DETAILS_H, flexShrink: 0,
+        padding: "7px 8px 6px",
+        display: "flex", flexDirection: "column",
+        overflow: "hidden",
+        background: "white",
+      }}>
+        {/* Price row (shown when image errors) */}
+        {imgErr && (
+          <p style={{ fontSize: 10, fontWeight: 700, color: "#0f172a", marginBottom: 2, lineHeight: 1 }}>
+            {priceFmt}{isRent && <span style={{ color: "#94a3b8", fontWeight: 400 }}>/mo</span>}
+          </p>
+        )}
 
-        {/* Emoji specs */}
-        <div className="flex items-center gap-2 mt-1 flex-wrap">
-          {isResidential && p.bedrooms  > 0 && <span className="text-[9px] text-slate-600">🛏 {p.bedrooms}</span>}
-          {isResidential && p.bathrooms > 0 && <span className="text-[9px] text-slate-600">🚿 {p.bathrooms}</span>}
-          {p.area_sqm                         && <span className="text-[9px] text-slate-600">📐 {p.area_sqm.toLocaleString()} m²</span>}
+        {/* Title */}
+        <p style={{ fontSize: 10, fontWeight: 700, color: "#0f172a", lineHeight: 1.3,
+          overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical" }}>
+          {p.title}
+        </p>
+
+        {/* Location */}
+        <p style={{ fontSize: 9, color: "#94a3b8", marginTop: 2, lineHeight: 1.2,
+          overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>
+          📍 {[p.neighbourhood, p.city].filter(Boolean).join(", ")}
+        </p>
+
+        {/* Specs */}
+        <div style={{ display: "flex", gap: 6, marginTop: 4, flexWrap: "wrap", overflow: "hidden", maxHeight: 14 }}>
+          {isResidential && p.bedrooms  > 0 && <span style={{ fontSize: 9, color: "#475569" }}>🛏 {p.bedrooms}</span>}
+          {isResidential && p.bathrooms > 0 && <span style={{ fontSize: 9, color: "#475569" }}>🚿 {p.bathrooms}</span>}
+          {p.area_sqm                         && <span style={{ fontSize: 9, color: "#475569" }}>📐 {p.area_sqm} m²</span>}
         </div>
 
-        {/* Agent — always shown, "Habino Team" fallback */}
-        <div className="flex items-center gap-1 mt-auto pt-1.5">
+        {/* Agent — pushed to bottom */}
+        <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: "auto", paddingTop: 3 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={getAgentAvatar(p.agent_name || "Habino Team")}
             alt=""
-            className="w-4 h-4 rounded-full object-cover shrink-0 border border-slate-100"
+            style={{ width: 14, height: 14, borderRadius: "50%", objectFit: "cover", flexShrink: 0, border: "1px solid #e2e8f0" }}
             onError={() => {}}
           />
-          <span className="text-[9px] text-slate-500 truncate font-medium">{p.agent_name || "Habino Team"}</span>
+          <span style={{ fontSize: 9, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 500 }}>
+            {p.agent_name || "Habino Team"}
+          </span>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── Compact popup card anchored to pin click position ────────────────────────
+// Appears above/beside the clicked pin. All dimensions are fixed so it never
+// pushes layout. Position is clamped so it stays inside the map container.
+const POPUP_W = 240;
+const POPUP_H = 260; // approximate max height
+
+function MapPinPopup({
+  property, pos, allProperties, onClose,
+}: {
+  property: PropertyWithCoords;
+  pos: PinClickPosition;
+  allProperties: PropertyWithCoords[];
+  onClose: () => void;
+}) {
+  const color     = TYPE_COLORS[property.property_type] || "#6B7280";
+  const typeLabel = TYPE_LABELS[property.property_type]  || property.property_type;
+  const isRent    = property.listing_type === "rent";
+  const priceFmt  = fmtFull(property.price, property.currency);
+  const agentName = property.agent_name || "Habino Team";
+
+  const [imgErr, setImgErr] = useState(false);
+  const photos = getPropertyImages(property);
+
+  // Market comparison (quick, same logic as full panel)
+  const marketProps = allProperties.filter(
+    p => p.area_sqm && p.area_sqm > 0 && p.listing_type === property.listing_type && p.id !== property.id
+  );
+  const avgPpm = marketProps.length > 0
+    ? marketProps.reduce((s, p) => s + p.price / p.area_sqm!, 0) / marketProps.length
+    : null;
+  const thisPpm = property.area_sqm ? property.price / property.area_sqm : null;
+  const pct     = avgPpm && thisPpm ? ((thisPpm - avgPpm) / avgPpm) * 100 : null;
+  const mktTag  = pct == null ? null : pct < -10 ? "✓ Below Market" : pct > 10 ? "↑ Above Market" : "≈ At Market";
+  const mktCol  = pct == null ? "#64748b" : pct < -10 ? "#16a34a" : pct > 10 ? "#ea580c" : "#8b5cf6";
+
+  const waMsg = `Hi! I'm interested in: "${property.title}" — is it still available?`;
+  const waUrl = property.agent_phone
+    ? `https://wa.me/${property.agent_phone.replace(/\D/g,"")}?text=${encodeURIComponent(waMsg)}`
+    : `https://wa.me/?text=${encodeURIComponent(waMsg)}`;
+
+  // ── Position: above the pin, centred horizontally. Clamp to stay visible. ─
+  // pos.x / pos.y are pixels relative to the map container.
+  // If pos is the sentinel 9999/9999 (clicked from listing card), centre it.
+  const isSentinel = pos.x > 5000;
+  // We rely on CSS clamp in the inline style — the parent is position:relative
+  // so absolute coords work directly.
+  const rawLeft = isSentinel ? "50%" : `${pos.x - POPUP_W / 2}px`;
+  const rawTop  = isSentinel ? "50%" : `${pos.y - POPUP_H - 18}px`;
+  const transform = isSentinel ? "translate(-50%, -50%)" : undefined;
+
+  return (
+    <div
+      style={{
+        position: "absolute",
+        left: rawLeft,
+        top: rawTop,
+        transform,
+        width: POPUP_W,
+        zIndex: 500,
+        borderRadius: 14,
+        overflow: "hidden",
+        background: "white",
+        boxShadow: "0 8px 32px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.10)",
+        border: "1px solid rgba(0,0,0,0.07)",
+        // Clamp so it never goes off screen
+        maxWidth: "calc(100% - 12px)",
+      }}
+      onClick={e => e.stopPropagation()}
+    >
+      {/* Image */}
+      <div style={{ position: "relative", height: 120, background: `${color}18`, flexShrink: 0 }}>
+        {!imgErr ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={photos[0]}
+            alt=""
+            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+            onError={() => setImgErr(true)}
+          />
+        ) : (
+          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36 }}>
+            {property.property_type === "apartment" ? "🏢" : property.property_type === "house" ? "🏠" : property.property_type === "villa" ? "🏡" : "🏗️"}
+          </div>
+        )}
+        {/* Gradient overlay */}
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 55%)" }} />
+        {/* Type badge */}
+        <div style={{ position: "absolute", top: 7, left: 7, background: color, borderRadius: 99, padding: "2px 8px" }}>
+          <span style={{ fontSize: 9, fontWeight: 700, color: "white", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            {typeLabel} · {isRent ? "Rent" : "Sale"}
+          </span>
+        </div>
+        {/* Close */}
+        <button
+          onClick={onClose}
+          style={{
+            position: "absolute", top: 7, right: 7,
+            width: 24, height: 24, borderRadius: "50%",
+            background: "rgba(0,0,0,0.45)", backdropFilter: "blur(4px)",
+            border: "none", cursor: "pointer", color: "white",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}
+        >
+          <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+        {/* Price */}
+        <div style={{ position: "absolute", bottom: 7, left: 10 }}>
+          <span style={{ fontSize: 14, fontWeight: 800, color: "white", textShadow: "0 1px 4px rgba(0,0,0,0.4)" }}>
+            {priceFmt}
+          </span>
+          {isRent && <span style={{ fontSize: 10, color: "rgba(255,255,255,0.8)", marginLeft: 2 }}>/mo</span>}
+        </div>
+      </div>
+
+      {/* Body */}
+      <div style={{ padding: "10px 12px 12px" }}>
+        <p style={{ fontSize: 11, fontWeight: 700, color: "#0f172a", margin: "0 0 2px", lineHeight: 1.3,
+          overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
+          {property.title}
+        </p>
+        <p style={{ fontSize: 9, color: "#94a3b8", margin: "0 0 8px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          📍 {[property.neighbourhood, property.city].filter(Boolean).join(", ")}
+        </p>
+
+        {/* Specs row */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
+          {property.bedrooms  > 0 && <span style={{ fontSize: 9, color: "#475569" }}>🛏 {property.bedrooms}</span>}
+          {property.bathrooms > 0 && <span style={{ fontSize: 9, color: "#475569" }}>🚿 {property.bathrooms}</span>}
+          {(property.area_sqm ?? 0) > 0 && <span style={{ fontSize: 9, color: "#475569" }}>📐 {property.area_sqm} m²</span>}
+          {mktTag && (
+            <span style={{ fontSize: 9, fontWeight: 600, color: mktCol, marginLeft: "auto" }}>{mktTag}</span>
+          )}
+        </div>
+
+        {/* Agent row */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={getAgentAvatar(agentName)} alt="" style={{ width: 20, height: 20, borderRadius: "50%", objectFit: "cover", border: "1.5px solid #e2e8f0" }} />
+          <span style={{ fontSize: 10, fontWeight: 600, color: "#334155", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{agentName}</span>
+          <a href={waUrl} target="_blank" rel="noopener noreferrer"
+            style={{ fontSize: 9, fontWeight: 700, color: "white", background: "#25D366", borderRadius: 99, padding: "3px 8px", textDecoration: "none", flexShrink: 0 }}>
+            WhatsApp
+          </a>
+        </div>
+
+        {/* CTA */}
+        <Link
+          href={`/properties/${property.id}`}
+          style={{
+            display: "block", width: "100%", textAlign: "center",
+            padding: "7px 0", borderRadius: 8,
+            fontSize: 11, fontWeight: 700, color: "white",
+            background: color, textDecoration: "none",
+          }}
+        >
+          View full listing →
+        </Link>
+      </div>
+
+      {/* Triangle tail pointing down toward pin (only when not sentinel) */}
+      {!isSentinel && (
+        <div style={{
+          position: "absolute", bottom: -8, left: "50%", transform: "translateX(-50%)",
+          width: 0, height: 0,
+          borderLeft: "8px solid transparent",
+          borderRight: "8px solid transparent",
+          borderTop: "8px solid white",
+          filter: "drop-shadow(0 2px 2px rgba(0,0,0,0.12))",
+        }} />
+      )}
     </div>
   );
 }
@@ -1170,8 +1436,9 @@ function MarketTicker({ properties, context }: {
 
 // ── Main component ────────────────────────────────────────────────────────────
 export function MapHomePage() {
-  const [properties,     setProperties]     = useState<PropertyWithCoords[]>(IDLE_PINS);
+  const [properties,     setProperties]     = useState<PropertyWithCoords[]>(ALL_DEMO_PINS);
   const [selected,       setSelected]       = useState<PropertyWithCoords | null>(null);
+  const [selectedPos,    setSelectedPos]    = useState<PinClickPosition | null>(null);
   const [aiDrawerOpen,   setAiDrawerOpen]   = useState(false);
   const [habinoOpen,     setHabinoOpen]     = useState(false);
   const [highlightedIds, setHighlightedIds] = useState<string[]>([]);
@@ -1349,6 +1616,8 @@ export function MapHomePage() {
                         highlighted={highlightedIds.includes(p.id) || hoveredId === p.id}
                         onSelect={() => {
                           setSelected(p);
+                          // For list-card clicks, anchor popup to map center-right
+                          setSelectedPos({ x: 9999, y: 9999 }); // sentinel → clamped to center
                           setMapCenter([p.lat, p.lng]);
                           setMapZoom(15);
                         }}
@@ -1362,12 +1631,15 @@ export function MapHomePage() {
         </div>
 
         {/* ── RIGHT: Sticky map ─────────────────────────────────── */}
-        <div style={{
-          flex: 1,
-          height: "100%",
-          position: "relative",
-          display: isMobile ? "none" : "block",
-        }}>
+        <div
+          style={{
+            flex: 1,
+            height: "100%",
+            position: "relative",
+            display: isMobile ? "none" : "block",
+          }}
+          onClick={() => { if (selected) { setSelected(null); setSelectedPos(null); } }}
+        >
           {/* Idle hint */}
           {isIdleState && (
             <div style={{
@@ -1392,7 +1664,7 @@ export function MapHomePage() {
             properties={properties}
             selectedId={selected?.id ?? null}
             highlightedIds={hoveredId ? [...highlightedIds, hoveredId] : highlightedIds}
-            onSelect={(p) => { setSelected(p); setMapCenter([p.lat, p.lng]); setMapZoom(15); }}
+            onSelect={(p, pos) => { setSelected(p); setSelectedPos(pos); setMapCenter([p.lat, p.lng]); setMapZoom(15); }}
             onBoundsChange={() => {}}
             cityClusters={[]}
             currentZoom={mapZoom}
@@ -1400,29 +1672,14 @@ export function MapHomePage() {
             neighbourhoodLabels={NEIGHBOURHOOD_LABELS}
           />
 
-          {/* PropertyDetailPanel — slides in from right when a listing is selected */}
-          {selected && (
-            <>
-              {/* Translucent backdrop — click anywhere outside panel to close */}
-              <div
-                style={{ position: "absolute", inset: 0, zIndex: 40, background: "rgba(0,0,0,0.08)" }}
-                onClick={() => setSelected(null)}
-              />
-              {/* Panel */}
-              <div
-                className="detail-panel-enter"
-                style={{
-                  position: "absolute", top: 0, right: 0, bottom: 0, zIndex: 41,
-                  width: "clamp(300px, 38%, 360px)",
-                  background: "white",
-                  boxShadow: "-6px 0 32px rgba(0,0,0,0.14)",
-                  display: "flex", flexDirection: "column",
-                  overflow: "hidden",
-                }}
-              >
-                <PropertyDetailPanel property={selected} onClose={() => setSelected(null)} allProperties={properties} />
-              </div>
-            </>
+          {/* ── Compact popup — appears next to the clicked pin ── */}
+          {selected && selectedPos && (
+            <MapPinPopup
+              property={selected}
+              pos={selectedPos}
+              allProperties={properties}
+              onClose={() => { setSelected(null); setSelectedPos(null); }}
+            />
           )}
         </div>
 
