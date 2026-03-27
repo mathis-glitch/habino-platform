@@ -456,26 +456,24 @@ interface UserLocation { city: string; country: string; currency: string }
 
 function makeSuggestions(_loc: UserLocation | null) {
   return [
-    // ── Rent ──────────────────────────────────────────────────────────────
-    { icon: "🏠", text: "Apartments for rent in Bole",          group: "Rent" },
-    { icon: "🛏️", text: "2-bedroom apartment in Kazanchis",     group: "Rent" },
-    { icon: "🏡", text: "Family home for rent in Megenagna",     group: "Rent" },
-    { icon: "🔑", text: "Studios for rent under 15,000 ETB",     group: "Rent" },
-    { icon: "📐", text: "Large apartments over 150 m²",          group: "Rent" },
-    { icon: "💰", text: "Cheapest rentals in Addis Ababa",       group: "Rent" },
-    // ── Buy ───────────────────────────────────────────────────────────────
-    { icon: "🏘️", text: "Houses for sale in Ayat",              group: "Buy" },
-    { icon: "🌇", text: "Luxury villa in Bole",                  group: "Buy" },
-    { icon: "🌄", text: "Villas for sale in Gerji",              group: "Buy" },
-    { icon: "🌿", text: "Land for sale in Yeka",                 group: "Buy" },
-    { icon: "🏗️", text: "Residential plot in Sarbet",            group: "Buy" },
-    { icon: "🏘️", text: "Affordable homes under 5M ETB",         group: "Buy" },
-    // ── Business ──────────────────────────────────────────────────────────
-    { icon: "🏢", text: "Office space in Kazanchis",             group: "Business" },
-    { icon: "🏢", text: "Offices over 300 m² in Bole",          group: "Business" },
-    { icon: "🏪", text: "Shop or retail unit in Merkato",        group: "Business" },
-    { icon: "📦", text: "Warehouse for rent in Akaki Kaliti",    group: "Business" },
-    { icon: "🏪", text: "Event hall for rent in Piassa",         group: "Business" },
+    // ── Find ──────────────────────────────────────────────────────────────
+    { icon: "🏠", text: "Apartments for rent in Bole",          group: "Find" },
+    { icon: "🛏️", text: "2-bedroom apartment in Kazanchis",     group: "Find" },
+    { icon: "🏡", text: "Family home for rent in Megenagna",     group: "Find" },
+    { icon: "🏘️", text: "Houses for sale in Ayat",              group: "Find" },
+    { icon: "🌇", text: "Luxury villa in Bole",                  group: "Find" },
+    { icon: "🏢", text: "Office space in Kazanchis",             group: "Find" },
+    { icon: "🏪", text: "Shop or retail unit in Merkato",        group: "Find" },
+    { icon: "💰", text: "Cheapest rentals in Addis Ababa",       group: "Find" },
+    // ── List & Edit ───────────────────────────────────────────────────────
+    { icon: "📝", text: "List my apartment for rent",            group: "List & Edit" },
+    { icon: "🏡", text: "List my house for sale",                group: "List & Edit" },
+    { icon: "🏢", text: "List my commercial property",           group: "List & Edit" },
+    { icon: "✏️", text: "Edit my listing description",           group: "List & Edit" },
+    { icon: "💲", text: "Update my listing price",               group: "List & Edit" },
+    { icon: "📸", text: "Add photos to my listing",              group: "List & Edit" },
+    { icon: "📄", text: "Draft a rental contract",               group: "List & Edit" },
+    { icon: "👤", text: "Set up my agent profile",               group: "List & Edit" },
   ];
 }
 
@@ -553,12 +551,12 @@ export function AIChatPage({
     if (messages.length === 0) {
       if (wizard === "profile") {
         sendMessage("I want to set up my profile");
-        window.history.replaceState(null, "", "/");
+        window.history.replaceState(null, "", "/map");
       } else if (initialQuery) {
         sendMessage(initialQuery);
       } else if (q) {
         sendMessage(decodeURIComponent(q));
-        window.history.replaceState(null, "", "/");
+        window.history.replaceState(null, "", "/map");
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -739,7 +737,7 @@ export function AIChatPage({
   const hasMessages = messages.length > 0;
 
   return (
-    <main className="flex flex-col min-h-0" style={{ height: sidebarMode ? "100%" : "calc(100dvh - 56px - 58px)" }}>
+    <main className="flex flex-col min-h-0 w-full" style={{ height: sidebarMode ? "100%" : "calc(100dvh - 56px - 58px)" }}>
 
       {/* ── Sidebar welcome header — always visible ── */}
       {sidebarMode && (
@@ -763,16 +761,44 @@ export function AIChatPage({
           </div>
           {/* Suggestion chips — grouped by intent */}
           <div className="flex flex-col gap-2.5">
-            {(["Rent", "Buy", "Business"] as const).map((group) => {
+            {(["Find", "List & Edit"] as const).map((group) => {
               const chips = suggestions.filter((s) => (s as { group?: string }).group === group);
               if (!chips.length) return null;
+              const isListEdit = group === "List & Edit";
               return (
                 <div key={group}>
-                  <p className="text-[9px] font-bold uppercase tracking-widest mb-1.5 px-0.5" style={{ color: "#cbd5e1" }}>{group}</p>
+                  <p className="text-[9px] font-bold uppercase tracking-widest mb-1.5 px-0.5"
+                    style={{ color: isListEdit ? "#a5b4fc" : "#cbd5e1" }}>{group}</p>
                   <div className="flex flex-wrap gap-1.5">
                     {chips.map((s) => (
                       <button key={s.text} onClick={() => sendMessage(s.text)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white hover:border-slate-300 transition-all text-xs text-slate-600 font-medium whitespace-nowrap">
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all text-xs font-medium whitespace-nowrap"
+                        style={isListEdit ? {
+                          borderColor: "#e0e7ff",
+                          backgroundColor: "#eef2ff",
+                          color: "#4f46e5",
+                        } : {
+                          borderColor: "#e2e8f0",
+                          backgroundColor: "#f8fafc",
+                          color: "#475569",
+                        }}
+                        onMouseEnter={e => {
+                          if (isListEdit) {
+                            (e.currentTarget as HTMLElement).style.backgroundColor = "#e0e7ff";
+                          } else {
+                            (e.currentTarget as HTMLElement).style.backgroundColor = "#ffffff";
+                            (e.currentTarget as HTMLElement).style.borderColor = "#cbd5e1";
+                          }
+                        }}
+                        onMouseLeave={e => {
+                          if (isListEdit) {
+                            (e.currentTarget as HTMLElement).style.backgroundColor = "#eef2ff";
+                          } else {
+                            (e.currentTarget as HTMLElement).style.backgroundColor = "#f8fafc";
+                            (e.currentTarget as HTMLElement).style.borderColor = "#e2e8f0";
+                          }
+                        }}
+                      >
                         <span>{s.icon}</span>
                         {s.text}
                       </button>
@@ -786,7 +812,7 @@ export function AIChatPage({
       )}
 
       {/* ── Input bar ── */}
-      <div className="shrink-0 border-b border-slate-200 bg-white px-2 pt-3 pb-3">
+      <div className="shrink-0 border-b border-slate-200 bg-white w-full px-3 pt-3 pb-3" style={{ boxSizing: "border-box" }}>
           {/* Wizard progress bar */}
           {wizardState.step && (() => {
             const isProfile  = wizardState.step.startsWith("profile_");
@@ -827,7 +853,7 @@ export function AIChatPage({
             );
           })()}
 
-          <div className="flex items-end gap-2 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/10 transition-all shadow-sm">
+          <div className="flex items-end gap-2 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/10 transition-all shadow-sm w-full" style={{ boxSizing: "border-box" }}>
             <textarea
               ref={inputRef}
               value={input}
@@ -835,8 +861,8 @@ export function AIChatPage({
               onKeyDown={handleKeyDown}
               placeholder="What are you looking for? e.g. 3-bed apartment in Bole…"
               rows={sidebarMode ? 3 : 2}
-              className="flex-1 bg-transparent text-sm text-slate-800 placeholder-slate-400 focus:outline-none leading-relaxed"
-              style={{ minHeight: sidebarMode ? 64 : 40, maxHeight: 160, resize: "none" }}
+              className="flex-1 min-w-0 bg-transparent text-sm text-slate-800 placeholder-slate-400 focus:outline-none leading-relaxed"
+              style={{ minHeight: sidebarMode ? 64 : 40, maxHeight: 160, resize: "none", width: "100%" }}
             />
             <div className="flex items-center gap-1 shrink-0">
               <MicButton onResult={onVoiceResult} lang={voiceLang.code} size="sm" />

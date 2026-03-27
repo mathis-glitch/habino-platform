@@ -75,9 +75,27 @@ export async function middleware(request: NextRequest) {
   // ── 2. Refresh session (must happen before tenant headers are set) ───────────
   // getUser() validates + refreshes the session. If tokens were rotated,
   // setAll() above already updated supabaseResponse with the new cookies.
-  await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  // ── 3. Inject tenant info into request headers ─────────────
+  // ── 3. Route protection ────────────────────────────────────────────────────
+  // Protected routes require authentication — redirect to landing page if not signed in
+  const protectedPaths = ["/map", "/profile", "/saved", "/properties", "/market", "/markt", "/home"];
+  const isProtected = protectedPaths.some((p) => pathname === p || pathname.startsWith(p + "/"));
+
+  if (isProtected && !user) {
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = "/";
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // If authenticated user visits "/" (landing/login page), redirect to /map
+  if (pathname === "/" && user) {
+    const mapUrl = request.nextUrl.clone();
+    mapUrl.pathname = "/map";
+    return NextResponse.redirect(mapUrl);
+  }
+
+  // ── 4. Inject tenant info into request headers ─────────────
   // Set on supabaseResponse so server components can read via headers()
   supabaseResponse.headers.set("x-tenant-id",   tenantId   ?? "");
   supabaseResponse.headers.set("x-tenant-slug", tenantSlug ?? "");

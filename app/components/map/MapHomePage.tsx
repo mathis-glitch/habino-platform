@@ -976,14 +976,17 @@ function MarketTicker({ properties, context }: {
 export function MapHomePage() {
   const [properties,     setProperties]     = useState<PropertyWithCoords[]>(IDLE_PINS);
   const [selected,       setSelected]       = useState<PropertyWithCoords | null>(null);
-  const [chatOpen,       setChatOpen]       = useState(false);
+  const [aiDrawerOpen,   setAiDrawerOpen]   = useState(false);
   const [habinoOpen,     setHabinoOpen]     = useState(false);
   const [highlightedIds, setHighlightedIds] = useState<string[]>([]);
-  const [outputMode,     setOutputMode]     = useState<"listings" | "map">("map");
-  const [isIdleState,    setIsIdleState]    = useState(true);   // true until first real search
+  const [isIdleState,    setIsIdleState]    = useState(true);
   const [marketContext,  setMarketContext]  = useState<{ city: string; country: string; currency: string } | null>(null);
   const [mapCenter,      setMapCenter]      = useState<[number, number]>(ADDIS_CENTER);
   const [mapZoom,        setMapZoom]        = useState(ADDIS_ZOOM);
+  const [hoveredId,      setHoveredId]      = useState<string | null>(null);
+
+  const HEADER_H = 56;
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
 
   // Called by AIChatPage when Claude returns matching properties
   const handlePropertiesFound = useCallback((ids: string[], props?: Property[]) => {
@@ -1007,49 +1010,20 @@ export function MapHomePage() {
         setMapCenter([avgLat, avgLng]);
         setMapZoom(13);
       }
+      setAiDrawerOpen(false); // auto-close drawer when results arrive
     }
   }, []);
 
-  // Called by AIChatPage to auto-switch the output panel
-  const handleViewSuggested = useCallback((view: "listings" | "map" | "data") => {
-    setOutputMode(view === "listings" ? "listings" : "map");
+  const handleViewSuggested = useCallback((_view: "listings" | "map" | "data") => {
+    setAiDrawerOpen(false);
   }, []);
 
-  // Close any selected property when switching to listings (avoids overlay persisting)
-  useEffect(() => {
-    if (outputMode === "listings") setSelected(null);
-  }, [outputMode]);
-
-  // ── Shared style constants ────────────────────────────────────────────────
-  const HEADER_H = 56;
-  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
-
-  // ── Mode label for right panel header ────────────────────────────────────
-  const MODE_META: Record<"listings" | "map", { label: string; icon: string }> = {
-    listings: { label: !isIdleState && properties.length > 0 ? `${properties.length} properties found` : "Listings", icon: "⊞" },
-    map:      { label: marketContext ? `${marketContext.city}` : "Addis Ababa", icon: "🗺" },
-  };
-
-  // ── Subtle mode-switch pills ──────────────────────────────────────────────
-  function ModePill({ mode, label }: { mode: "listings" | "map"; label: string }) {
-    const active = outputMode === mode;
-    return (
-      <button onClick={() => setOutputMode(mode)} style={{
-        padding: "5px 14px", borderRadius: 99, fontSize: 12, fontWeight: 600,
-        border: `1px solid ${active ? "#0f172a" : "#e2e8f0"}`,
-        background: active ? "#0f172a" : "transparent",
-        color: active ? "white" : "#94a3b8",
-        cursor: "pointer", transition: "all .12s",
-      }}>{label}</button>
-    );
-  }
-
-  // ── MOBILE: full-screen chat overlay ─────────────────────────────────────
-  if (isMobile && chatOpen) {
+  // ── MOBILE: full-screen AI overlay ────────────────────────────────────────
+  if (isMobile && aiDrawerOpen) {
     return (
       <div style={{ position: "fixed", inset: 0, zIndex: 500, background: "white", display: "flex", flexDirection: "column" }}>
         <div style={{ height: HEADER_H, borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", padding: "0 16px", gap: 12, flexShrink: 0 }}>
-          <button onClick={() => setChatOpen(false)} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 14, color: "#64748b", background: "none", border: "none", cursor: "pointer" }}>
+          <button onClick={() => setAiDrawerOpen(false)} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 14, color: "#64748b", background: "none", border: "none", cursor: "pointer" }}>
             ← Back
           </button>
           <span style={{ fontSize: 14, fontWeight: 600, color: "#1e293b" }}>Property Search</span>
@@ -1063,152 +1037,176 @@ export function MapHomePage() {
     );
   }
 
-  // ── DESKTOP: 50 / 50 split ────────────────────────────────────────────────
+  // ── DESKTOP: Airbnb-style — Listings left | Map right ─────────────────────
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 1, display: "flex", background: "white" }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 1, display: "flex", flexDirection: "column", background: "white" }}>
 
-      {/* ═══════════════════════════════════════════════════
-          LEFT — AI Chat (1/3)
-      ═══════════════════════════════════════════════════ */}
+      {/* ══════════════════════════════════════════════════════
+          TOP HEADER — full width
+      ══════════════════════════════════════════════════════ */}
       <div style={{
-        width: isMobile ? "100%" : "33.333%",
-        height: "100%",
-        display: isMobile ? "none" : "flex",
-        flexDirection: "column",
-        borderRight: "1px solid #e2e8f0",
-        flexShrink: 0,
+        height: HEADER_H, borderBottom: "1px solid #e2e8f0",
+        display: "flex", alignItems: "center", padding: "0 20px", gap: 14,
+        flexShrink: 0, background: "white", zIndex: 20,
       }}>
-        {/* Header */}
-        <div style={{ height: HEADER_H, borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", padding: "0 20px", gap: 12, flexShrink: 0 }}>
-          <Link href="/" style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.02em", textDecoration: "none" }}>Habino</Link>
-          <div style={{ flex: 1 }} />
-          <button
-            onClick={() => setHabinoOpen(o => !o)}
-            style={{
-              padding: "6px 12px", borderRadius: 10, fontSize: 12, fontWeight: 600,
-              color: "white", border: "none", cursor: "pointer",
-              backgroundColor: habinoOpen ? "var(--color-secondary)" : "var(--color-primary)",
-            }}>
-            Menu
-          </button>
-        </div>
-        {/* Chat */}
-        <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
-          <div style={{ position: "absolute", inset: 0 }}>
-            <AIChatPage sidebarMode onPropertiesFound={handlePropertiesFound} onViewSuggested={handleViewSuggested} />
-          </div>
-        </div>
+        {/* Logo */}
+        <Link href="/map" style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.02em", textDecoration: "none", flexShrink: 0 }}>
+          Habino
+        </Link>
+
+        {/* AI Search trigger pill — mimics Airbnb's center search bar */}
+        <button
+          onClick={() => setAiDrawerOpen(true)}
+          style={{
+            flex: 1, maxWidth: 520, height: 40,
+            display: "flex", alignItems: "center", gap: 10,
+            background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 99,
+            padding: "0 6px 0 16px", cursor: "pointer", textAlign: "left",
+            transition: "all .14s",
+          }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "#cbd5e1"; (e.currentTarget as HTMLElement).style.boxShadow = "0 2px 8px rgba(0,0,0,0.06)"; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "#e2e8f0"; (e.currentTarget as HTMLElement).style.boxShadow = "none"; }}
+        >
+          <svg style={{ width: 14, height: 14, color: "#94a3b8", flexShrink: 0 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <span style={{ fontSize: 13, color: isIdleState ? "#94a3b8" : "#1e293b", fontWeight: isIdleState ? 400 : 600, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {isIdleState
+              ? "Search properties — e.g. 2-bed apartment in Bole…"
+              : `${properties.length} properties found${marketContext ? ` · ${marketContext.city}` : ""}`}
+          </span>
+          <div style={{
+            padding: "4px 14px", borderRadius: 99, fontSize: 12, fontWeight: 700,
+            background: "var(--color-primary)", color: "white", flexShrink: 0,
+          }}>✦ Ask AI</div>
+        </button>
+
+        <div style={{ flex: 1 }} />
+
+        {/* Menu */}
+        <button
+          onClick={() => setHabinoOpen(o => !o)}
+          style={{
+            padding: "6px 14px", borderRadius: 10, fontSize: 12, fontWeight: 600,
+            color: "white", border: "none", cursor: "pointer", flexShrink: 0,
+            backgroundColor: habinoOpen ? "var(--color-secondary)" : "var(--color-primary)",
+          }}>
+          Menu
+        </button>
       </div>
 
-      {/* ═══════════════════════════════════════════════════
-          RIGHT — Dynamic Output Panel (2/3)
-      ═══════════════════════════════════════════════════ */}
-      <div style={{ width: isMobile ? "100%" : "66.667%", height: "100%", display: "flex", flexDirection: "column", position: "relative" }}>
+      {/* ══════════════════════════════════════════════════════
+          BODY — Listings (left) | Map (right)
+      ══════════════════════════════════════════════════════ */}
+      <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
 
-        {/* Header */}
-        <div style={{ height: HEADER_H, borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", padding: "0 16px", gap: 8, flexShrink: 0, position: "relative", zIndex: 10, background: "white" }}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>
-            {MODE_META[outputMode].icon} {MODE_META[outputMode].label}
-          </span>
-          <div style={{ flex: 1 }} />
-          <div style={{ display: "flex", gap: 4 }}>
-            <ModePill mode="map"      label="Map" />
-            <ModePill mode="listings" label="Listings" />
+        {/* ── LEFT: Scrollable listings ─────────────────────────── */}
+        <div style={{
+          width: isMobile ? "100%" : "54%",
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          borderRight: "1px solid #e2e8f0",
+          flexShrink: 0,
+          overflow: "hidden",
+        }}>
+          {/* Sub-header: result count + filters */}
+          <div style={{
+            height: 44, borderBottom: "1px solid #f1f5f9",
+            display: "flex", alignItems: "center", padding: "0 20px", gap: 10,
+            flexShrink: 0, background: "white",
+          }}>
+            {!isIdleState && properties.length > 0 ? (
+              <>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
+                  {properties.length} properties
+                </span>
+                {marketContext && (
+                  <span style={{ fontSize: 12, color: "#94a3b8" }}>in {marketContext.city}</span>
+                )}
+              </>
+            ) : (
+              <span style={{ fontSize: 12, color: "#94a3b8" }}>Browse properties in Addis Ababa</span>
+            )}
+          </div>
+
+          {/* Grid */}
+          <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}>
+            <div style={{ padding: "20px 20px 40px", boxSizing: "border-box" }}>
+              {properties.length === 0 && !isIdleState ? (
+                <div style={{ textAlign: "center", padding: "60px 20px" }}>
+                  <div style={{ fontSize: 28, marginBottom: 12 }}>🔍</div>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: "#475569", marginBottom: 6 }}>No results</p>
+                  <p style={{ fontSize: 13, color: "#94a3b8" }}>Try different criteria — click Ask AI to refine your search.</p>
+                </div>
+              ) : (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16 }}>
+                  {properties.map(p => (
+                    <div
+                      key={p.id}
+                      onMouseEnter={() => setHoveredId(p.id)}
+                      onMouseLeave={() => setHoveredId(null)}
+                    >
+                      <PropertyListingCard
+                        property={p}
+                        highlighted={highlightedIds.includes(p.id) || hoveredId === p.id}
+                        onSelect={() => {
+                          setSelected(p);
+                          setMapCenter([p.lat, p.lng]);
+                          setMapZoom(15);
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Content area — position: relative so PropertyDetailPanel can be contained */}
-        <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
-
-          {/* ── MAP — always in DOM so Leaflet stays alive ── */}
-          <div style={{
-            position: "absolute", inset: 0,
-            visibility: outputMode === "map" ? "visible" : "hidden",
-            pointerEvents: outputMode === "map" ? "auto" : "none",
-          }}>
-            {/* Idle hint — floats over map when no real search yet */}
-            {isIdleState && (
-              <div style={{
-                position: "absolute", top: 14, left: "50%", transform: "translateX(-50%)",
-                zIndex: 500, pointerEvents: "none",
-                background: "rgba(255,255,255,0.90)", backdropFilter: "blur(8px)",
-                borderRadius: 12, padding: "8px 16px",
-                boxShadow: "0 2px 12px rgba(0,0,0,0.09)",
-                border: "1px solid rgba(226,232,240,0.8)",
-                display: "flex", alignItems: "center", gap: 8, whiteSpace: "nowrap",
-              }}>
-                <span style={{ fontSize: 14 }}>✦</span>
-                <span style={{ fontSize: 11, fontWeight: 600, color: "#475569" }}>
-                  Describe a property on the left — results appear here
-                </span>
-              </div>
-            )}
-            <LeafletMap
-              center={mapCenter}
-              zoom={mapZoom}
-              properties={properties}
-              selectedId={selected?.id ?? null}
-              highlightedIds={highlightedIds}
-              onSelect={(p) => { setSelected(p); setMapCenter([p.lat, p.lng]); setMapZoom(15); }}
-              onBoundsChange={() => {}}
-              cityClusters={[]}
-              currentZoom={mapZoom}
-              onCityClick={() => {}}
-              neighbourhoodLabels={NEIGHBOURHOOD_LABELS}
-            />
-          </div>
-
-          {/* LISTINGS */}
-          <div style={{
-            position: "absolute", inset: 0, overflowY: "auto", overflowX: "hidden", background: "white",
-            visibility: outputMode === "listings" ? "visible" : "hidden",
-            pointerEvents: outputMode === "listings" ? "auto" : "none",
-          }}>
-            <div style={{ padding: "16px 16px 24px", boxSizing: "border-box", width: "100%" }}>
-              {!isIdleState && properties.length > 0 && (
-                <div style={{ marginBottom: 14, display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={{ fontSize: 15, fontWeight: 700, color: "#0f172a" }}>{properties.length} results</span>
-                  {marketContext && <span style={{ fontSize: 12, color: "#94a3b8" }}>in {marketContext.city}</span>}
-                  <button onClick={() => setOutputMode("map")} style={{
-                    marginLeft: "auto", fontSize: 11, fontWeight: 600, color: "#8b5cf6",
-                    background: "#f5f3ff", border: "none", borderRadius: 8,
-                    padding: "4px 10px", cursor: "pointer",
-                  }}>
-                    Show on map →
-                  </button>
-                </div>
-              )}
-              {isIdleState && (
-                <div style={{ textAlign: "center", padding: "60px 20px", color: "#94a3b8" }}>
-                  <div style={{ fontSize: 28, marginBottom: 12 }}>⊞</div>
-                  <p style={{ fontSize: 14, fontWeight: 600, color: "#475569", marginBottom: 6 }}>No listings yet</p>
-                  <p style={{ fontSize: 13, color: "#94a3b8" }}>Start a search on the left — results appear here.</p>
-                </div>
-              )}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
-                {properties.map(p => (
-                  <PropertyListingCard
-                    key={p.id}
-                    property={p}
-                    highlighted={highlightedIds.includes(p.id)}
-                    onSelect={() => {
-                      setSelected(p);
-                      setMapCenter([p.lat, p.lng]);
-                      setMapZoom(15);
-                      setOutputMode("map");
-                    }}
-                  />
-                ))}
-              </div>
+        {/* ── RIGHT: Sticky map ─────────────────────────────────── */}
+        <div style={{
+          flex: 1,
+          height: "100%",
+          position: "relative",
+          display: isMobile ? "none" : "block",
+        }}>
+          {/* Idle hint */}
+          {isIdleState && (
+            <div style={{
+              position: "absolute", top: 14, left: "50%", transform: "translateX(-50%)",
+              zIndex: 500, pointerEvents: "none",
+              background: "rgba(255,255,255,0.92)", backdropFilter: "blur(10px)",
+              borderRadius: 12, padding: "8px 16px",
+              boxShadow: "0 2px 12px rgba(0,0,0,0.09)",
+              border: "1px solid rgba(226,232,240,0.8)",
+              display: "flex", alignItems: "center", gap: 8, whiteSpace: "nowrap",
+            }}>
+              <span style={{ fontSize: 13 }}>✦</span>
+              <span style={{ fontSize: 11, fontWeight: 600, color: "#475569" }}>
+                Click Ask AI to search — results appear here
+              </span>
             </div>
-          </div>
+          )}
 
-          {/* PropertyDetailPanel — contained within right panel (no full-screen takeover) */}
+          <LeafletMap
+            center={mapCenter}
+            zoom={mapZoom}
+            properties={properties}
+            selectedId={selected?.id ?? null}
+            highlightedIds={hoveredId ? [...highlightedIds, hoveredId] : highlightedIds}
+            onSelect={(p) => { setSelected(p); setMapCenter([p.lat, p.lng]); setMapZoom(15); }}
+            onBoundsChange={() => {}}
+            cityClusters={[]}
+            currentZoom={mapZoom}
+            onCityClick={() => {}}
+            neighbourhoodLabels={NEIGHBOURHOOD_LABELS}
+          />
+
+          {/* PropertyDetailPanel — floats over map when a listing is selected */}
           {selected && (
             <>
-              {/* Backdrop — only covers right panel content area */}
               <div style={{ position: "absolute", inset: 0, zIndex: 40 }} onClick={() => setSelected(null)} />
-              {/* Panel card — centered in this area */}
               <div style={{
                 position: "absolute", inset: 0, zIndex: 41,
                 display: "flex", alignItems: "center", justifyContent: "center",
@@ -1216,13 +1214,13 @@ export function MapHomePage() {
               }}>
                 <div style={{
                   pointerEvents: "auto",
-                  width: "clamp(300px, 80%, 440px)",
-                  maxHeight: "90%",
-                  background: "rgba(255,255,255,0.96)",
+                  width: "clamp(300px, 85%, 420px)",
+                  maxHeight: "92%",
+                  background: "rgba(255,255,255,0.97)",
                   backdropFilter: "blur(20px)",
                   WebkitBackdropFilter: "blur(20px)",
                   borderRadius: 20,
-                  boxShadow: "0 8px 40px rgba(0,0,0,0.16)",
+                  boxShadow: "0 12px 48px rgba(0,0,0,0.18)",
                   border: "1px solid rgba(255,255,255,0.6)",
                   overflow: "hidden",
                   display: "flex", flexDirection: "column",
@@ -1232,21 +1230,75 @@ export function MapHomePage() {
               </div>
             </>
           )}
-
         </div>
+
       </div>
 
-      {/* MOBILE — floating AI button */}
-      {isMobile && (
+      {/* ══════════════════════════════════════════════════════
+          AI CHAT DRAWER — slides in from left
+      ══════════════════════════════════════════════════════ */}
+      {aiDrawerOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(15,23,42,0.35)", backdropFilter: "blur(3px)" }}
+            onClick={() => setAiDrawerOpen(false)}
+          />
+          {/* Drawer */}
+          <div className="ai-drawer-enter" style={{
+            position: "fixed", left: 0, top: 0, bottom: 0, zIndex: 201,
+            width: isMobile ? "100%" : 420,
+            background: "white",
+            boxShadow: "8px 0 48px rgba(0,0,0,0.14)",
+            display: "flex", flexDirection: "column",
+          }}>
+            {/* Drawer header */}
+            <div style={{
+              height: HEADER_H, borderBottom: "1px solid #e2e8f0",
+              display: "flex", alignItems: "center", padding: "0 16px", gap: 10, flexShrink: 0,
+            }}>
+              <div style={{
+                width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                background: "linear-gradient(135deg, var(--color-primary), var(--color-secondary))",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 13, color: "white", fontWeight: 700,
+              }}>✦</div>
+              <span style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>AI Property Search</span>
+              <div style={{ flex: 1 }} />
+              <button
+                onClick={() => setAiDrawerOpen(false)}
+                style={{
+                  width: 30, height: 30, borderRadius: 99, background: "#f1f5f9",
+                  border: "none", cursor: "pointer", fontSize: 15, color: "#64748b",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  transition: "background .1s",
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#e2e8f0"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "#f1f5f9"; }}
+              >✕</button>
+            </div>
+            {/* AI Chat */}
+            <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
+              <div style={{ position: "absolute", inset: 0 }}>
+                <AIChatPage sidebarMode onPropertiesFound={handlePropertiesFound} onViewSuggested={handleViewSuggested} />
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Mobile: floating AI button */}
+      {isMobile && !aiDrawerOpen && (
         <button
-          onClick={() => setChatOpen(true)}
+          onClick={() => setAiDrawerOpen(true)}
           style={{
             position: "fixed", bottom: 72, right: 16, zIndex: 100,
-            width: 48, height: 48, borderRadius: 14,
+            width: 52, height: 52, borderRadius: 14,
             background: "var(--color-primary)", color: "white",
-            border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700,
+            border: "none", cursor: "pointer", fontSize: 11, fontWeight: 800,
+            boxShadow: "0 4px 16px rgba(0,0,0,0.2)",
           }}>
-          AI
+          ✦ AI
         </button>
       )}
 
