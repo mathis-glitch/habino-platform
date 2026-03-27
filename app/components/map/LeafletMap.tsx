@@ -138,6 +138,17 @@ function MapResizer() {
   return null;
 }
 
+// ── Scale bar at bottom-right ─────────────────────────────────────────────────
+function ScaleControl() {
+  const map = useMap();
+  useEffect(() => {
+    const scale = L.control.scale({ position: "bottomright", imperial: false, maxWidth: 120 });
+    scale.addTo(map);
+    return () => { scale.remove(); };
+  }, [map]);
+  return null;
+}
+
 function BoundsWatcher({ onBoundsChange }: { onBoundsChange: (b: MapBounds) => void }) {
   const map = useMap();
   const report = useCallback(() => {
@@ -233,6 +244,7 @@ export default function LeafletMap({
       />
       <MapFlyTo center={center} zoom={zoom} />
       <MapResizer />
+      <ScaleControl />
       {onBoundsChange && <BoundsWatcher onBoundsChange={onBoundsChange} />}
 
       {/* ── City cluster layer (zoom < CLUSTER_ZOOM) ──────────────────────── */}

@@ -150,6 +150,17 @@ const DEMO_ROWS: DemoRow[] = [
   ["d100","Studio apartment in Saris",            "rent","apartment", 16000,1,1, 40,"Saris",        8.9780,38.7750],
 ];
 
+// ── Demo agent roster ─────────────────────────────────────────────────────────
+const DEMO_AGENTS = [
+  "Dawit Bekele", "Sara Haile", "Abel Girma", "Hana Tesfaye",
+  "Yonas Alemu",  "Meron Tadesse", "Selam Worku", "Biniam Desta",
+];
+function getDemoAgent(id: string): string {
+  let h = 0;
+  for (const c of id) h = (h * 31 + c.charCodeAt(0)) & 0xfffff;
+  return DEMO_AGENTS[Math.abs(h) % DEMO_AGENTS.length];
+}
+
 const IDLE_PINS: PropertyWithCoords[] = DEMO_ROWS.map(
   ([id, title, listing_type, property_type, price, bedrooms, bathrooms, area_sqm, neighbourhood, lat, lng]) => ({
     id, tenant_id: "", title, description: null,
@@ -158,7 +169,9 @@ const IDLE_PINS: PropertyWithCoords[] = DEMO_ROWS.map(
     price, currency: "ETB",
     bedrooms, bathrooms, area_sqm,
     city: "Addis Ababa", neighbourhood,
-    address: null, agent_name: null, agent_phone: null, agent_email: null,
+    address: null,
+    agent_name: getDemoAgent(id),
+    agent_phone: null, agent_email: null,
     status: "active" as const, created_at: "", updated_at: "",
     lat, lng,
   })
@@ -471,7 +484,7 @@ function PropertyDetailPanel({
   );
 
   return (
-    <div className="flex flex-col overflow-hidden h-full bg-white" style={{ borderRadius: 20 }}>
+    <div className="flex flex-col overflow-hidden h-full bg-white">
 
       {/* ── Hero / carousel ── */}
       <div className="relative w-full shrink-0" style={{ height: 210 }}>
@@ -604,26 +617,29 @@ function PropertyDetailPanel({
             <p className="text-xs text-slate-500 leading-relaxed mb-3 line-clamp-3">{property.description}</p>
           )}
 
-          {/* ── Agent ── */}
-          {property.agent_name && (
-            <div className="border border-slate-100 rounded-xl p-3 mb-3 flex items-center gap-3">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={getAgentAvatar(property.agent_name)} alt="" className="w-10 h-10 rounded-full object-cover shrink-0 border-2 border-white shadow-sm" />
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-slate-800 truncate">{property.agent_name}</p>
-                <p className="text-[10px] text-slate-400 uppercase tracking-wide font-medium">Broker · Habino</p>
+          {/* ── Agent ── always shown; falls back to "Habino Team" */}
+          {(() => {
+            const agentName = property.agent_name || "Habino Team";
+            return (
+              <div className="border border-slate-100 rounded-xl p-3 mb-3 flex items-center gap-3">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={getAgentAvatar(agentName)} alt="" className="w-10 h-10 rounded-full object-cover shrink-0 border-2 border-white shadow-sm" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-slate-800 truncate">{agentName}</p>
+                  <p className="text-[10px] text-slate-400 uppercase tracking-wide font-medium">Broker · Habino</p>
+                </div>
+                <a href={waUrl} target="_blank" rel="noopener noreferrer"
+                  className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-white transition-opacity hover:opacity-90"
+                  style={{ background: "#25D366" }}>
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                    <path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.558 4.117 1.533 5.845L.054 23.5l5.805-1.524A11.932 11.932 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.896 0-3.67-.52-5.183-1.424l-.371-.22-3.443.904.921-3.36-.242-.386A9.944 9.944 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
+                  </svg>
+                  WhatsApp
+                </a>
               </div>
-              <a href={waUrl} target="_blank" rel="noopener noreferrer"
-                className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-white transition-opacity hover:opacity-90"
-                style={{ background: "#25D366" }}>
-                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
-                  <path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.558 4.117 1.533 5.845L.054 23.5l5.805-1.524A11.932 11.932 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.896 0-3.67-.52-5.183-1.424l-.371-.22-3.443.904.921-3.36-.242-.386A9.944 9.944 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
-                </svg>
-                WhatsApp
-              </a>
-            </div>
-          )}
+            );
+          })()}
         </div>
       </div>
 
@@ -734,7 +750,12 @@ function PropertyListingCard({
     <div
       onClick={onSelect}
       className="cursor-pointer group"
-      style={highlighted ? { borderRadius: 14, outline: `2px solid ${color}`, outlineOffset: 2 } : {}}
+      style={{
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        ...(highlighted ? { borderRadius: 14, outline: `2px solid ${color}`, outlineOffset: 2 } : {}),
+      }}
     >
       {/* ── Image / Gallery ── */}
       <div className="relative rounded-xl overflow-hidden bg-slate-100" style={{ aspectRatio: "4/3" }}>
@@ -803,7 +824,7 @@ function PropertyListingCard({
       </div>
 
       {/* ── Details ── */}
-      <div className="mt-1.5 px-0.5 pb-1.5">
+      <div className="mt-1.5 px-0.5 pb-1.5" style={{ flex: 1, display: "flex", flexDirection: "column" }}>
         {imgErr && <p className="text-[10px] font-semibold text-slate-700 mb-0.5">{priceFmt}{isRent && <span className="text-slate-400 font-normal">/mo</span>}</p>}
         <p className="text-[10px] font-semibold text-slate-900 leading-tight line-clamp-1">{p.title}</p>
         <p className="text-[9px] text-slate-400 mt-0.5 line-clamp-1">📍 {[p.neighbourhood, p.city].filter(Boolean).join(", ")}</p>
@@ -815,14 +836,17 @@ function PropertyListingCard({
           {p.area_sqm                         && <span className="text-[9px] text-slate-600">📐 {p.area_sqm.toLocaleString()} m²</span>}
         </div>
 
-        {/* Agent */}
-        {p.agent_name && (
-          <div className="flex items-center gap-1 mt-1">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={getAgentAvatar(p.agent_name)} alt="" className="w-3.5 h-3.5 rounded-full object-cover shrink-0" onError={() => {}} />
-            <span className="text-[8px] text-slate-400 truncate">{p.agent_name}</span>
-          </div>
-        )}
+        {/* Agent — always shown, "Habino Team" fallback */}
+        <div className="flex items-center gap-1 mt-auto pt-1.5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={getAgentAvatar(p.agent_name || "Habino Team")}
+            alt=""
+            className="w-4 h-4 rounded-full object-cover shrink-0 border border-slate-100"
+            onError={() => {}}
+          />
+          <span className="text-[9px] text-slate-500 truncate font-medium">{p.agent_name || "Habino Team"}</span>
+        </div>
       </div>
     </div>
   );
@@ -1303,8 +1327,8 @@ export function MapHomePage() {
           </div>
 
           {/* Grid */}
-          <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}>
-            <div style={{ padding: "20px 20px 40px", boxSizing: "border-box" }}>
+          <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", width: "100%" }}>
+            <div style={{ padding: "16px 16px 40px", boxSizing: "border-box", width: "100%" }}>
               {properties.length === 0 && !isIdleState ? (
                 <div style={{ textAlign: "center", padding: "60px 20px" }}>
                   <div style={{ fontSize: 28, marginBottom: 12 }}>🔍</div>
@@ -1312,12 +1336,13 @@ export function MapHomePage() {
                   <p style={{ fontSize: 13, color: "#94a3b8" }}>Try different criteria — click Ask AI to refine your search.</p>
                 </div>
               ) : (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, alignItems: "start", width: "100%" }}>
                   {properties.map(p => (
                     <div
                       key={p.id}
                       onMouseEnter={() => setHoveredId(p.id)}
                       onMouseLeave={() => setHoveredId(null)}
+                      style={{ display: "flex", flexDirection: "column" }}
                     >
                       <PropertyListingCard
                         property={p}
@@ -1375,30 +1400,27 @@ export function MapHomePage() {
             neighbourhoodLabels={NEIGHBOURHOOD_LABELS}
           />
 
-          {/* PropertyDetailPanel — floats over map when a listing is selected */}
+          {/* PropertyDetailPanel — slides in from right when a listing is selected */}
           {selected && (
             <>
-              <div style={{ position: "absolute", inset: 0, zIndex: 40 }} onClick={() => setSelected(null)} />
-              <div style={{
-                position: "absolute", inset: 0, zIndex: 41,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                pointerEvents: "none",
-              }}>
-                <div style={{
-                  pointerEvents: "auto",
-                  width: "clamp(300px, 85%, 420px)",
-                  maxHeight: "92%",
-                  background: "rgba(255,255,255,0.97)",
-                  backdropFilter: "blur(20px)",
-                  WebkitBackdropFilter: "blur(20px)",
-                  borderRadius: 20,
-                  boxShadow: "0 12px 48px rgba(0,0,0,0.18)",
-                  border: "1px solid rgba(255,255,255,0.6)",
-                  overflow: "hidden",
+              {/* Translucent backdrop — click anywhere outside panel to close */}
+              <div
+                style={{ position: "absolute", inset: 0, zIndex: 40, background: "rgba(0,0,0,0.08)" }}
+                onClick={() => setSelected(null)}
+              />
+              {/* Panel */}
+              <div
+                className="detail-panel-enter"
+                style={{
+                  position: "absolute", top: 0, right: 0, bottom: 0, zIndex: 41,
+                  width: "clamp(300px, 38%, 360px)",
+                  background: "white",
+                  boxShadow: "-6px 0 32px rgba(0,0,0,0.14)",
                   display: "flex", flexDirection: "column",
-                }}>
-                  <PropertyDetailPanel property={selected} onClose={() => setSelected(null)} allProperties={properties} />
-                </div>
+                  overflow: "hidden",
+                }}
+              >
+                <PropertyDetailPanel property={selected} onClose={() => setSelected(null)} allProperties={properties} />
               </div>
             </>
           )}

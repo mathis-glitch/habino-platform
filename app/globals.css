@@ -53,6 +53,15 @@
   animation: slideInLeft 0.22s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* Property detail panel slide-in from right */
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+.detail-panel-enter {
+  animation: slideInRight 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 @layer utilities {
   /* Tenant-aware colour utilities */
   .bg-primary     { background-color: var(--color-primary); }
