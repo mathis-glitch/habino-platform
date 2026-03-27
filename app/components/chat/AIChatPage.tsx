@@ -288,13 +288,13 @@ function WizardChips({ chips, onSend }: { chips: string[]; onSend: (text: string
 function FollowUpChips({ msg, onSend }: { msg: ChatMessage; onSend: (text: string) => void }) {
   const chips: string[] = [];
   if (msg.properties && msg.properties.length > 0) {
-    chips.push("Schedule a viewing");
+    chips.push("Book a viewing");
     chips.push("Show cheaper options");
-    chips.push("Show larger properties");
+    chips.push("Show larger options");
   } else if (msg.properties && msg.properties.length === 0) {
-    chips.push("Show all listings");
-    chips.push("Increase budget");
-    chips.push("Try a different city");
+    chips.push("Browse all properties");
+    chips.push("Widen my budget");
+    chips.push("Search nearby areas");
   }
   if (!chips.length) return null;
   return (
@@ -456,24 +456,26 @@ interface UserLocation { city: string; country: string; currency: string }
 
 function makeSuggestions(_loc: UserLocation | null) {
   return [
-    { icon: "🏠", text: "Apartments for rent in Bole" },
-    { icon: "🛏️", text: "2-bedroom apartment in Kazanchis" },
-    { icon: "🏡", text: "3-bedroom house in CMC" },
-    { icon: "🏡", text: "Family home for rent in Megenagna" },
-    { icon: "🏘️", text: "Houses for sale in Ayat" },
-    { icon: "🌇", text: "Luxury villa in Bole" },
-    { icon: "💰", text: "Cheapest rentals in Addis Ababa" },
-    { icon: "🏢", text: "Office space in Kazanchis" },
-    { icon: "🏪", text: "Shop or retail unit in Merkato" },
-    { icon: "📦", text: "Warehouse for rent in Akaki Kaliti" },
-    { icon: "🌿", text: "Land for sale in Yeka" },
-    { icon: "🏗️", text: "Residential plot in Sarbet" },
-    { icon: "📐", text: "Large apartments over 150 m²" },
-    { icon: "🔑", text: "Studios for rent under 15,000 ETB" },
-    { icon: "🏢", text: "Offices over 300 m² in Bole" },
-    { icon: "🌄", text: "Villas for sale in Gerji" },
-    { icon: "🏪", text: "Event hall for rent in Piassa" },
-    { icon: "🏘️", text: "Affordable homes under 5M ETB" },
+    // ── Rent ──────────────────────────────────────────────────────────────
+    { icon: "🏠", text: "Apartments for rent in Bole",          group: "Rent" },
+    { icon: "🛏️", text: "2-bedroom apartment in Kazanchis",     group: "Rent" },
+    { icon: "🏡", text: "Family home for rent in Megenagna",     group: "Rent" },
+    { icon: "🔑", text: "Studios for rent under 15,000 ETB",     group: "Rent" },
+    { icon: "📐", text: "Large apartments over 150 m²",          group: "Rent" },
+    { icon: "💰", text: "Cheapest rentals in Addis Ababa",       group: "Rent" },
+    // ── Buy ───────────────────────────────────────────────────────────────
+    { icon: "🏘️", text: "Houses for sale in Ayat",              group: "Buy" },
+    { icon: "🌇", text: "Luxury villa in Bole",                  group: "Buy" },
+    { icon: "🌄", text: "Villas for sale in Gerji",              group: "Buy" },
+    { icon: "🌿", text: "Land for sale in Yeka",                 group: "Buy" },
+    { icon: "🏗️", text: "Residential plot in Sarbet",            group: "Buy" },
+    { icon: "🏘️", text: "Affordable homes under 5M ETB",         group: "Buy" },
+    // ── Business ──────────────────────────────────────────────────────────
+    { icon: "🏢", text: "Office space in Kazanchis",             group: "Business" },
+    { icon: "🏢", text: "Offices over 300 m² in Bole",          group: "Business" },
+    { icon: "🏪", text: "Shop or retail unit in Merkato",        group: "Business" },
+    { icon: "📦", text: "Warehouse for rent in Akaki Kaliti",    group: "Business" },
+    { icon: "🏪", text: "Event hall for rent in Piassa",         group: "Business" },
   ];
 }
 
@@ -727,9 +729,9 @@ export function AIChatPage({
   }
 
   const quickActions = [
-    { icon: "📝", text: "I want to list a property",  label: "List" },
-    { icon: "📄", text: "Create a contract",           label: "Contract" },
-    { icon: "👤", text: "Set up my profile",           label: "Profile" },
+    { icon: "📝", text: "List my property",  label: "List" },
+    { icon: "📄", text: "Draft a contract",  label: "Contract" },
+    { icon: "👤", text: "Set up my profile", label: "Profile" },
   ];
 
   const suggestions = makeSuggestions(userLocation);
@@ -744,10 +746,10 @@ export function AIChatPage({
         <div className="shrink-0 border-b border-slate-100 bg-white px-4 pt-4 pb-3">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold shadow-sm shrink-0"
-              style={{ background: "linear-gradient(135deg, var(--color-primary), var(--color-secondary))" }}>✨</div>
+              style={{ background: "linear-gradient(135deg, var(--color-primary), var(--color-secondary))" }}>✦</div>
             <div>
-              <p className="text-sm font-bold text-slate-900 leading-tight">Hi, I&apos;m Habino</p>
-              <p className="text-[11px] text-slate-400">I&apos;m here to help you find your perfect property.</p>
+              <p className="text-sm font-bold text-slate-900 leading-tight">Find your property in Addis</p>
+              <p className="text-[11px] text-slate-400">Describe what you need — I&apos;ll find it on the map.</p>
             </div>
             {userLocation && (
               <div className="ml-auto flex items-center gap-1 px-2 py-1 rounded-full bg-slate-100 text-[10px] text-slate-400 font-medium shrink-0">
@@ -759,15 +761,26 @@ export function AIChatPage({
               </div>
             )}
           </div>
-          {/* Suggestion chips — wrapping grid */}
-          <div className="flex flex-wrap gap-2">
-            {suggestions.map((s) => (
-              <button key={s.text} onClick={() => sendMessage(s.text)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white hover:border-slate-300 transition-all text-xs text-slate-600 font-medium whitespace-nowrap">
-                <span>{s.icon}</span>
-                {s.text}
-              </button>
-            ))}
+          {/* Suggestion chips — grouped by intent */}
+          <div className="flex flex-col gap-2.5">
+            {(["Rent", "Buy", "Business"] as const).map((group) => {
+              const chips = suggestions.filter((s) => (s as { group?: string }).group === group);
+              if (!chips.length) return null;
+              return (
+                <div key={group}>
+                  <p className="text-[9px] font-bold uppercase tracking-widest mb-1.5 px-0.5" style={{ color: "#cbd5e1" }}>{group}</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {chips.map((s) => (
+                      <button key={s.text} onClick={() => sendMessage(s.text)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white hover:border-slate-300 transition-all text-xs text-slate-600 font-medium whitespace-nowrap">
+                        <span>{s.icon}</span>
+                        {s.text}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -881,7 +894,7 @@ export function AIChatPage({
                     )}
                     {lastAssistant.properties && lastAssistant.properties.length > 0 && (
                       <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-100 text-[11px] text-emerald-700 font-medium w-fit">
-                        🏠 {lastAssistant.properties.length} results shown →
+                        🏠 {lastAssistant.properties.length} properties found — see map →
                       </div>
                     )}
                   </div>
@@ -895,7 +908,7 @@ export function AIChatPage({
         {/* Sidebar empty hint */}
         {sidebarMode && !hasMessages && !loading && (
           <div className="flex flex-col items-center justify-center h-20 text-slate-300 text-xs">
-            Type a message or tap a suggestion above
+            Tap a suggestion or describe your ideal property
           </div>
         )}
 

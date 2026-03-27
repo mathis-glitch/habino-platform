@@ -437,7 +437,7 @@ function PropertyDetailPanel({
                 }} />
                 <div style={{ position: "absolute", top: 0, left: "50%", height: "100%", width: 2, background: "rgba(0,0,0,0.18)" }} />
               </div>
-              <p className="text-[9px] mt-1" style={{ color: "#94a3b8" }}>Based on {marketProps.length} listings with known size</p>
+              <p className="text-[9px] mt-1" style={{ color: "#94a3b8" }}>vs. avg. price/m² · {marketProps.length} comparable listings</p>
             </div>
           )}
 
@@ -512,9 +512,9 @@ function PropertyDetailPanel({
 // ── Habino control-centre panel ───────────────────────────────────────────────
 function HabinoPanel({ onClose }: { onClose: () => void }) {
   const items = [
-    { href: "/profile",  icon: "👤", label: "Profile" },
-    { href: "/home",     icon: "📄", label: "Contracts" },
-    { href: "/saved",    icon: "🔖", label: "Saved Properties" },
+    { href: "/profile",  icon: "👤", label: "My Profile" },
+    { href: "/home",     icon: "📄", label: "My Contracts" },
+    { href: "/saved",    icon: "🔖", label: "Saved Listings" },
     { href: "/listings", icon: "🏠", label: "My Listings" },
   ];
   return (
@@ -1026,8 +1026,8 @@ export function MapHomePage() {
 
   // ── Mode label for right panel header ────────────────────────────────────
   const MODE_META: Record<"listings" | "map", { label: string; icon: string }> = {
-    listings: { label: !isIdleState && properties.length > 0 ? `${properties.length} Listings` : "Listings", icon: "⊞" },
-    map:      { label: marketContext ? `Map · ${marketContext.city}` : "Map",          icon: "🗺" },
+    listings: { label: !isIdleState && properties.length > 0 ? `${properties.length} properties found` : "Listings", icon: "⊞" },
+    map:      { label: marketContext ? `${marketContext.city}` : "Addis Ababa", icon: "🗺" },
   };
 
   // ── Subtle mode-switch pills ──────────────────────────────────────────────
@@ -1035,7 +1035,7 @@ export function MapHomePage() {
     const active = outputMode === mode;
     return (
       <button onClick={() => setOutputMode(mode)} style={{
-        padding: "4px 10px", borderRadius: 99, fontSize: 11, fontWeight: 600,
+        padding: "5px 14px", borderRadius: 99, fontSize: 12, fontWeight: 600,
         border: `1px solid ${active ? "#0f172a" : "#e2e8f0"}`,
         background: active ? "#0f172a" : "transparent",
         color: active ? "white" : "#94a3b8",
@@ -1052,7 +1052,7 @@ export function MapHomePage() {
           <button onClick={() => setChatOpen(false)} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 14, color: "#64748b", background: "none", border: "none", cursor: "pointer" }}>
             ← Back
           </button>
-          <span style={{ fontSize: 14, fontWeight: 600, color: "#1e293b" }}>AI Search</span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: "#1e293b" }}>Property Search</span>
         </div>
         <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
           <div style={{ position: "absolute", inset: 0 }}>
@@ -1080,7 +1080,7 @@ export function MapHomePage() {
       }}>
         {/* Header */}
         <div style={{ height: HEADER_H, borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", padding: "0 20px", gap: 12, flexShrink: 0 }}>
-          <Link href="/" style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.02em", textDecoration: "none" }}>habino</Link>
+          <Link href="/" style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.02em", textDecoration: "none" }}>Habino</Link>
           <div style={{ flex: 1 }} />
           <button
             onClick={() => setHabinoOpen(o => !o)}
@@ -1089,7 +1089,7 @@ export function MapHomePage() {
               color: "white", border: "none", cursor: "pointer",
               backgroundColor: habinoOpen ? "var(--color-secondary)" : "var(--color-primary)",
             }}>
-            ☰ Menu
+            Menu
           </button>
         </div>
         {/* Chat */}
@@ -1139,7 +1139,7 @@ export function MapHomePage() {
               }}>
                 <span style={{ fontSize: 14 }}>✦</span>
                 <span style={{ fontSize: 11, fontWeight: 600, color: "#475569" }}>
-                  Ask the AI on the left to search for properties
+                  Describe a property on the left — results appear here
                 </span>
               </div>
             )}
@@ -1174,15 +1174,15 @@ export function MapHomePage() {
                     background: "#f5f3ff", border: "none", borderRadius: 8,
                     padding: "4px 10px", cursor: "pointer",
                   }}>
-                    🗺 Map →
+                    Show on map →
                   </button>
                 </div>
               )}
               {isIdleState && (
                 <div style={{ textAlign: "center", padding: "60px 20px", color: "#94a3b8" }}>
                   <div style={{ fontSize: 28, marginBottom: 12 }}>⊞</div>
-                  <p style={{ fontSize: 14, fontWeight: 600, color: "#475569", marginBottom: 6 }}>No results yet</p>
-                  <p style={{ fontSize: 13 }}>Ask the AI to search — listings appear here.</p>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: "#475569", marginBottom: 6 }}>No listings yet</p>
+                  <p style={{ fontSize: 13, color: "#94a3b8" }}>Start a search on the left — results appear here.</p>
                 </div>
               )}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
