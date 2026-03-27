@@ -50,13 +50,14 @@ export const TYPE_LABELS: Record<string, string> = {
   plot:       "Plot",      hall:       "Hall",   production: "Industrial",
 };
 
-// Fix default icon path (Webpack / Next.js issue)
+// Fix default icon path (Webpack / Next.js issue) and suppress shadow needle.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
   iconUrl:       "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
-  shadowUrl:     "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+  shadowUrl:     "",   // ← suppress default shadow / black-needle artefact
+  shadowSize:    [0, 0],
 });
 
 function fmtPrice(price: number): string {

@@ -2,7 +2,6 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useState, useEffect } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import type { Property } from "@/lib/types";
 import type { PropertyWithCoords, NeighbourhoodLabel } from "./LeafletMap";
@@ -247,14 +246,21 @@ const PROPERTY_IMAGES: Record<string, string[]> = {
   ],
 };
 
-function getPropertyImage(property: PropertyWithCoords): string {
-  const real = property.images?.[0]?.url;
-  if (real) return real;
+/** Returns up to 3 deterministic placeholder images for this property (for carousel). */
+function getPropertyImages(property: PropertyWithCoords): string[] {
+  const realImgs = (property as Property & { images?: { url: string }[] }).images
+    ?.map(i => i.url).filter(Boolean) ?? [];
+  if (realImgs.length >= 1) return realImgs.slice(0, 3);
   const pool = PROPERTY_IMAGES[property.property_type] ?? PROPERTY_IMAGES.apartment;
-  // Deterministic pick based on ID so image stays consistent across renders
   let h = 0;
   for (const c of property.id) h = (h * 31 + c.charCodeAt(0)) & 0xfffff;
-  return pool[Math.abs(h) % pool.length];
+  const start = Math.abs(h) % pool.length;
+  const count = Math.min(3, pool.length);
+  return Array.from({ length: count }, (_, i) => pool[(start + i) % pool.length]);
+}
+
+function getPropertyImage(property: PropertyWithCoords): string {
+  return getPropertyImages(property)[0];
 }
 
 function getAgentAvatar(agentName: string): string {
@@ -262,7 +268,18 @@ function getAgentAvatar(agentName: string): string {
 }
 
 // ── Property detail panel ─────────────────────────────────────────────────────
-function PropertyDetailPanel({ property, onClose }: { property: PropertyWithCoords; onClose: () => void }) {
+function PropertyDetailPanel({
+  property,
+  onClose,
+  allProperties,
+}: {
+  property: PropertyWithCoords;
+  onClose: () => void;
+  allProperties: PropertyWithCoords[];
+}) {
+  const [photoIdx,  setPhotoIdx]  = useState(0);
+  const [imgErr,    setImgErr]    = useState(false);
+
   const color     = TYPE_COLORS[property.property_type] || "#6B7280";
   const typeLabel = TYPE_LABELS[property.property_type] || property.property_type;
   const priceFmt  = fmtFull(property.price, property.currency);
@@ -271,43 +288,126 @@ function PropertyDetailPanel({ property, onClose }: { property: PropertyWithCoor
     ? fmtFull(Math.round(property.price / property.area_sqm), property.currency) + "/m²"
     : null;
   const isResidential = ["apartment","house","villa"].includes(property.property_type);
-  const imgSrc    = getPropertyImage(property);
 
+  // ── Carousel images ───────────────────────────────────────────────────────
+  const photos = getPropertyImages(property);
+
+  // Reset on property change
+  useEffect(() => { setPhotoIdx(0); setImgErr(false); }, [property.id]);
+
+  // ── WhatsApp ──────────────────────────────────────────────────────────────
   const waMsg = `Hi! I'm interested in: "${property.title}" in ${property.neighbourhood || property.city}. Is it still available?`;
   const waUrl = property.agent_phone
     ? `https://wa.me/${property.agent_phone.replace(/\D/g,"")}?text=${encodeURIComponent(waMsg)}`
     : `https://wa.me/?text=${encodeURIComponent(waMsg)}`;
 
+  // ── Market comparison (price/m² vs. other listings with area data) ────────
+  const marketProps = allProperties.filter(
+    p => p.area_sqm && p.area_sqm > 0 && p.listing_type === property.listing_type && p.id !== property.id
+  );
+  const avgMarketPpm = marketProps.length > 0
+    ? marketProps.reduce((s, p) => s + p.price / p.area_sqm!, 0) / marketProps.length
+    : null;
+  const thisPpm     = property.area_sqm && property.area_sqm > 0 ? property.price / property.area_sqm : null;
+  const pctVsMkt    = avgMarketPpm && thisPpm ? ((thisPpm - avgMarketPpm) / avgMarketPpm) * 100 : null;
+
+  const mktColor  = pctVsMkt == null ? "#64748b" : pctVsMkt < -10 ? "#16a34a" : pctVsMkt > 10 ? "#ea580c" : "#8b5cf6";
+  const mktBg     = pctVsMkt == null ? "#f8fafc" : pctVsMkt < -10 ? "#f0fdf4" : pctVsMkt > 10 ? "#fff7ed" : "#faf5ff";
+  const mktBorder = pctVsMkt == null ? "#e2e8f0" : pctVsMkt < -10 ? "#bbf7d0" : pctVsMkt > 10 ? "#fed7aa" : "#e9d5ff";
+  const mktLabel  = pctVsMkt == null ? "No market data" : pctVsMkt < -10 ? "✓ Below Market" : pctVsMkt > 10 ? "↑ Above Market" : "≈ At Market";
+
+  // Emoji fallback per type
+  const typeEmoji =
+    property.property_type === "apartment" ? "🏢" : property.property_type === "house" ? "🏠"
+    : property.property_type === "villa" ? "🏡" : property.property_type === "office" ? "🏗️"
+    : property.property_type === "hall" ? "🎪" : property.property_type === "production" ? "🏭" : "🌿";
+
+  const navBtn = (dir: "prev" | "next") => (
+    <button
+      onClick={e => { e.stopPropagation(); setPhotoIdx(i => dir === "prev" ? (i - 1 + photos.length) % photos.length : (i + 1) % photos.length); setImgErr(false); }}
+      style={{
+        position: "absolute", top: "50%", transform: "translateY(-50%)",
+        [dir === "prev" ? "left" : "right"]: 10,
+        width: 28, height: 28, borderRadius: "50%",
+        background: "rgba(0,0,0,0.35)", backdropFilter: "blur(4px)",
+        border: "none", cursor: "pointer",
+        display: "flex", alignItems: "center", justifyContent: "center", color: "white",
+        zIndex: 5,
+      }}>
+      <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" d={dir === "prev" ? "M15 19l-7-7 7-7" : "M9 5l7 7-7 7"} />
+      </svg>
+    </button>
+  );
+
   return (
     <div className="flex flex-col overflow-hidden h-full bg-white" style={{ borderRadius: 20 }}>
 
-      {/* Hero image */}
-      <div className="relative w-full shrink-0" style={{ height: 200 }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={imgSrc} alt={property.title} className="w-full h-full object-cover" />
-        {/* Gradient overlay */}
-        <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.45) 0%, transparent 55%)" }} />
-        {/* Type badge */}
-        <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full"
-          style={{ background: color }}>
+      {/* ── Hero / carousel ── */}
+      <div className="relative w-full shrink-0" style={{ height: 210 }}>
+
+        {/* Image or fallback */}
+        {!imgErr ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            key={photos[photoIdx]}
+            src={photos[photoIdx]}
+            alt=""
+            className="w-full h-full object-cover"
+            onError={() => setImgErr(true)}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center" style={{ background: `${color}15` }}>
+            <span style={{ fontSize: 52 }}>{typeEmoji}</span>
+          </div>
+        )}
+
+        {/* Gradient */}
+        <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.52) 0%, transparent 55%)" }} />
+
+        {/* Prev / Next arrows (only if multiple photos) */}
+        {photos.length > 1 && !imgErr && navBtn("prev")}
+        {photos.length > 1 && !imgErr && navBtn("next")}
+
+        {/* Dot indicators */}
+        {photos.length > 1 && !imgErr && (
+          <div style={{ position: "absolute", bottom: 44, left: "50%", transform: "translateX(-50%)", display: "flex", gap: 5, zIndex: 5 }}>
+            {photos.map((_, i) => (
+              <button key={i} onClick={e => { e.stopPropagation(); setPhotoIdx(i); setImgErr(false); }}
+                style={{ width: 6, height: 6, borderRadius: "50%", border: "none", cursor: "pointer", padding: 0,
+                  background: i === photoIdx % photos.length ? "white" : "rgba(255,255,255,0.45)", transition: "background .2s" }} />
+            ))}
+          </div>
+        )}
+
+        {/* Type badge (top-left) */}
+        <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full" style={{ background: color }}>
           <span className="text-[10px] font-bold text-white uppercase tracking-wider">{typeLabel}</span>
           <span className="text-[10px] text-white/80">{isRent ? "· Rent" : "· Sale"}</span>
         </div>
-        {/* Close button */}
+
+        {/* Close button (top-right) */}
         <button onClick={onClose}
-          className="absolute top-3 right-3 w-7 h-7 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/50 transition-colors">
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+          style={{
+            position: "absolute", top: 10, right: 10, zIndex: 10,
+            width: 30, height: 30, borderRadius: "50%",
+            background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)",
+            border: "none", cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center", color: "white",
+          }}>
+          <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
-        {/* Price on image */}
+
+        {/* Price (bottom-left) */}
         <div className="absolute bottom-3 left-4">
           <span className="text-2xl font-extrabold text-white drop-shadow">{priceFmt}</span>
           {isRent && <span className="text-sm text-white/80 ml-1">/mo</span>}
         </div>
       </div>
 
-      {/* Scrollable body */}
+      {/* ── Scrollable body ── */}
       <div className="flex-1 overflow-y-auto">
         <div className="px-4 pt-3 pb-2">
 
@@ -319,7 +419,29 @@ function PropertyDetailPanel({ property, onClose }: { property: PropertyWithCoor
             {[property.neighbourhood, property.city].filter(Boolean).join(", ")}
           </p>
 
-          {/* Specs */}
+          {/* ── Market comparison badge ── */}
+          {pctVsMkt !== null && (
+            <div className="mb-3 p-2.5 rounded-xl border" style={{ background: mktBg, borderColor: mktBorder }}>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: mktColor }}>{mktLabel}</span>
+                <span className="text-[10px] font-semibold" style={{ color: mktColor }}>
+                  {pctVsMkt > 0 ? "+" : ""}{Math.round(pctVsMkt)}% vs avg/m²
+                </span>
+              </div>
+              {/* Progress bar */}
+              <div className="relative rounded-full overflow-hidden" style={{ height: 6, background: "#e2e8f0" }}>
+                <div style={{
+                  position: "absolute", top: 0, left: 0, height: "100%", borderRadius: 999,
+                  width: `${Math.min(100, Math.max(4, 50 + pctVsMkt * 1.5))}%`,
+                  background: mktColor, transition: "width .3s",
+                }} />
+                <div style={{ position: "absolute", top: 0, left: "50%", height: "100%", width: 2, background: "rgba(0,0,0,0.18)" }} />
+              </div>
+              <p className="text-[9px] mt-1" style={{ color: "#94a3b8" }}>Based on {marketProps.length} listings with known size</p>
+            </div>
+          )}
+
+          {/* ── Specs ── */}
           <div className="grid grid-cols-4 gap-2 mb-3">
             {isResidential && property.bedrooms > 0 && (
               <div className="bg-slate-50 rounded-xl p-2 text-center">
@@ -352,21 +474,15 @@ function PropertyDetailPanel({ property, onClose }: { property: PropertyWithCoor
             <p className="text-xs text-slate-500 leading-relaxed mb-3 line-clamp-3">{property.description}</p>
           )}
 
-          {/* Agent */}
+          {/* ── Agent ── */}
           {property.agent_name && (
             <div className="border border-slate-100 rounded-xl p-3 mb-3 flex items-center gap-3">
-              {/* Avatar */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={getAgentAvatar(property.agent_name)}
-                alt={property.agent_name}
-                className="w-10 h-10 rounded-full object-cover shrink-0 border-2 border-white shadow-sm"
-              />
+              <img src={getAgentAvatar(property.agent_name)} alt="" className="w-10 h-10 rounded-full object-cover shrink-0 border-2 border-white shadow-sm" />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-slate-800 truncate">{property.agent_name}</p>
                 <p className="text-[10px] text-slate-400 uppercase tracking-wide font-medium">Broker · Habino</p>
               </div>
-              {/* WhatsApp button */}
               <a href={waUrl} target="_blank" rel="noopener noreferrer"
                 className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-white transition-opacity hover:opacity-90"
                 style={{ background: "#25D366" }}>
@@ -381,7 +497,7 @@ function PropertyDetailPanel({ property, onClose }: { property: PropertyWithCoor
         </div>
       </div>
 
-      {/* Action button */}
+      {/* ── Action button ── */}
       <div className="shrink-0 px-4 py-3 border-t border-slate-100">
         <Link href={`/properties/${property.id}`}
           className="flex items-center justify-center w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
@@ -450,6 +566,7 @@ function PropertyListingCard({
   onSelect: () => void;
   highlighted: boolean;
 }) {
+  const [imgErr, setImgErr] = useState(false);
   const color  = TYPE_COLORS[property.property_type] || "#6B7280";
   const label  = TYPE_LABELS[property.property_type] || property.property_type;
   const isRent = property.listing_type === "rent";
@@ -460,70 +577,78 @@ function PropertyListingCard({
   const imgSrc = getPropertyImage(property);
   const p = property as Property;
 
+  const typeEmoji =
+    p.property_type === "apartment" ? "🏢" : p.property_type === "house" ? "🏠"
+    : p.property_type === "villa" ? "🏡" : p.property_type === "office" ? "🏗️"
+    : p.property_type === "hall" ? "🎪" : p.property_type === "production" ? "🏭" : "🌿";
+
   return (
     <div
       onClick={onSelect}
       className="cursor-pointer group"
-      style={highlighted ? { borderRadius: 14, outline: `2px solid ${color}`, outlineOffset: 2 } : {}}
+      style={highlighted ? { borderRadius: 12, outline: `2px solid ${color}`, outlineOffset: 2 } : {}}
     >
       {/* ── Image ── */}
-      <div className="relative rounded-xl overflow-hidden bg-slate-100" style={{ aspectRatio: "4/3" }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={imgSrc} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+      <div className="relative rounded-xl overflow-hidden bg-slate-100" style={{ aspectRatio: "16/9" }}>
+        {!imgErr ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={imgSrc}
+            alt=""
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            onError={() => setImgErr(true)}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center" style={{ background: `${color}15` }}>
+            <span style={{ fontSize: 32 }}>{typeEmoji}</span>
+          </div>
+        )}
 
         {/* Gradient overlay */}
-        <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.35) 0%, transparent 50%)" }} />
+        {!imgErr && <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.38) 0%, transparent 55%)" }} />}
 
-        {/* Type badge — top left */}
-        <div className="absolute top-2 left-2">
-          <span className="bg-white/95 text-slate-800 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
-            {label}
-          </span>
+        {/* Type badge */}
+        <div className="absolute top-1.5 left-1.5">
+          <span className="bg-white/95 text-slate-800 text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow-sm">{label}</span>
         </div>
 
-        {/* Rent / Sale — top right */}
-        <div className="absolute top-2 right-2">
-          <span className="text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: isRent ? "#F59E0B" : color }}>
+        {/* Rent / Sale pill */}
+        <div className="absolute top-1.5 right-1.5">
+          <span className="text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: isRent ? "#F59E0B" : color }}>
             {isRent ? "Rent" : "Sale"}
           </span>
         </div>
 
-        {/* Price on image bottom */}
-        <div className="absolute bottom-2 left-2">
-          <span className="text-xs font-bold text-white drop-shadow">{priceFmt}</span>
-          {isRent && <span className="text-[9px] text-white/80 ml-0.5">/mo</span>}
-        </div>
+        {/* Price bottom */}
+        {!imgErr && (
+          <div className="absolute bottom-1.5 left-2">
+            <span className="text-[11px] font-bold text-white drop-shadow">{priceFmt}</span>
+            {isRent && <span className="text-[9px] text-white/75 ml-0.5">/mo</span>}
+          </div>
+        )}
       </div>
 
       {/* ── Details ── */}
-      <div className="mt-1.5 px-0.5">
-        <p className="text-xs font-semibold text-slate-900 leading-snug line-clamp-1">{p.title}</p>
-        <p className="text-[10px] text-slate-400 mt-0.5 line-clamp-1 flex items-center gap-0.5">
-          <svg className="w-2.5 h-2.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-          </svg>
-          {[p.neighbourhood, p.city].filter(Boolean).join(", ")}
-        </p>
+      <div className="mt-1.5 px-0.5 pb-1">
+        {imgErr && (
+          <p className="text-[10px] font-semibold text-slate-700 mb-0.5">{priceFmt}{isRent && <span className="text-slate-400 font-normal">/mo</span>}</p>
+        )}
+        <p className="text-[10px] font-semibold text-slate-900 leading-tight line-clamp-1">{p.title}</p>
+        <p className="text-[9px] text-slate-400 mt-0.5 line-clamp-1">{[p.neighbourhood, p.city].filter(Boolean).join(", ")}</p>
 
         {/* Specs */}
-        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0 mt-1">
-          {isResidential && p.bedrooms  > 0 && <span className="text-[10px] text-slate-500">{p.bedrooms} bd</span>}
-          {isResidential && p.bathrooms > 0 && <span className="text-[10px] text-slate-400">· {p.bathrooms} ba</span>}
-          {p.area_sqm && (
-            <span className="text-[10px] text-slate-500">{isResidential ? "·" : ""} {p.area_sqm.toLocaleString()} m²</span>
-          )}
+        <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+          {isResidential && p.bedrooms  > 0 && <span className="text-[9px] text-slate-500">{p.bedrooms} bd</span>}
+          {isResidential && p.bathrooms > 0 && <span className="text-[9px] text-slate-400">· {p.bathrooms} ba</span>}
+          {p.area_sqm && <span className="text-[9px] text-slate-400">· {p.area_sqm.toLocaleString()} m²</span>}
         </div>
 
-        {/* Agent row */}
+        {/* Agent */}
         {p.agent_name && (
-          <div className="flex items-center gap-1.5 mt-1.5">
+          <div className="flex items-center gap-1 mt-1.5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={getAgentAvatar(p.agent_name)}
-              alt={p.agent_name}
-              className="w-5 h-5 rounded-full object-cover shrink-0 border border-white shadow-sm"
-            />
-            <span className="text-[10px] text-slate-400 truncate">{p.agent_name}</span>
+            <img src={getAgentAvatar(p.agent_name)} alt="" className="w-4 h-4 rounded-full object-cover shrink-0" onError={() => {}} />
+            <span className="text-[9px] text-slate-400 truncate">{p.agent_name}</span>
           </div>
         )}
       </div>
@@ -890,6 +1015,11 @@ export function MapHomePage() {
     setOutputMode(view === "listings" ? "listings" : "map");
   }, []);
 
+  // Close any selected property when switching to listings (avoids overlay persisting)
+  useEffect(() => {
+    if (outputMode === "listings") setSelected(null);
+  }, [outputMode]);
+
   // ── Shared style constants ────────────────────────────────────────────────
   const HEADER_H = 56;
   const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
@@ -1030,11 +1160,11 @@ export function MapHomePage() {
 
           {/* LISTINGS */}
           <div style={{
-            position: "absolute", inset: 0, overflowY: "auto", background: "white",
+            position: "absolute", inset: 0, overflowY: "auto", overflowX: "hidden", background: "white",
             visibility: outputMode === "listings" ? "visible" : "hidden",
             pointerEvents: outputMode === "listings" ? "auto" : "none",
           }}>
-            <div style={{ padding: 20 }}>
+            <div style={{ padding: "16px 16px 24px", boxSizing: "border-box", width: "100%" }}>
               {!isIdleState && properties.length > 0 && (
                 <div style={{ marginBottom: 14, display: "flex", alignItems: "center", gap: 10 }}>
                   <span style={{ fontSize: 15, fontWeight: 700, color: "#0f172a" }}>{properties.length} results</span>
@@ -1097,7 +1227,7 @@ export function MapHomePage() {
                   overflow: "hidden",
                   display: "flex", flexDirection: "column",
                 }}>
-                  <PropertyDetailPanel property={selected} onClose={() => setSelected(null)} />
+                  <PropertyDetailPanel property={selected} onClose={() => setSelected(null)} allProperties={properties} />
                 </div>
               </div>
             </>
