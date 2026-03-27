@@ -200,145 +200,195 @@ function fmtFull(price: number, currency: string) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 0 }).format(price);
 }
 
-// ── Property detail panel ─────────────────────────────────────────────────────
+// ── Placeholder images per property type (Unsplash, consistent per listing ID) ─
 import { TYPE_COLORS, TYPE_LABELS } from "./LeafletMap";
 
+const PROPERTY_IMAGES: Record<string, string[]> = {
+  apartment:  [
+    "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80&fit=crop&auto=format",
+    "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&q=80&fit=crop&auto=format",
+    "https://images.unsplash.com/photo-1484154218962-a197022b5858?w=800&q=80&fit=crop&auto=format",
+    "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&q=80&fit=crop&auto=format",
+  ],
+  house: [
+    "https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=800&q=80&fit=crop&auto=format",
+    "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&q=80&fit=crop&auto=format",
+    "https://images.unsplash.com/photo-1449844908441-8d1a1ee1f31b?w=800&q=80&fit=crop&auto=format",
+  ],
+  villa: [
+    "https://images.unsplash.com/photo-1613977257363-707ba9348227?w=800&q=80&fit=crop&auto=format",
+    "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&q=80&fit=crop&auto=format",
+    "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80&fit=crop&auto=format",
+  ],
+  office: [
+    "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80&fit=crop&auto=format",
+    "https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=800&q=80&fit=crop&auto=format",
+    "https://images.unsplash.com/photo-1524758631624-e2822132143c?w=800&q=80&fit=crop&auto=format",
+  ],
+  commercial: [
+    "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&q=80&fit=crop&auto=format",
+    "https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=800&q=80&fit=crop&auto=format",
+  ],
+  land: [
+    "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80&fit=crop&auto=format",
+    "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80&fit=crop&auto=format",
+  ],
+  plot: [
+    "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80&fit=crop&auto=format",
+    "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80&fit=crop&auto=format",
+  ],
+  hall: [
+    "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=800&q=80&fit=crop&auto=format",
+    "https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=800&q=80&fit=crop&auto=format",
+  ],
+  production: [
+    "https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=800&q=80&fit=crop&auto=format",
+    "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=800&q=80&fit=crop&auto=format",
+  ],
+};
+
+function getPropertyImage(property: PropertyWithCoords): string {
+  const real = property.images?.[0]?.url;
+  if (real) return real;
+  const pool = PROPERTY_IMAGES[property.property_type] ?? PROPERTY_IMAGES.apartment;
+  // Deterministic pick based on ID so image stays consistent across renders
+  let h = 0;
+  for (const c of property.id) h = (h * 31 + c.charCodeAt(0)) & 0xfffff;
+  return pool[Math.abs(h) % pool.length];
+}
+
+function getAgentAvatar(agentName: string): string {
+  return `https://i.pravatar.cc/80?u=${encodeURIComponent(agentName)}`;
+}
+
+// ── Property detail panel ─────────────────────────────────────────────────────
 function PropertyDetailPanel({ property, onClose }: { property: PropertyWithCoords; onClose: () => void }) {
-  const img      = property.images?.[0]?.url;
-  const color    = TYPE_COLORS[property.property_type] || "#6B7280";
+  const color     = TYPE_COLORS[property.property_type] || "#6B7280";
   const typeLabel = TYPE_LABELS[property.property_type] || property.property_type;
-  const priceFmt = fmtFull(property.price, property.currency);
-  const isRent   = property.listing_type === "rent";
-  const ppm      = property.area_sqm && property.area_sqm > 0
+  const priceFmt  = fmtFull(property.price, property.currency);
+  const isRent    = property.listing_type === "rent";
+  const ppm       = property.area_sqm && property.area_sqm > 0
     ? fmtFull(Math.round(property.price / property.area_sqm), property.currency) + "/m²"
     : null;
   const isResidential = ["apartment","house","villa"].includes(property.property_type);
-  const initials = (property.agent_name || "HA").split(" ").map(w => w[0]).join("").toUpperCase().slice(0,2);
+  const imgSrc    = getPropertyImage(property);
+
+  const waMsg = `Hi! I'm interested in: "${property.title}" in ${property.neighbourhood || property.city}. Is it still available?`;
+  const waUrl = property.agent_phone
+    ? `https://wa.me/${property.agent_phone.replace(/\D/g,"")}?text=${encodeURIComponent(waMsg)}`
+    : `https://wa.me/?text=${encodeURIComponent(waMsg)}`;
 
   return (
-    <div className="flex flex-col overflow-hidden h-full" style={{ borderRadius: 20 }}>
+    <div className="flex flex-col overflow-hidden h-full bg-white" style={{ borderRadius: 20 }}>
 
-        {/* Colour header stripe */}
-        <div className="shrink-0 flex items-center justify-between px-4 py-3"
-          style={{ background: `${color}18`, borderBottom: `2px solid ${color}30` }}>
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full" style={{ background: color }} />
-            <span className="text-xs font-bold uppercase tracking-widest" style={{ color }}>{typeLabel}</span>
-            <span className="text-xs text-slate-400 ml-1">{isRent ? "· For Rent" : "· For Sale"}</span>
-          </div>
-          <button onClick={onClose}
-            className="w-6 h-6 rounded-full bg-white/70 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors">
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+      {/* Hero image */}
+      <div className="relative w-full shrink-0" style={{ height: 200 }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={imgSrc} alt={property.title} className="w-full h-full object-cover" />
+        {/* Gradient overlay */}
+        <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.45) 0%, transparent 55%)" }} />
+        {/* Type badge */}
+        <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+          style={{ background: color }}>
+          <span className="text-[10px] font-bold text-white uppercase tracking-wider">{typeLabel}</span>
+          <span className="text-[10px] text-white/80">{isRent ? "· Rent" : "· Sale"}</span>
         </div>
+        {/* Close button */}
+        <button onClick={onClose}
+          className="absolute top-3 right-3 w-7 h-7 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/50 transition-colors">
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+        {/* Price on image */}
+        <div className="absolute bottom-3 left-4">
+          <span className="text-2xl font-extrabold text-white drop-shadow">{priceFmt}</span>
+          {isRent && <span className="text-sm text-white/80 ml-1">/mo</span>}
+        </div>
+      </div>
 
-        {/* Scrollable body */}
-        <div className="flex-1 overflow-y-auto">
+      {/* Scrollable body */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="px-4 pt-3 pb-2">
 
-          {/* Image */}
-          {img && (
-            <div className="relative w-full h-40 bg-slate-100">
-              <Image src={img} alt={property.title} fill className="object-cover" />
-            </div>
-          )}
-          {!img && (
-            <div className="w-full h-28 flex items-center justify-center text-5xl"
-              style={{ background: `${color}10` }}>
-              {property.property_type === "apartment" ? "🏢"
-                : property.property_type === "house" ? "🏠"
-                : property.property_type === "villa" ? "🏡"
-                : property.property_type === "office" ? "🏗️"
-                : property.property_type === "land" || property.property_type === "plot" ? "🌿"
-                : property.property_type === "hall" ? "🎪"
-                : property.property_type === "production" ? "🏭"
-                : "🏢"}
-            </div>
-          )}
+          <p className="text-sm font-semibold text-slate-800 leading-snug mb-0.5">{property.title}</p>
+          <p className="text-xs text-slate-400 mb-3 flex items-center gap-1">
+            <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+            </svg>
+            {[property.neighbourhood, property.city].filter(Boolean).join(", ")}
+          </p>
 
-          <div className="px-4 pt-4 pb-2">
-            {/* Price */}
-            <div className="flex items-baseline gap-1.5 mb-0.5">
-              <span className="text-2xl font-extrabold text-slate-900">{priceFmt}</span>
-              {isRent && <span className="text-sm text-slate-400 font-medium">/mo</span>}
-            </div>
-            <p className="text-sm font-medium text-slate-700 mb-0.5">{property.title}</p>
-            <p className="text-xs text-slate-400 mb-3">
-              {[property.neighbourhood, property.city].filter(Boolean).join(" · ")}
-            </p>
-
-            {/* Specs grid */}
-            <div className="grid grid-cols-4 gap-2 mb-3">
-              {isResidential && property.bedrooms > 0 && (
-                <div className="bg-slate-50 rounded-xl p-2 text-center">
-                  <p className="text-base font-bold text-slate-800">{property.bedrooms}</p>
-                  <p className="text-[10px] text-slate-400 mt-0.5">Beds</p>
-                </div>
-              )}
-              {isResidential && property.bathrooms > 0 && (
-                <div className="bg-slate-50 rounded-xl p-2 text-center">
-                  <p className="text-base font-bold text-slate-800">{property.bathrooms}</p>
-                  <p className="text-[10px] text-slate-400 mt-0.5">Baths</p>
-                </div>
-              )}
-              {property.area_sqm && (
-                <div className="bg-slate-50 rounded-xl p-2 text-center">
-                  <p className="text-base font-bold text-slate-800">{property.area_sqm}</p>
-                  <p className="text-[10px] text-slate-400 mt-0.5">m²</p>
-                </div>
-              )}
-              {ppm && (
-                <div className="rounded-xl p-2 text-center" style={{ background: `${color}12` }}>
-                  <p className="text-[11px] font-bold" style={{ color }}>{ppm}</p>
-                  <p className="text-[10px] text-slate-400 mt-0.5">per m²</p>
-                </div>
-              )}
-            </div>
-
-            {/* Description */}
-            {property.description && (
-              <p className="text-xs text-slate-500 leading-relaxed mb-3 line-clamp-3">
-                {property.description}
-              </p>
+          {/* Specs */}
+          <div className="grid grid-cols-4 gap-2 mb-3">
+            {isResidential && property.bedrooms > 0 && (
+              <div className="bg-slate-50 rounded-xl p-2 text-center">
+                <p className="text-base font-bold text-slate-800">{property.bedrooms}</p>
+                <p className="text-[10px] text-slate-400 mt-0.5">Beds</p>
+              </div>
             )}
-
-            {/* Agent */}
-            {property.agent_name && (
-              <div className="border border-slate-100 rounded-xl p-3 mb-3">
-                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-2">Agent</p>
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
-                    style={{ background: color }}>{initials}</div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-slate-800">{property.agent_name}</p>
-                    {property.agent_email && (
-                      <a href={`mailto:${property.agent_email}`}
-                        className="text-xs text-slate-400 hover:underline truncate block">{property.agent_email}</a>
-                    )}
-                    {property.agent_phone && (
-                      <a href={`tel:${property.agent_phone}`}
-                        className="text-xs text-slate-400 hover:underline block">{property.agent_phone}</a>
-                    )}
-                  </div>
-                </div>
+            {isResidential && property.bathrooms > 0 && (
+              <div className="bg-slate-50 rounded-xl p-2 text-center">
+                <p className="text-base font-bold text-slate-800">{property.bathrooms}</p>
+                <p className="text-[10px] text-slate-400 mt-0.5">Baths</p>
+              </div>
+            )}
+            {property.area_sqm && (
+              <div className="bg-slate-50 rounded-xl p-2 text-center">
+                <p className="text-base font-bold text-slate-800">{property.area_sqm}</p>
+                <p className="text-[10px] text-slate-400 mt-0.5">m²</p>
+              </div>
+            )}
+            {ppm && (
+              <div className="rounded-xl p-2 text-center" style={{ background: `${color}12` }}>
+                <p className="text-[11px] font-bold leading-tight" style={{ color }}>{ppm}</p>
+                <p className="text-[10px] text-slate-400 mt-0.5">per m²</p>
               </div>
             )}
           </div>
-        </div>
 
-        {/* Action buttons */}
-        <div className="shrink-0 flex gap-2 px-4 py-3 border-t border-slate-100/60">
-          <Link href={`/properties/${property.id}`}
-            className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white text-center transition-opacity hover:opacity-90"
-            style={{ backgroundColor: color }}>
-            View listing
-          </Link>
-          <Link href={`/?chat=1&q=${encodeURIComponent(`Book a viewing for "${property.title}"`)}`}
-            className="px-4 py-2.5 rounded-xl text-sm font-medium border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors whitespace-nowrap">
-            Ask AI
-          </Link>
+          {/* Description */}
+          {property.description && (
+            <p className="text-xs text-slate-500 leading-relaxed mb-3 line-clamp-3">{property.description}</p>
+          )}
+
+          {/* Agent */}
+          {property.agent_name && (
+            <div className="border border-slate-100 rounded-xl p-3 mb-3 flex items-center gap-3">
+              {/* Avatar */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={getAgentAvatar(property.agent_name)}
+                alt={property.agent_name}
+                className="w-10 h-10 rounded-full object-cover shrink-0 border-2 border-white shadow-sm"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-slate-800 truncate">{property.agent_name}</p>
+                <p className="text-[10px] text-slate-400 uppercase tracking-wide font-medium">Broker · Habino</p>
+              </div>
+              {/* WhatsApp button */}
+              <a href={waUrl} target="_blank" rel="noopener noreferrer"
+                className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-white transition-opacity hover:opacity-90"
+                style={{ background: "#25D366" }}>
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                  <path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.558 4.117 1.533 5.845L.054 23.5l5.805-1.524A11.932 11.932 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.896 0-3.67-.52-5.183-1.424l-.371-.22-3.443.904.921-3.36-.242-.386A9.944 9.944 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
+                </svg>
+                WhatsApp
+              </a>
+            </div>
+          )}
         </div>
+      </div>
+
+      {/* Action button */}
+      <div className="shrink-0 px-4 py-3 border-t border-slate-100">
+        <Link href={`/properties/${property.id}`}
+          className="flex items-center justify-center w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
+          style={{ backgroundColor: color }}>
+          View full listing
+        </Link>
+      </div>
     </div>
   );
 }
@@ -392,14 +442,7 @@ function HabinoPanel({ onClose }: { onClose: () => void }) {
   );
 }
 
-// ── Deterministic "rating" from property ID (avoids hydration mismatch) ───────
-function pseudoRating(id: string): string {
-  let h = 0;
-  for (const c of id) h = (h * 31 + c.charCodeAt(0)) & 0xffff;
-  return (4.5 + (h % 50) / 100).toFixed(2);
-}
-
-// ── Airbnb-style property listing card ────────────────────────────────────────
+// ── Compact property listing card ─────────────────────────────────────────────
 function PropertyListingCard({
   property, onSelect, highlighted,
 }: {
@@ -407,106 +450,80 @@ function PropertyListingCard({
   onSelect: () => void;
   highlighted: boolean;
 }) {
-  const img   = (property as Property & { images?: { url: string }[] }).images?.[0]?.url;
-  const color = TYPE_COLORS[property.property_type] || "#6B7280";
-  const label = TYPE_LABELS[property.property_type] || property.property_type;
+  const color  = TYPE_COLORS[property.property_type] || "#6B7280";
+  const label  = TYPE_LABELS[property.property_type] || property.property_type;
   const isRent = property.listing_type === "rent";
   const priceFmt = new Intl.NumberFormat("en-US", {
     style: "currency", currency: property.currency, maximumFractionDigits: 0,
   }).format(property.price);
   const isResidential = ["apartment", "house", "villa"].includes(property.property_type);
-  const propEmoji =
-    property.property_type === "apartment" ? "🏢"
-    : property.property_type === "house"     ? "🏠"
-    : property.property_type === "villa"     ? "🏡"
-    : property.property_type === "office"    ? "🏗️"
-    : (property.property_type === "land" || property.property_type === "plot") ? "🌿"
-    : property.property_type === "hall"      ? "🎪"
-    : property.property_type === "production"? "🏭"
-    : "🏢";
+  const imgSrc = getPropertyImage(property);
   const p = property as Property;
 
   return (
     <div
       onClick={onSelect}
       className="cursor-pointer group"
-      style={highlighted ? { borderRadius: 18, outline: `2px solid ${color}`, outlineOffset: 2 } : {}}
+      style={highlighted ? { borderRadius: 14, outline: `2px solid ${color}`, outlineOffset: 2 } : {}}
     >
       {/* ── Image ── */}
-      <div className="relative rounded-2xl overflow-hidden bg-slate-100" style={{ aspectRatio: "4/3" }}>
-        {img ? (
-          <Image src={img} alt={p.title} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center text-5xl" style={{ background: `${color}12` }}>
-            {propEmoji}
-          </div>
-        )}
+      <div className="relative rounded-xl overflow-hidden bg-slate-100" style={{ aspectRatio: "4/3" }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={imgSrc} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+
+        {/* Gradient overlay */}
+        <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.35) 0%, transparent 50%)" }} />
 
         {/* Type badge — top left */}
-        <div className="absolute top-3 left-3">
-          <span className="bg-white/95 text-slate-800 text-xs font-bold px-2.5 py-1 rounded-full shadow-sm">
+        <div className="absolute top-2 left-2">
+          <span className="bg-white/95 text-slate-800 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
             {label}
           </span>
         </div>
 
-        {/* Heart — top right */}
-        <button className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center" onClick={e => e.stopPropagation()}>
-          <svg className="w-5 h-5 drop-shadow" fill="none" stroke="white" strokeWidth={2} viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-          </svg>
-        </button>
-
-        {/* Rent / Sale — bottom left */}
-        <div className="absolute bottom-3 left-3">
-          <span className="text-white text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: isRent ? "#F59E0B" : color }}>
-            {isRent ? "For Rent" : "For Sale"}
+        {/* Rent / Sale — top right */}
+        <div className="absolute top-2 right-2">
+          <span className="text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: isRent ? "#F59E0B" : color }}>
+            {isRent ? "Rent" : "Sale"}
           </span>
+        </div>
+
+        {/* Price on image bottom */}
+        <div className="absolute bottom-2 left-2">
+          <span className="text-xs font-bold text-white drop-shadow">{priceFmt}</span>
+          {isRent && <span className="text-[9px] text-white/80 ml-0.5">/mo</span>}
         </div>
       </div>
 
       {/* ── Details ── */}
-      <div className="mt-2.5 px-0.5">
-        <div className="flex items-start justify-between gap-2">
-          <p className="text-sm font-semibold text-slate-900 leading-snug line-clamp-1">
-            {label} in {p.city}
-          </p>
-          <div className="flex items-center gap-0.5 shrink-0 mt-px">
-            <svg className="w-3 h-3" viewBox="0 0 20 20" fill="#1e293b">
-              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-            </svg>
-            <span className="text-xs font-medium text-slate-800">{pseudoRating(p.id)}</span>
-          </div>
-        </div>
-
-        <p className="text-xs text-slate-400 mt-0.5 line-clamp-1">{p.neighbourhood}</p>
-
-        {/* Specs: beds/baths for residential + m² for all + price/m² */}
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1">
-          {isResidential && p.bedrooms  > 0 && <span className="text-xs text-slate-500">{p.bedrooms} bed</span>}
-          {isResidential && p.bathrooms > 0 && <span className="text-xs text-slate-400">· {p.bathrooms} bath</span>}
-          {p.area_sqm && (
-            <span className="text-xs font-medium text-slate-600">{isResidential ? "·" : ""} {p.area_sqm.toLocaleString()} m²</span>
-          )}
-          {p.area_sqm && p.area_sqm > 0 && (
-            <span className="text-xs font-semibold" style={{ color }}>
-              · {new Intl.NumberFormat("en-US", { style: "currency", currency: p.currency, maximumFractionDigits: 0 }).format(Math.round(p.price / p.area_sqm))}/m²
-            </span>
-          )}
-        </div>
-
-        <p className="text-sm mt-1.5 font-semibold text-slate-900">
-          {priceFmt}{isRent && <span className="text-slate-400 text-xs font-normal"> / month</span>}
+      <div className="mt-1.5 px-0.5">
+        <p className="text-xs font-semibold text-slate-900 leading-snug line-clamp-1">{p.title}</p>
+        <p className="text-[10px] text-slate-400 mt-0.5 line-clamp-1 flex items-center gap-0.5">
+          <svg className="w-2.5 h-2.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+          </svg>
+          {[p.neighbourhood, p.city].filter(Boolean).join(", ")}
         </p>
 
-        {/* Agent / broker badge */}
+        {/* Specs */}
+        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0 mt-1">
+          {isResidential && p.bedrooms  > 0 && <span className="text-[10px] text-slate-500">{p.bedrooms} bd</span>}
+          {isResidential && p.bathrooms > 0 && <span className="text-[10px] text-slate-400">· {p.bathrooms} ba</span>}
+          {p.area_sqm && (
+            <span className="text-[10px] text-slate-500">{isResidential ? "·" : ""} {p.area_sqm.toLocaleString()} m²</span>
+          )}
+        </div>
+
+        {/* Agent row */}
         {p.agent_name && (
           <div className="flex items-center gap-1.5 mt-1.5">
-            <div className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[8px] font-bold shrink-0"
-              style={{ background: color }}>
-              {p.agent_name.split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0,2)}
-            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={getAgentAvatar(p.agent_name)}
+              alt={p.agent_name}
+              className="w-5 h-5 rounded-full object-cover shrink-0 border border-white shadow-sm"
+            />
             <span className="text-[10px] text-slate-400 truncate">{p.agent_name}</span>
-            <span className="ml-auto shrink-0 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600 border border-amber-100">Broker</span>
           </div>
         )}
       </div>
@@ -921,10 +938,10 @@ export function MapHomePage() {
     <div style={{ position: "fixed", inset: 0, zIndex: 1, display: "flex", background: "white" }}>
 
       {/* ═══════════════════════════════════════════════════
-          LEFT — AI Chat (50 %)
+          LEFT — AI Chat (1/3)
       ═══════════════════════════════════════════════════ */}
       <div style={{
-        width: isMobile ? "100%" : "50%",
+        width: isMobile ? "100%" : "33.333%",
         height: "100%",
         display: isMobile ? "none" : "flex",
         flexDirection: "column",
@@ -954,9 +971,9 @@ export function MapHomePage() {
       </div>
 
       {/* ═══════════════════════════════════════════════════
-          RIGHT — Dynamic Output Panel (50 %)
+          RIGHT — Dynamic Output Panel (2/3)
       ═══════════════════════════════════════════════════ */}
-      <div style={{ width: isMobile ? "100%" : "50%", height: "100%", display: "flex", flexDirection: "column", position: "relative" }}>
+      <div style={{ width: isMobile ? "100%" : "66.667%", height: "100%", display: "flex", flexDirection: "column", position: "relative" }}>
 
         {/* Header */}
         <div style={{ height: HEADER_H, borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", padding: "0 16px", gap: 8, flexShrink: 0, position: "relative", zIndex: 10, background: "white" }}>
@@ -1038,7 +1055,7 @@ export function MapHomePage() {
                   <p style={{ fontSize: 13 }}>Ask the AI to search — listings appear here.</p>
                 </div>
               )}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
                 {properties.map(p => (
                   <PropertyListingCard
                     key={p.id}
