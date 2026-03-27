@@ -17,22 +17,152 @@ const LeafletMap = dynamic(() => import("./LeafletMap"), {
 export const ADDIS_CENTER: [number, number] = [9.0192, 38.7525];
 export const ADDIS_ZOOM = 13;
 
-// ── Demo pins shown on the map before any search ──────────────────────────────
-// One pin per major property type, spread across Addis Ababa neighbourhoods.
-const IDLE_PINS: PropertyWithCoords[] = [
-  { id:"demo-1", tenant_id:"", title:"3-bedroom apartment in Bole",          description:null, listing_type:"rent",   property_type:"apartment",  price:45000,    currency:"ETB", bedrooms:3, bathrooms:2, area_sqm:120, city:"Addis Ababa", neighbourhood:"Bole",             address:null, agent_name:null, agent_phone:null, agent_email:null, status:"active", created_at:"", updated_at:"", lat:8.9945, lng:38.7975 },
-  { id:"demo-2", tenant_id:"", title:"Office space in Kazanchis",            description:null, listing_type:"rent",   property_type:"office",     price:85000,    currency:"ETB", bedrooms:0, bathrooms:0, area_sqm:250, city:"Addis Ababa", neighbourhood:"Kazanchis",        address:null, agent_name:null, agent_phone:null, agent_email:null, status:"active", created_at:"", updated_at:"", lat:9.0205, lng:38.7562 },
-  { id:"demo-3", tenant_id:"", title:"Family home in CMC",                   description:null, listing_type:"buy",    property_type:"house",      price:9500000,  currency:"ETB", bedrooms:4, bathrooms:3, area_sqm:280, city:"Addis Ababa", neighbourhood:"CMC",              address:null, agent_name:null, agent_phone:null, agent_email:null, status:"active", created_at:"", updated_at:"", lat:9.0555, lng:38.7868 },
-  { id:"demo-4", tenant_id:"", title:"Luxury villa in Ayat",                 description:null, listing_type:"buy",    property_type:"villa",      price:28000000, currency:"ETB", bedrooms:5, bathrooms:4, area_sqm:520, city:"Addis Ababa", neighbourhood:"Ayat",             address:null, agent_name:null, agent_phone:null, agent_email:null, status:"active", created_at:"", updated_at:"", lat:9.0415, lng:38.8355 },
-  { id:"demo-5", tenant_id:"", title:"Commercial unit in Merkato",           description:null, listing_type:"rent",   property_type:"commercial", price:55000,    currency:"ETB", bedrooms:0, bathrooms:0, area_sqm:180, city:"Addis Ababa", neighbourhood:"Merkato",          address:null, agent_name:null, agent_phone:null, agent_email:null, status:"active", created_at:"", updated_at:"", lat:9.0275, lng:38.7358 },
-  { id:"demo-6", tenant_id:"", title:"Land plot in Yeka",                    description:null, listing_type:"buy",    property_type:"land",       price:6500000,  currency:"ETB", bedrooms:0, bathrooms:0, area_sqm:800, city:"Addis Ababa", neighbourhood:"Yeka",             address:null, agent_name:null, agent_phone:null, agent_email:null, status:"active", created_at:"", updated_at:"", lat:9.0598, lng:38.8102 },
-  { id:"demo-7", tenant_id:"", title:"2-bedroom apartment in Megenagna",     description:null, listing_type:"rent",   property_type:"apartment",  price:32000,    currency:"ETB", bedrooms:2, bathrooms:1, area_sqm:85,  city:"Addis Ababa", neighbourhood:"Megenagna",        address:null, agent_name:null, agent_phone:null, agent_email:null, status:"active", created_at:"", updated_at:"", lat:9.0300, lng:38.7872 },
-  { id:"demo-8", tenant_id:"", title:"Event hall in Piassa",                 description:null, listing_type:"rent",   property_type:"hall",       price:120000,   currency:"ETB", bedrooms:0, bathrooms:4, area_sqm:600, city:"Addis Ababa", neighbourhood:"Piassa",           address:null, agent_name:null, agent_phone:null, agent_email:null, status:"active", created_at:"", updated_at:"", lat:9.0360, lng:38.7545 },
-  { id:"demo-9", tenant_id:"", title:"Warehouse in Akaki Kaliti",            description:null, listing_type:"rent",   property_type:"production", price:75000,    currency:"ETB", bedrooms:0, bathrooms:0, area_sqm:900, city:"Addis Ababa", neighbourhood:"Akaki Kaliti",     address:null, agent_name:null, agent_phone:null, agent_email:null, status:"active", created_at:"", updated_at:"", lat:8.8905, lng:38.7898 },
-  { id:"demo-10",tenant_id:"", title:"Residential plot in Sarbet",           description:null, listing_type:"buy",    property_type:"plot",       price:3200000,  currency:"ETB", bedrooms:0, bathrooms:0, area_sqm:350, city:"Addis Ababa", neighbourhood:"Sarbet",           address:null, agent_name:null, agent_phone:null, agent_email:null, status:"active", created_at:"", updated_at:"", lat:8.9970, lng:38.7558 },
-  { id:"demo-11",tenant_id:"", title:"Studio apartment in Lideta",           description:null, listing_type:"rent",   property_type:"apartment",  price:18000,    currency:"ETB", bedrooms:1, bathrooms:1, area_sqm:45,  city:"Addis Ababa", neighbourhood:"Lideta",           address:null, agent_name:null, agent_phone:null, agent_email:null, status:"active", created_at:"", updated_at:"", lat:9.0120, lng:38.7392 },
-  { id:"demo-12",tenant_id:"", title:"4-bedroom house in Kolfe Keranio",     description:null, listing_type:"buy",    property_type:"house",      price:7800000,  currency:"ETB", bedrooms:4, bathrooms:3, area_sqm:220, city:"Addis Ababa", neighbourhood:"Kolfe Keranio",    address:null, agent_name:null, agent_phone:null, agent_email:null, status:"active", created_at:"", updated_at:"", lat:9.0198, lng:38.6905 },
+// ── Demo pins — ~100 listings spread across all Addis Ababa neighbourhoods ────
+// type DemoRow = [id, title, listing_type, property_type, price, bdr, bath, sqm, neighbourhood, lat, lng]
+type DemoRow = [string, string, "rent"|"buy", string, number, number, number, number, string, number, number];
+const DEMO_ROWS: DemoRow[] = [
+  // ── Bole ──────────────────────────────────────────────────────────────────
+  ["d1",  "2-bed apartment in Bole",              "rent","apartment", 35000,2,1, 80,"Bole",        8.9935,38.7986],
+  ["d2",  "3-bed apartment in Bole",              "rent","apartment", 48000,3,2,115,"Bole",        8.9920,38.8005],
+  ["d3",  "Studio apartment in Bole",             "rent","apartment", 20000,1,1, 45,"Bole",        8.9950,38.7970],
+  ["d4",  "Luxury villa for sale in Bole",        "buy", "villa",   32000000,5,4,620,"Bole",        8.9910,38.8020],
+  ["d5",  "Office space in Bole",                 "rent","office",   92000,0,0,280,"Bole",        8.9940,38.8010],
+  ["d6",  "4-bed apartment for sale in Bole",     "buy", "apartment",18500000,4,3,195,"Bole",        8.9960,38.7960],
+  ["d7",  "Retail unit in Bole",                  "rent","commercial",68000,0,0,160,"Bole",        8.9925,38.7995],
+  ["d8",  "Modern penthouse in Bole",             "buy", "apartment",25000000,3,3,210,"Bole",        8.9945,38.7975],
+  // ── Kazanchis ─────────────────────────────────────────────────────────────
+  ["d9",  "Office in Kazanchis",                  "rent","office",   85000,0,0,250,"Kazanchis",   9.0200,38.7557],
+  ["d10", "2-bed apartment in Kazanchis",         "rent","apartment", 30000,2,1, 80,"Kazanchis",   9.0190,38.7570],
+  ["d11", "1-bed studio in Kazanchis",            "rent","apartment", 22000,1,1, 50,"Kazanchis",   9.0215,38.7545],
+  ["d12", "Commercial space in Kazanchis",        "rent","commercial",75000,0,0,200,"Kazanchis",   9.0205,38.7565],
+  ["d13", "Office suite for sale in Kazanchis",   "buy", "office",  14000000,0,0,310,"Kazanchis",   9.0195,38.7548],
+  // ── CMC ───────────────────────────────────────────────────────────────────
+  ["d14", "Family home in CMC",                   "buy", "house",   9500000,4,3,280,"CMC",         9.0562,38.7864],
+  ["d15", "3-bed apartment in CMC",               "rent","apartment", 42000,3,2,110,"CMC",         9.0550,38.7880],
+  ["d16", "Residential plot in CMC",              "buy", "plot",    4200000,0,0,450,"CMC",         9.0575,38.7850],
+  ["d17", "5-bed house for sale in CMC",          "buy", "house",  13500000,5,4,380,"CMC",         9.0545,38.7870],
+  ["d18", "2-bed apartment in CMC",               "buy", "apartment",8800000,2,2,105,"CMC",         9.0568,38.7858],
+  // ── Megenagna ─────────────────────────────────────────────────────────────
+  ["d19", "2-bed apartment in Megenagna",         "rent","apartment", 32000,2,1, 85,"Megenagna",   9.0296,38.7869],
+  ["d20", "Office in Megenagna",                  "rent","office",   70000,0,0,200,"Megenagna",   9.0285,38.7880],
+  ["d21", "3-bed family house in Megenagna",      "rent","house",    55000,3,2,180,"Megenagna",   9.0310,38.7855],
+  ["d22", "Apartment for sale in Megenagna",      "buy", "apartment",9200000,2,2, 95,"Megenagna",   9.0302,38.7875],
+  ["d23", "Villa in Megenagna",                   "buy", "villa",   22000000,4,3,420,"Megenagna",   9.0288,38.7890],
+  // ── Piassa ────────────────────────────────────────────────────────────────
+  ["d24", "Retail shop in Piassa",                "rent","commercial",58000,0,0,140,"Piassa",       9.0355,38.7543],
+  ["d25", "Apartment in Piassa",                  "rent","apartment", 25000,2,1, 75,"Piassa",       9.0345,38.7555],
+  ["d26", "Office in Piassa",                     "rent","office",   65000,0,0,190,"Piassa",       9.0362,38.7535],
+  ["d27", "Event hall in Piassa",                 "rent","hall",    120000,0,4,600,"Piassa",       9.0350,38.7548],
+  ["d28", "Apartment for sale in Piassa",         "buy", "apartment",7500000,2,1, 80,"Piassa",       9.0368,38.7530],
+  // ── Merkato ───────────────────────────────────────────────────────────────
+  ["d29", "Retail unit in Merkato",               "rent","commercial",55000,0,0,180,"Merkato",      9.0271,38.7352],
+  ["d30", "Warehouse in Merkato",                 "rent","production",65000,0,0,700,"Merkato",      9.0260,38.7365],
+  ["d31", "Commercial space for sale in Merkato", "buy", "commercial",12000000,0,0,280,"Merkato",      9.0280,38.7340],
+  ["d32", "Plot in Merkato area",                 "buy", "plot",    3800000,0,0,320,"Merkato",      9.0265,38.7358],
+  ["d33", "Large showroom in Merkato",            "rent","commercial",95000,0,2,450,"Merkato",      9.0275,38.7345],
+  // ── Ayat ──────────────────────────────────────────────────────────────────
+  ["d34", "Luxury villa in Ayat",                 "buy", "villa",   28000000,5,4,520,"Ayat",         9.0411,38.8352],
+  ["d35", "4-bed house in Ayat",                  "buy", "house",  11500000,4,3,320,"Ayat",         9.0400,38.8365],
+  ["d36", "Villa with pool in Ayat",              "buy", "villa",   35000000,6,5,680,"Ayat",         9.0425,38.8340],
+  ["d37", "Land for sale in Ayat",                "buy", "land",    8200000,0,0,900,"Ayat",         9.0395,38.8370],
+  ["d38", "3-bed house in Ayat",                  "buy", "house",   8900000,3,2,240,"Ayat",         9.0418,38.8358],
+  ["d39", "Modern apartment in Ayat",             "buy", "apartment",11000000,3,2,130,"Ayat",         9.0405,38.8345],
+  // ── Gerji ─────────────────────────────────────────────────────────────────
+  ["d40", "2-bed apartment in Gerji",             "rent","apartment", 28000,2,1, 80,"Gerji",        9.0107,38.8200],
+  ["d41", "House for sale in Gerji",              "buy", "house",   8200000,3,2,230,"Gerji",        9.0095,38.8215],
+  ["d42", "Plot in Gerji",                        "buy", "plot",    3500000,0,0,400,"Gerji",        9.0120,38.8190],
+  ["d43", "Villa in Gerji",                       "buy", "villa",   20000000,4,3,450,"Gerji",        9.0112,38.8208],
+  ["d44", "Apartment for sale in Gerji",          "buy", "apartment",9800000,2,2,100,"Gerji",        9.0100,38.8195],
+  ["d45", "Office in Gerji",                      "rent","office",   58000,0,0,180,"Gerji",        9.0115,38.8212],
+  // ── Yeka ──────────────────────────────────────────────────────────────────
+  ["d46", "Land for sale in Yeka",                "buy", "land",    6500000,0,0,800,"Yeka",         9.0600,38.8100],
+  ["d47", "House for sale in Yeka",               "buy", "house",  10500000,4,3,290,"Yeka",         9.0588,38.8115],
+  ["d48", "3-bed apartment in Yeka",              "rent","apartment", 38000,3,2,110,"Yeka",         9.0612,38.8090],
+  ["d49", "Villa in Yeka",                        "buy", "villa",   24000000,5,4,500,"Yeka",         9.0595,38.8108],
+  ["d50", "Residential plot in Yeka",             "buy", "plot",    5200000,0,0,500,"Yeka",         9.0608,38.8095],
+  // ── Sarbet ────────────────────────────────────────────────────────────────
+  ["d51", "2-bed apartment in Sarbet",            "rent","apartment", 30000,2,1, 90,"Sarbet",       8.9973,38.7561],
+  ["d52", "Commercial unit in Sarbet",            "rent","commercial",50000,0,0,160,"Sarbet",       8.9960,38.7575],
+  ["d53", "Plot in Sarbet",                       "buy", "plot",    3200000,0,0,350,"Sarbet",       8.9985,38.7548],
+  ["d54", "4-bed house in Sarbet",                "buy", "house",   9200000,4,3,260,"Sarbet",       8.9968,38.7568],
+  // ── Kolfe ─────────────────────────────────────────────────────────────────
+  ["d55", "House for sale in Kolfe",              "buy", "house",   7200000,4,2,220,"Kolfe Keranio",9.0200,38.6900],
+  ["d56", "2-bed apartment in Kolfe",             "rent","apartment", 22000,2,1, 75,"Kolfe Keranio",9.0188,38.6912],
+  ["d57", "Land for sale in Kolfe",               "buy", "land",    4800000,0,0,700,"Kolfe Keranio",9.0215,38.6888],
+  ["d58", "3-bed house in Kolfe",                 "rent","house",    45000,3,2,190,"Kolfe Keranio",9.0192,38.6905],
+  // ── Lideta ────────────────────────────────────────────────────────────────
+  ["d59", "Studio apartment in Lideta",           "rent","apartment", 18000,1,1, 45,"Lideta",       9.0117,38.7394],
+  ["d60", "2-bed apartment in Lideta",            "rent","apartment", 27000,2,1, 80,"Lideta",       9.0105,38.7408],
+  ["d61", "Retail unit in Lideta",                "rent","commercial",45000,0,0,130,"Lideta",       9.0130,38.7382],
+  ["d62", "Apartment for sale in Lideta",         "buy", "apartment",7800000,2,2, 90,"Lideta",       9.0112,38.7400],
+  // ── Kirkos ────────────────────────────────────────────────────────────────
+  ["d63", "Apartment in Kirkos",                  "rent","apartment", 26000,2,1, 82,"Kirkos",       9.0050,38.7700],
+  ["d64", "Office in Kirkos",                     "rent","office",   62000,0,0,185,"Kirkos",       9.0038,38.7712],
+  ["d65", "Apartment for sale in Kirkos",         "buy", "apartment",8500000,2,2, 95,"Kirkos",       9.0062,38.7688],
+  ["d66", "Commercial unit in Kirkos",            "rent","commercial",52000,0,0,155,"Kirkos",       9.0044,38.7706],
+  // ── Arada ─────────────────────────────────────────────────────────────────
+  ["d67", "2-bed apartment in Arada",             "rent","apartment", 28000,2,1, 80,"Arada",        9.0368,38.7480],
+  ["d68", "Office suite in Arada",                "rent","office",   68000,0,0,200,"Arada",        9.0356,38.7492],
+  ["d69", "Apartment for sale in Arada",          "buy", "apartment",9000000,3,2,105,"Arada",        9.0380,38.7468],
+  // ── Gullele ───────────────────────────────────────────────────────────────
+  ["d70", "House for sale in Gullele",            "buy", "house",   7800000,4,2,230,"Gullele",      9.0780,38.7400],
+  ["d71", "Large land in Gullele",                "buy", "land",    9500000,0,0,1200,"Gullele",      9.0768,38.7415],
+  ["d72", "Family house to rent in Gullele",      "rent","house",    48000,3,2,190,"Gullele",      9.0792,38.7388],
+  // ── Lafto ─────────────────────────────────────────────────────────────────
+  ["d73", "Land for sale in Lafto",               "buy", "land",    5500000,0,0,750,"Lafto",        8.9600,38.7300],
+  ["d74", "House for sale in Lafto",              "buy", "house",   8500000,4,3,260,"Lafto",        8.9588,38.7315],
+  ["d75", "2-bed apartment in Lafto",             "rent","apartment", 24000,2,1, 78,"Lafto",        8.9612,38.7288],
+  // ── Summit ────────────────────────────────────────────────────────────────
+  ["d76", "Apartment for sale in Summit",         "buy", "apartment",12000000,3,2,140,"Summit",       9.0050,38.8010],
+  ["d77", "Villa for sale in Summit",             "buy", "villa",   26000000,4,4,480,"Summit",       9.0038,38.8022],
+  ["d78", "Office in Summit",                     "rent","office",   78000,0,0,220,"Summit",       9.0062,38.7998],
+  // ── Addis Ketema ──────────────────────────────────────────────────────────
+  ["d79", "Commercial shop in Addis Ketema",      "rent","commercial",44000,0,0,120,"Addis Ketema", 9.0310,38.7300],
+  ["d80", "Apartment in Addis Ketema",            "rent","apartment", 20000,1,1, 55,"Addis Ketema", 9.0298,38.7312],
+  ["d81", "Plot in Addis Ketema",                 "buy", "plot",    2800000,0,0,280,"Addis Ketema", 9.0322,38.7288],
+  // ── Mexico ────────────────────────────────────────────────────────────────
+  ["d82", "Office in Mexico",                     "rent","office",   72000,0,0,210,"Mexico",        9.0155,38.7486],
+  ["d83", "2-bed apartment in Mexico",            "rent","apartment", 32000,2,1, 88,"Mexico",        9.0143,38.7498],
+  ["d84", "Apartment for sale in Mexico",         "buy", "apartment",9500000,2,2,100,"Mexico",        9.0167,38.7474],
+  // ── Akaki Kaliti ──────────────────────────────────────────────────────────
+  ["d85", "Warehouse in Akaki Kaliti",            "rent","production",75000,0,0,900,"Akaki Kaliti", 8.8900,38.7900],
+  ["d86", "Industrial unit in Akaki Kaliti",      "rent","production",58000,0,0,600,"Akaki Kaliti", 8.8888,38.7912],
+  ["d87", "Land for sale in Akaki Kaliti",        "buy", "land",    6800000,0,0,1500,"Akaki Kaliti", 8.8912,38.7888],
+  // ── Sidist Kilo ───────────────────────────────────────────────────────────
+  ["d88", "2-bed apartment in Sidist Kilo",       "rent","apartment", 34000,2,1, 88,"Sidist Kilo",  9.0486,38.7634],
+  ["d89", "House for sale in Sidist Kilo",        "buy", "house",  10800000,4,3,290,"Sidist Kilo",  9.0474,38.7646],
+  // ── Arat Kilo ─────────────────────────────────────────────────────────────
+  ["d90", "Apartment in Arat Kilo",               "rent","apartment", 30000,2,1, 82,"Arat Kilo",    9.0414,38.7542],
+  ["d91", "Office in Arat Kilo",                  "rent","office",   65000,0,0,190,"Arat Kilo",    9.0402,38.7554],
+  // ── Urael ─────────────────────────────────────────────────────────────────
+  ["d92", "Apartment for sale in Urael",          "buy", "apartment",11500000,3,2,135,"Urael",        9.0150,38.7750],
+  ["d93", "Villa for sale in Urael",              "buy", "villa",   29000000,5,4,560,"Urael",        9.0138,38.7762],
+  // ── Old Airport ───────────────────────────────────────────────────────────
+  ["d94", "2-bed apartment in Old Airport",       "rent","apartment", 28000,2,1, 78,"Old Airport",  8.9895,38.7795],
+  ["d95", "Commercial unit near Old Airport",     "rent","commercial",48000,0,0,140,"Old Airport",  8.9883,38.7807],
+  // ── Nifas Silk ────────────────────────────────────────────────────────────
+  ["d96", "House for sale in Nifas Silk",         "buy", "house",   9200000,4,2,250,"Nifas Silk",   8.9720,38.7400],
+  ["d97", "Land for sale in Nifas Silk",          "buy", "land",    5800000,0,0,700,"Nifas Silk",   8.9708,38.7412],
+  // ── Jemo ──────────────────────────────────────────────────────────────────
+  ["d98", "House for sale in Jemo",               "buy", "house",   7900000,3,2,220,"Jemo",         8.9620,38.7050],
+  ["d99", "Land plot in Jemo",                    "buy", "land",    4500000,0,0,600,"Jemo",         8.9608,38.7062],
+  // ── Saris / Bole Arabsa ───────────────────────────────────────────────────
+  ["d100","Studio apartment in Saris",            "rent","apartment", 16000,1,1, 40,"Saris",        8.9780,38.7750],
 ];
+
+const IDLE_PINS: PropertyWithCoords[] = DEMO_ROWS.map(
+  ([id, title, listing_type, property_type, price, bedrooms, bathrooms, area_sqm, neighbourhood, lat, lng]) => ({
+    id, tenant_id: "", title, description: null,
+    listing_type: listing_type as "rent" | "buy",
+    property_type: property_type as import("@/lib/types").PropertyType,
+    price, currency: "ETB",
+    bedrooms, bathrooms, area_sqm,
+    city: "Addis Ababa", neighbourhood,
+    address: null, agent_name: null, agent_phone: null, agent_email: null,
+    status: "active" as const, created_at: "", updated_at: "",
+    lat, lng,
+  })
+);
 
 // ── Neighbourhood coordinates — Addis Ababa only ──────────────────────────────
 const CITY_COORDS: Record<string, [number, number]> = {
@@ -558,7 +688,7 @@ function HabinoPanel({ onClose }: { onClose: () => void }) {
   );
 }
 
-// ── Compact property listing card ─────────────────────────────────────────────
+// ── Property listing card (Airbnb-style: gallery, heart, emoji specs) ─────────
 function PropertyListingCard({
   property, onSelect, highlighted,
 }: {
@@ -566,60 +696,104 @@ function PropertyListingCard({
   onSelect: () => void;
   highlighted: boolean;
 }) {
-  const [imgErr, setImgErr] = useState(false);
+  const [photoIdx, setPhotoIdx] = useState(0);
+  const [imgErr,   setImgErr]   = useState(false);
+  const [liked,    setLiked]    = useState(false);
+
   const color  = TYPE_COLORS[property.property_type] || "#6B7280";
-  const label  = TYPE_LABELS[property.property_type] || property.property_type;
   const isRent = property.listing_type === "rent";
-  const priceFmt = new Intl.NumberFormat("en-US", {
-    style: "currency", currency: property.currency, maximumFractionDigits: 0,
-  }).format(property.price);
-  const isResidential = ["apartment", "house", "villa"].includes(property.property_type);
-  const imgSrc = getPropertyImage(property);
+  const photos = getPropertyImages(property);
   const p = property as Property;
+  const isResidential = ["apartment", "house", "villa"].includes(p.property_type);
 
   const typeEmoji =
-    p.property_type === "apartment" ? "🏢" : p.property_type === "house" ? "🏠"
-    : p.property_type === "villa" ? "🏡" : p.property_type === "office" ? "🏗️"
-    : p.property_type === "hall" ? "🎪" : p.property_type === "production" ? "🏭" : "🌿";
+    p.property_type === "apartment" ? "🏢" : p.property_type === "house"  ? "🏠"
+    : p.property_type === "villa"   ? "🏡" : p.property_type === "office"  ? "💼"
+    : p.property_type === "commercial" ? "🏪" : p.property_type === "land"  ? "🌿"
+    : p.property_type === "plot"    ? "📍" : p.property_type === "hall"   ? "🎪"
+    : p.property_type === "production" ? "🏭" : "🏗️";
+
+  const listingEmoji = isRent ? "🔑" : "🏷️";
+
+  const priceFmt = new Intl.NumberFormat("en-US", {
+    style: "currency", currency: p.currency, maximumFractionDigits: 0,
+  }).format(p.price);
+
+  function prevPhoto(e: React.MouseEvent) {
+    e.stopPropagation();
+    setPhotoIdx(i => (i - 1 + photos.length) % photos.length);
+    setImgErr(false);
+  }
+  function nextPhoto(e: React.MouseEvent) {
+    e.stopPropagation();
+    setPhotoIdx(i => (i + 1) % photos.length);
+    setImgErr(false);
+  }
 
   return (
     <div
       onClick={onSelect}
       className="cursor-pointer group"
-      style={highlighted ? { borderRadius: 12, outline: `2px solid ${color}`, outlineOffset: 2 } : {}}
+      style={highlighted ? { borderRadius: 14, outline: `2px solid ${color}`, outlineOffset: 2 } : {}}
     >
-      {/* ── Image ── */}
-      <div className="relative rounded-xl overflow-hidden bg-slate-100" style={{ aspectRatio: "16/9" }}>
+      {/* ── Image / Gallery ── */}
+      <div className="relative rounded-xl overflow-hidden bg-slate-100" style={{ aspectRatio: "4/3" }}>
         {!imgErr ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={imgSrc}
+            src={photos[photoIdx] ?? photos[0]}
             alt=""
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             onError={() => setImgErr(true)}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center" style={{ background: `${color}15` }}>
-            <span style={{ fontSize: 32 }}>{typeEmoji}</span>
+          <div className="w-full h-full flex items-center justify-center" style={{ background: `${color}18` }}>
+            <span style={{ fontSize: 30 }}>{typeEmoji}</span>
           </div>
         )}
 
-        {/* Gradient overlay */}
-        {!imgErr && <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.38) 0%, transparent 55%)" }} />}
+        {/* Gradient */}
+        {!imgErr && <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.45) 0%, transparent 52%)" }} />}
 
-        {/* Type badge */}
-        <div className="absolute top-1.5 left-1.5">
-          <span className="bg-white/95 text-slate-800 text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow-sm">{label}</span>
-        </div>
+        {/* Gallery arrows — visible on hover */}
+        {photos.length > 1 && !imgErr && (
+          <>
+            <button onClick={prevPhoto}
+              className="absolute left-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white/90 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-white"
+              style={{ fontSize: 13, color: "#1e293b", fontWeight: 800, lineHeight: 1 }}>‹</button>
+            <button onClick={nextPhoto}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white/90 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-white"
+              style={{ fontSize: 13, color: "#1e293b", fontWeight: 800, lineHeight: 1 }}>›</button>
+            {/* Photo dots */}
+            <div className="absolute bottom-8 left-0 right-0 flex justify-center gap-1 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+              {photos.map((_, i) => (
+                <div key={i} style={{ width: 4, height: 4, borderRadius: 99, background: i === photoIdx ? "white" : "rgba(255,255,255,0.5)", transition: "background .2s" }} />
+              ))}
+            </div>
+          </>
+        )}
 
-        {/* Rent / Sale pill */}
-        <div className="absolute top-1.5 right-1.5">
-          <span className="text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: isRent ? "#F59E0B" : color }}>
-            {isRent ? "Rent" : "Sale"}
+        {/* Heart button */}
+        <button
+          onClick={(e) => { e.stopPropagation(); setLiked(l => !l); }}
+          className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-white/90 flex items-center justify-center shadow-sm transition-all hover:scale-110 active:scale-95"
+          style={{ fontSize: 13 }}
+        >
+          {liked ? "❤️" : "🤍"}
+        </button>
+
+        {/* Type + listing type badges */}
+        <div className="absolute top-1.5 left-1.5 flex items-center gap-1 flex-wrap">
+          <span className="bg-white/95 text-slate-800 text-[8px] font-bold px-1.5 py-0.5 rounded-full shadow-sm leading-tight">
+            {typeEmoji} {TYPE_LABELS[p.property_type] || p.property_type}
+          </span>
+          <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full text-white shadow-sm leading-tight"
+            style={{ backgroundColor: isRent ? "#F59E0B" : color }}>
+            {listingEmoji} {isRent ? "Rent" : "Sale"}
           </span>
         </div>
 
-        {/* Price bottom */}
+        {/* Price */}
         {!imgErr && (
           <div className="absolute bottom-1.5 left-2">
             <span className="text-[11px] font-bold text-white drop-shadow">{priceFmt}</span>
@@ -629,26 +803,24 @@ function PropertyListingCard({
       </div>
 
       {/* ── Details ── */}
-      <div className="mt-1.5 px-0.5 pb-1">
-        {imgErr && (
-          <p className="text-[10px] font-semibold text-slate-700 mb-0.5">{priceFmt}{isRent && <span className="text-slate-400 font-normal">/mo</span>}</p>
-        )}
+      <div className="mt-1.5 px-0.5 pb-1.5">
+        {imgErr && <p className="text-[10px] font-semibold text-slate-700 mb-0.5">{priceFmt}{isRent && <span className="text-slate-400 font-normal">/mo</span>}</p>}
         <p className="text-[10px] font-semibold text-slate-900 leading-tight line-clamp-1">{p.title}</p>
-        <p className="text-[9px] text-slate-400 mt-0.5 line-clamp-1">{[p.neighbourhood, p.city].filter(Boolean).join(", ")}</p>
+        <p className="text-[9px] text-slate-400 mt-0.5 line-clamp-1">📍 {[p.neighbourhood, p.city].filter(Boolean).join(", ")}</p>
 
-        {/* Specs */}
-        <div className="flex items-center gap-1 mt-0.5 flex-wrap">
-          {isResidential && p.bedrooms  > 0 && <span className="text-[9px] text-slate-500">{p.bedrooms} bd</span>}
-          {isResidential && p.bathrooms > 0 && <span className="text-[9px] text-slate-400">· {p.bathrooms} ba</span>}
-          {p.area_sqm && <span className="text-[9px] text-slate-400">· {p.area_sqm.toLocaleString()} m²</span>}
+        {/* Emoji specs */}
+        <div className="flex items-center gap-2 mt-1 flex-wrap">
+          {isResidential && p.bedrooms  > 0 && <span className="text-[9px] text-slate-600">🛏 {p.bedrooms}</span>}
+          {isResidential && p.bathrooms > 0 && <span className="text-[9px] text-slate-600">🚿 {p.bathrooms}</span>}
+          {p.area_sqm                         && <span className="text-[9px] text-slate-600">📐 {p.area_sqm.toLocaleString()} m²</span>}
         </div>
 
         {/* Agent */}
         {p.agent_name && (
-          <div className="flex items-center gap-1 mt-1.5">
+          <div className="flex items-center gap-1 mt-1">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={getAgentAvatar(p.agent_name)} alt="" className="w-4 h-4 rounded-full object-cover shrink-0" onError={() => {}} />
-            <span className="text-[9px] text-slate-400 truncate">{p.agent_name}</span>
+            <img src={getAgentAvatar(p.agent_name)} alt="" className="w-3.5 h-3.5 rounded-full object-cover shrink-0" onError={() => {}} />
+            <span className="text-[8px] text-slate-400 truncate">{p.agent_name}</span>
           </div>
         )}
       </div>
@@ -1140,7 +1312,7 @@ export function MapHomePage() {
                   <p style={{ fontSize: 13, color: "#94a3b8" }}>Try different criteria — click Ask AI to refine your search.</p>
                 </div>
               ) : (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 16 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
                   {properties.map(p => (
                     <div
                       key={p.id}

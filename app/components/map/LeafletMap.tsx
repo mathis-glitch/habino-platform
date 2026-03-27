@@ -44,6 +44,19 @@ export const TYPE_COLORS: Record<string, string> = {
   production: "#6B7280",  // slate
 };
 
+// ── Emoji per property type (used in map pins) ────────────────────────────────
+export const TYPE_EMOJIS: Record<string, string> = {
+  apartment:  "🏢",
+  house:      "🏠",
+  villa:      "🏡",
+  office:     "💼",
+  commercial: "🏪",
+  land:       "🌿",
+  plot:       "📍",
+  hall:       "🎪",
+  production: "🏭",
+};
+
 export const TYPE_LABELS: Record<string, string> = {
   apartment:  "Apartment", house:      "House",  villa:      "Villa",
   office:     "Office",    commercial: "Retail", land:       "Land",
@@ -68,7 +81,8 @@ function fmtPrice(price: number): string {
 }
 
 function makePinIcon(p: PropertyWithCoords, selected: boolean, dimmed: boolean): L.DivIcon {
-  const color  = TYPE_COLORS[p.property_type] || "#6B7280";
+  const color  = TYPE_COLORS[p.property_type]  || "#6B7280";
+  const emoji  = TYPE_EMOJIS[p.property_type]  || "🏗️";
   const price  = fmtPrice(p.price);
   const ppm    = p.area_sqm && p.area_sqm > 0
     ? fmtPrice(Math.round(p.price / p.area_sqm)) + "/m²"
@@ -76,27 +90,26 @@ function makePinIcon(p: PropertyWithCoords, selected: boolean, dimmed: boolean):
 
   const bg     = selected ? color : "#ffffff";
   const fg     = selected ? "#ffffff" : "#111827";
-  const dot    = selected ? "rgba(255,255,255,0.8)" : color;
   const border = `2px solid ${color}`;
   const shadow = selected
     ? `0 4px 20px ${color}55`
     : "0 2px 10px rgba(0,0,0,0.13)";
-  const scale  = selected ? "scale(1.12)" : dimmed ? "scale(0.82)" : "scale(1)";
+  const scale   = selected ? "scale(1.15)" : dimmed ? "scale(0.82)" : "scale(1)";
   const opacity = dimmed ? "0.22" : "1";
 
   const html = `
     <div style="
       background:${bg}; color:${fg}; border:${border};
-      border-radius:999px; padding:4px 10px 4px 8px;
+      border-radius:999px; padding:4px 10px 4px 7px;
       font-family:system-ui,sans-serif;
       box-shadow:${shadow}; cursor:pointer;
       transform:${scale}; opacity:${opacity}; transition:all .2s;
       display:inline-flex; flex-direction:column; align-items:center;
       white-space:nowrap; line-height:1.3;
     ">
-      <div style="display:flex;align-items:center;gap:5px">
-        <span style="width:6px;height:6px;border-radius:50%;background:${dot};flex-shrink:0;display:inline-block"></span>
-        <span style="font-size:12px;font-weight:700">${price}</span>
+      <div style="display:flex;align-items:center;gap:4px">
+        <span style="font-size:12px;line-height:1;flex-shrink:0">${emoji}</span>
+        <span style="font-size:11px;font-weight:700">${price}</span>
       </div>
       ${ppm ? `<span style="font-size:9px;color:${selected ? "rgba(255,255,255,0.85)" : color};margin-top:1px">${ppm}</span>` : ""}
     </div>`;

@@ -216,22 +216,34 @@ export async function POST(req: NextRequest) {
         let guard = 0;
 
         while (guard++ < 4) {
-          // Start a streaming call
-          const stream = anthropic.messages.stream({
-            model:    "claude-sonnet-4-6",
-            max_tokens: 1024,
-            system:   SYSTEM_PROMPT,
-            tools:    TOOLS,
-            messages: currentMsgs,
-          });
-
-          // Forward text deltas to the client in real-time
-          stream.on("text", (text) => {
-            controller.enqueue(send({ t: text }));
-          });
-
-          // Wait for the full message (needed to extract tool calls)
-          const finalMsg = await stream.finalMessage();
+          // ── Streaming call with retry for overloaded / 529 errors ──────────
+          let finalMsg: Awaited<ReturnType<typeof stream.finalMessage>> | null = null;
+          let stream!: ReturnType<typeof anthropic.messages.stream>;
+          for (let attempt = 0; attempt < 3; attempt++) {
+            try {
+              stream = anthropic.messages.stream({
+                model:      "claude-sonnet-4-6",
+                max_tokens: 1024,
+                system:     SYSTEM_PROMPT,
+                tools:      TOOLS,
+                messages:   currentMsgs,
+              });
+              stream.on("text", (text: string) => { controller.enqueue(send({ t: text })); });
+              finalMsg = await stream.finalMessage();
+              break; // success — exit retry loop
+            } catch (e: unknown) {
+              const msg   = String(e);
+              const is529 = msg.includes("overloaded") || msg.includes("529")
+                         || (e as { status?: number })?.status === 529;
+              if (is529 && attempt < 2) {
+                // Exponential back-off: 1 s, then 2.5 s
+                await new Promise(r => setTimeout(r, attempt === 0 ? 1000 : 2500));
+                continue;
+              }
+              throw e; // non-retryable or max retries reached
+            }
+          }
+          if (!finalMsg) break;
 
           if (finalMsg.stop_reason !== "tool_use") {
             // No more tool calls — we're done
@@ -240,7 +252,7 @@ export async function POST(req: NextRequest) {
 
           // ── Tool call: execute search, then continue ────────────────────
           const tb = finalMsg.content.find(
-            (b): b is Anthropic.ToolUseBlock => b.type === "tool_use"
+            (b: Anthropic.ContentBlock): b is Anthropic.ToolUseBlock => b.type === "tool_use"
           );
           if (!tb) break;
 
