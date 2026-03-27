@@ -799,11 +799,14 @@ function PropertyListingCard({
   }
 
   // ── Fixed card dimensions ─────────────────────────────────────────────────
-  // IMAGE_H + DETAILS_H = CARD_H. All cards are exactly this tall — no flex
-  // stretching, no aspect-ratio, no layout shift when images load or error.
-  const IMAGE_H   = 140;
-  const DETAILS_H = 84;
-  const CARD_H    = IMAGE_H + DETAILS_H; // 224 px
+  // Target: 3 wide × 2 rows visible without scrolling (≈ 900 px viewport).
+  // Available height ≈ 900 - 56 header - 44 sub-header - 16 pad-top - 40 pad-bottom
+  //                  = ~744 px  →  2 rows + 10 px gap = (744-10)/2 = 367 px max.
+  // We use 280 px so the first 2 rows show clearly and the 3rd peeks ~10 px,
+  // giving a natural scroll hint.
+  const IMAGE_H   = 172;   // comfortable 16:9-ish photo crop
+  const DETAILS_H = 108;   // enough room for title, location, specs, agent
+  const CARD_H    = IMAGE_H + DETAILS_H; // 280 px
 
   return (
     <div
@@ -958,10 +961,10 @@ function PropertyListingCard({
         )}
       </div>
 
-      {/* ── Details — fixed 84 px, no overflow ── */}
+      {/* ── Details — fixed DETAILS_H px, no overflow ── */}
       <div style={{
         height: DETAILS_H, flexShrink: 0,
-        padding: "7px 8px 6px",
+        padding: "8px 10px 8px",
         display: "flex", flexDirection: "column",
         overflow: "hidden",
         background: "white",
@@ -974,34 +977,35 @@ function PropertyListingCard({
         )}
 
         {/* Title */}
-        <p style={{ fontSize: 10, fontWeight: 700, color: "#0f172a", lineHeight: 1.3,
-          overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical" }}>
+        <p style={{ fontSize: 11, fontWeight: 700, color: "#0f172a", lineHeight: 1.35, margin: 0,
+          overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
           {p.title}
         </p>
 
         {/* Location */}
-        <p style={{ fontSize: 9, color: "#94a3b8", marginTop: 2, lineHeight: 1.2,
+        <p style={{ fontSize: 10, color: "#94a3b8", marginTop: 3, lineHeight: 1.2,
           overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>
           📍 {[p.neighbourhood, p.city].filter(Boolean).join(", ")}
         </p>
 
         {/* Specs */}
-        <div style={{ display: "flex", gap: 6, marginTop: 4, flexWrap: "wrap", overflow: "hidden", maxHeight: 14 }}>
-          {isResidential && p.bedrooms  > 0 && <span style={{ fontSize: 9, color: "#475569" }}>🛏 {p.bedrooms}</span>}
-          {isResidential && p.bathrooms > 0 && <span style={{ fontSize: 9, color: "#475569" }}>🚿 {p.bathrooms}</span>}
-          {p.area_sqm                         && <span style={{ fontSize: 9, color: "#475569" }}>📐 {p.area_sqm} m²</span>}
+        <div style={{ display: "flex", gap: 8, marginTop: 5, flexWrap: "wrap", overflow: "hidden" }}>
+          {isResidential && p.bedrooms  > 0 && <span style={{ fontSize: 10, color: "#475569" }}>🛏 {p.bedrooms} Bd</span>}
+          {isResidential && p.bathrooms > 0 && <span style={{ fontSize: 10, color: "#475569" }}>🚿 {p.bathrooms} Ba</span>}
+          {p.area_sqm                         && <span style={{ fontSize: 10, color: "#475569" }}>📐 {p.area_sqm} m²</span>}
         </div>
 
         {/* Agent — pushed to bottom */}
-        <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: "auto", paddingTop: 3 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: "auto", paddingTop: 4,
+          borderTop: "1px solid #f1f5f9" }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={getAgentAvatar(p.agent_name || "Habino Team")}
             alt=""
-            style={{ width: 14, height: 14, borderRadius: "50%", objectFit: "cover", flexShrink: 0, border: "1px solid #e2e8f0" }}
+            style={{ width: 18, height: 18, borderRadius: "50%", objectFit: "cover", flexShrink: 0, border: "1.5px solid #e2e8f0" }}
             onError={() => {}}
           />
-          <span style={{ fontSize: 9, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 500 }}>
+          <span style={{ fontSize: 10, color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 500 }}>
             {p.agent_name || "Habino Team"}
           </span>
         </div>
