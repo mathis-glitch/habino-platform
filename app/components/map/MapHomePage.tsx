@@ -394,64 +394,32 @@ function fmtFull(price: number, currency: string) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 0 }).format(price);
 }
 
-// ── Placeholder images per property type (Unsplash, consistent per listing ID) ─
+// ── Placeholder images — Lorem Picsum (deterministic, 100 % reliable) ─────────
+// picsum.photos/seed/{n}/800/500 always resolves, never rate-limits, never 404s.
+// We use three independent hash offsets so each property gets three distinct photos.
 import { TYPE_COLORS, TYPE_LABELS } from "./LeafletMap";
 
-const PROPERTY_IMAGES: Record<string, string[]> = {
-  apartment:  [
-    "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&q=80&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1484154218962-a197022b5858?w=800&q=80&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&q=80&fit=crop&auto=format",
-  ],
-  house: [
-    "https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=800&q=80&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&q=80&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1449844908441-8d1a1ee1f31b?w=800&q=80&fit=crop&auto=format",
-  ],
-  villa: [
-    "https://images.unsplash.com/photo-1613977257363-707ba9348227?w=800&q=80&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&q=80&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80&fit=crop&auto=format",
-  ],
-  office: [
-    "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=800&q=80&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1524758631624-e2822132143c?w=800&q=80&fit=crop&auto=format",
-  ],
-  commercial: [
-    "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&q=80&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=800&q=80&fit=crop&auto=format",
-  ],
-  land: [
-    "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80&fit=crop&auto=format",
-  ],
-  plot: [
-    "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80&fit=crop&auto=format",
-  ],
-  hall: [
-    "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=800&q=80&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=800&q=80&fit=crop&auto=format",
-  ],
-  production: [
-    "https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=800&q=80&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=800&q=80&fit=crop&auto=format",
-  ],
-};
-
-/** Returns up to 3 deterministic placeholder images for this property (for carousel). */
+/** Always returns exactly 3 deterministic placeholder URLs for this property. */
 function getPropertyImages(property: PropertyWithCoords): string[] {
+  // Prefer real images from the database if present
   const realImgs = (property as Property & { images?: { url: string }[] }).images
     ?.map(i => i.url).filter(Boolean) ?? [];
   if (realImgs.length >= 1) return realImgs.slice(0, 3);
-  const pool = PROPERTY_IMAGES[property.property_type] ?? PROPERTY_IMAGES.apartment;
-  let h = 0;
-  for (const c of property.id) h = (h * 31 + c.charCodeAt(0)) & 0xfffff;
-  const start = Math.abs(h) % pool.length;
-  const count = Math.min(3, pool.length);
-  return Array.from({ length: count }, (_, i) => pool[(start + i) % pool.length]);
+
+  // Derive a stable integer hash from the property ID
+  let h = 5381;
+  for (const c of property.id) h = ((h << 5) + h + c.charCodeAt(0)) & 0x7fffffff;
+
+  // Three independent seeds → three distinct Picsum photos, always available
+  const seed1 = (Math.abs(h)              % 1000) + 1;
+  const seed2 = (Math.abs(h * 6364136223) % 1000) + 1;
+  const seed3 = (Math.abs(h * 1664525)    % 1000) + 1;
+
+  return [
+    `https://picsum.photos/seed/${seed1}/800/500`,
+    `https://picsum.photos/seed/${seed2}/800/500`,
+    `https://picsum.photos/seed/${seed3}/800/500`,
+  ];
 }
 
 function getPropertyImage(property: PropertyWithCoords): string {
@@ -839,8 +807,11 @@ function PropertyListingCard({
         background: "#f1f5f9",
       }}>
         {!imgErr ? (
+          // key forces a fresh <img> element on every photo change so that
+          // a previously-fired onError can never bleed into the next photo.
           // eslint-disable-next-line @next/next/no-img-element
           <img
+            key={photos[photoIdx]}
             src={photos[photoIdx] ?? photos[0]}
             alt=""
             style={{
@@ -848,7 +819,6 @@ function PropertyListingCard({
               height: "100%",
               objectFit: "cover",
               display: "block",
-              transition: "transform 0.3s",
             }}
             onError={() => setImgErr(true)}
           />
