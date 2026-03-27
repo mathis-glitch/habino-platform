@@ -90,28 +90,59 @@ function makePinIcon(p: PropertyWithCoords, selected: boolean, dimmed: boolean):
 
   const bg     = selected ? color : "#ffffff";
   const fg     = selected ? "#ffffff" : "#111827";
-  const border = `2px solid ${color}`;
-  const shadow = selected
-    ? `0 4px 20px ${color}55`
-    : "0 2px 10px rgba(0,0,0,0.13)";
-  const scale   = selected ? "scale(1.15)" : dimmed ? "scale(0.82)" : "scale(1)";
+  const scale  = selected ? "scale(1.72)" : dimmed ? "scale(0.82)" : "scale(1)";
   const opacity = dimmed ? "0.22" : "1";
 
-  const html = `
+  // Selected: prominent ring + deep glow. Normal: subtle drop-shadow.
+  const shadow = selected
+    ? `0 0 0 3px white, 0 0 0 6px ${color}, 0 8px 32px ${color}99`
+    : "0 2px 10px rgba(0,0,0,0.13)";
+  const border = selected ? `2.5px solid ${color}` : `2px solid ${color}`;
+
+  // Pulse ring only on selected (CSS animation injected inline via a wrapping div)
+  const pulseStyle = selected ? `
+    position:relative;
+    --pulse-color:${color};
+  ` : "";
+
+  // The pulse keyframe is injected once globally in globals.css (or we use a
+  // data-URI style tag). We use a ::before pseudo via a class instead — but
+  // since divIcon HTML doesn't support <style> inheritance well, we draw the
+  // ring as an absolutely-positioned sibling div and animate via inline style.
+  const ringHtml = selected ? `
     <div style="
-      background:${bg}; color:${fg}; border:${border};
-      border-radius:999px; padding:4px 10px 4px 7px;
-      font-family:system-ui,sans-serif;
-      box-shadow:${shadow}; cursor:pointer;
-      transform:${scale}; opacity:${opacity}; transition:all .2s;
-      display:inline-flex; flex-direction:column; align-items:center;
-      white-space:nowrap; line-height:1.3;
-    ">
-      <div style="display:flex;align-items:center;gap:4px">
-        <span style="font-size:12px;line-height:1;flex-shrink:0">${emoji}</span>
-        <span style="font-size:11px;font-weight:700">${price}</span>
+      position:absolute; inset:-9px; border-radius:999px;
+      border:3px solid ${color}; opacity:0;
+      animation:pinPulse 1.8s ease-out infinite;
+      pointer-events:none;
+    "></div>
+    <style>
+      @keyframes pinPulse {
+        0%   { transform:scale(0.85); opacity:0.7; }
+        100% { transform:scale(1.6);  opacity:0;   }
+      }
+    </style>
+  ` : "";
+
+  const html = `
+    <div style="position:relative;display:inline-block;${pulseStyle}">
+      ${ringHtml}
+      <div style="
+        background:${bg}; color:${fg}; border:${border};
+        border-radius:999px; padding:4px 10px 4px 7px;
+        font-family:system-ui,sans-serif;
+        box-shadow:${shadow}; cursor:pointer;
+        transform:${scale}; opacity:${opacity}; transition:transform .2s,box-shadow .2s;
+        display:inline-flex; flex-direction:column; align-items:center;
+        white-space:nowrap; line-height:1.3;
+        position:relative; z-index:1;
+      ">
+        <div style="display:flex;align-items:center;gap:4px">
+          <span style="font-size:12px;line-height:1;flex-shrink:0">${emoji}</span>
+          <span style="font-size:11px;font-weight:700">${price}</span>
+        </div>
+        ${ppm ? `<span style="font-size:9px;color:${selected ? "rgba(255,255,255,0.85)" : color};margin-top:1px">${ppm}</span>` : ""}
       </div>
-      ${ppm ? `<span style="font-size:9px;color:${selected ? "rgba(255,255,255,0.85)" : color};margin-top:1px">${ppm}</span>` : ""}
     </div>`;
 
   return L.divIcon({ className: "", html, iconSize: undefined, iconAnchor: undefined });
@@ -198,6 +229,41 @@ export type NeighbourhoodLabel = { name: string; lat: number; lng: number };
 /** Pixel position within the map container — used to anchor the popup card. */
 export type PinClickPosition = { x: number; y: number };
 
+/**
+ * Geographic bounding box that constrains panning/zooming.
+ * Format: [[southLat, westLng], [northLat, eastLng]]
+ */
+export type CityBounds = [[number, number], [number, number]];
+
+// ── Enforce city-level bounds dynamically ─────────────────────────────────────
+// MapContainer.maxBounds is read-only after mount, so we update it imperatively
+// via map.setMaxBounds() inside a child component whenever the prop changes.
+function BoundsEnforcer({
+  bounds,
+  minZoom,
+}: {
+  bounds?: CityBounds;
+  minZoom?: number;
+}) {
+  const map = useMap();
+  useEffect(() => {
+    if (bounds) {
+      map.setMaxBounds(bounds);
+      // viscosity 1.0 = hard wall (no rubber-band spring effect)
+      map.options.maxBoundsViscosity = 1.0;
+    } else {
+      // No bounds: allow free panning worldwide
+      map.setMaxBounds(L.latLngBounds(L.latLng(-90, -180), L.latLng(90, 180)));
+    }
+    if (minZoom !== undefined) {
+      map.setMinZoom(minZoom);
+      // If already zoomed out further than the new minimum, snap back
+      if (map.getZoom() < minZoom) map.setZoom(minZoom);
+    }
+  }, [map, bounds, minZoom]);
+  return null;
+}
+
 interface LeafletMapProps {
   center:               [number, number];
   zoom?:                number;
@@ -212,14 +278,20 @@ interface LeafletMapProps {
   onCityClick?:         (c: CityCluster) => void;
   /** Neighbourhood name labels shown on the map at city zoom levels */
   neighbourhoodLabels?: NeighbourhoodLabel[];
+  /** If set, restricts panning/zooming to this geographic bounding box. */
+  cityBounds?:          CityBounds;
+  /** Minimum zoom level — prevents zooming out beyond city scale. */
+  cityMinZoom?:         number;
 }
 
 export default function LeafletMap({
   center, zoom = 5, properties, selectedId, highlightedIds, onSelect, onBoundsChange,
   cityClusters, currentZoom = zoom, onCityClick, neighbourhoodLabels,
+  cityBounds, cityMinZoom,
 }: LeafletMapProps) {
   const hasHighlight = highlightedIds && highlightedIds.length > 0;
   const highlightSet = hasHighlight ? new Set(highlightedIds) : null;
+  const hasSelection = !!selectedId;
   const showClusters = currentZoom < CLUSTER_ZOOM;
 
   // The outer div provides a positioned block for the MapContainer to fill.
@@ -249,6 +321,7 @@ export default function LeafletMap({
       <MapFlyTo center={center} zoom={zoom} />
       <MapResizer />
       <ScaleControl />
+      <BoundsEnforcer bounds={cityBounds} minZoom={cityMinZoom} />
       {onBoundsChange && <BoundsWatcher onBoundsChange={onBoundsChange} />}
 
       {/* ── City cluster layer (zoom < CLUSTER_ZOOM) ──────────────────────── */}
@@ -297,6 +370,8 @@ export default function LeafletMap({
         const selected    = p.id === selectedId;
         const highlighted = highlightSet?.has(p.id) ?? false;
         const dimmed      = !selected && !!highlightSet && !highlighted;
+        // When any pin is selected, all non-selected pins turn neutral gray
+        const grayedOut   = !selected && hasSelection;
         const color       = TYPE_COLORS[p.property_type] ?? "#3B82F6";
 
         if (selected) {
@@ -328,8 +403,8 @@ export default function LeafletMap({
             pathOptions={{
               color:       "white",
               weight:      1.5,
-              fillColor:   color,
-              fillOpacity: dimmed ? 0.25 : 0.85,
+              fillColor:   grayedOut ? "#94a3b8" : color,
+              fillOpacity: dimmed ? 0.25 : grayedOut ? 0.35 : 0.85,
             }}
             eventHandlers={{
               click: (e: L.LeafletMouseEvent) => {

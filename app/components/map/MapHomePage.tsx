@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { useCallback, useState, useEffect } from "react";
 import Link from "next/link";
 import type { Property } from "@/lib/types";
-import type { PropertyWithCoords, NeighbourhoodLabel, PinClickPosition } from "./LeafletMap";
+import type { PropertyWithCoords, NeighbourhoodLabel, PinClickPosition, CityBounds } from "./LeafletMap";
 import { AIChatPage } from "@/app/components/chat/AIChatPage";
 
 // Load Leaflet map client-side only (no SSR)
@@ -16,6 +16,24 @@ const LeafletMap = dynamic(() => import("./LeafletMap"), {
 // ── Addis Ababa default center ────────────────────────────────────────────────
 export const ADDIS_CENTER: [number, number] = [9.0192, 38.7525];
 export const ADDIS_ZOOM = 13;
+
+// ── Per-city map config — add a new entry as the platform expands ─────────────
+// bounds format: [[southLat, westLng], [northLat, eastLng]]
+export const CITY_CONFIG: Record<string, {
+  center:  [number, number];
+  zoom:    number;
+  bounds:  CityBounds;
+  minZoom: number;
+}> = {
+  "Addis Ababa": {
+    center:  [9.0192, 38.7525],
+    zoom:    13,
+    bounds:  [[8.82, 38.60], [9.15, 38.95]],
+    minZoom: 11,
+  },
+  // Add more cities here, e.g.:
+  // "Nairobi": { center: [-1.2921, 36.8219], zoom: 13, bounds: [[-1.45, 36.65], [-1.13, 37.00]], minZoom: 11 },
+};
 
 // ── Demo pins — ~100 listings spread across all Addis Ababa neighbourhoods ────
 // type DemoRow = [id, title, listing_type, property_type, price, bdr, bath, sqm, neighbourhood, lat, lng]
@@ -394,6 +412,31 @@ function fmtFull(price: number, currency: string) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 0 }).format(price);
 }
 
+// ── Currency conversion ────────────────────────────────────────────────────────
+// Approximate indicative rates (demo). In production, fetch from a live FX feed.
+// 1 USD ≈ 130 ETB  |  1 EUR ≈ 140 ETB
+export const SUPPORTED_CURRENCIES = ["ETB", "USD", "EUR"] as const;
+export type DisplayCurrency = typeof SUPPORTED_CURRENCIES[number];
+
+const FX: Record<string, Record<string, number>> = {
+  ETB: { ETB: 1,       USD: 1 / 130,  EUR: 1 / 140  },
+  USD: { ETB: 130,     USD: 1,        EUR: 130 / 140 },
+  EUR: { ETB: 140,     USD: 140 / 130, EUR: 1        },
+};
+
+function convertPrice(price: number, from: string, to: string): number {
+  const rate = FX[from]?.[to] ?? 1;
+  return Math.round(price * rate);
+}
+
+/** Convert + format a price into the chosen display currency. */
+function fmtConverted(price: number, fromCurrency: string, displayCurrency: string): string {
+  const converted = convertPrice(price, fromCurrency, displayCurrency);
+  return new Intl.NumberFormat("en-US", {
+    style: "currency", currency: displayCurrency, maximumFractionDigits: 0,
+  }).format(converted);
+}
+
 // ── Placeholder images — Lorem Picsum (deterministic, 100 % reliable) ─────────
 // picsum.photos/seed/{n}/800/500 always resolves, never rate-limits, never 404s.
 // We use three independent hash offsets so each property gets three distinct photos.
@@ -435,20 +478,22 @@ function PropertyDetailPanel({
   property,
   onClose,
   allProperties,
+  displayCurrency = "ETB",
 }: {
   property: PropertyWithCoords;
   onClose: () => void;
   allProperties: PropertyWithCoords[];
+  displayCurrency?: string;
 }) {
   const [photoIdx,  setPhotoIdx]  = useState(0);
   const [imgErr,    setImgErr]    = useState(false);
 
   const color     = TYPE_COLORS[property.property_type] || "#6B7280";
   const typeLabel = TYPE_LABELS[property.property_type] || property.property_type;
-  const priceFmt  = fmtFull(property.price, property.currency);
+  const priceFmt  = fmtConverted(property.price, property.currency, displayCurrency);
   const isRent    = property.listing_type === "rent";
   const ppm       = property.area_sqm && property.area_sqm > 0
-    ? fmtFull(Math.round(property.price / property.area_sqm), property.currency) + "/m²"
+    ? fmtConverted(Math.round(property.price / property.area_sqm), property.currency, displayCurrency) + "/m²"
     : null;
   const isResidential = ["apartment","house","villa"].includes(property.property_type);
 
@@ -677,60 +722,181 @@ function PropertyDetailPanel({
 
 // ── Habino control-centre panel ───────────────────────────────────────────────
 function HabinoPanel({ onClose }: { onClose: () => void }) {
-  const items = [
-    { href: "/profile",  icon: "👤", label: "My Profile" },
-    { href: "/home",     icon: "📄", label: "My Contracts" },
-    { href: "/saved",    icon: "🔖", label: "Saved Listings" },
-    { href: "/listings", icon: "🏠", label: "My Listings" },
+  const sections: Array<{
+    title: string;
+    items: Array<{ href: string; icon: string; label: string; badge?: string }>;
+  }> = [
+    {
+      title: "My Account",
+      items: [
+        { href: "/profile",  icon: "👤", label: "My Profile" },
+        { href: "/home",     icon: "📄", label: "My Contracts" },
+        { href: "/saved",    icon: "🔖", label: "Saved Listings" },
+        { href: "/listings", icon: "🏠", label: "My Listings" },
+      ],
+    },
+    {
+      title: "Settings",
+      items: [
+        { href: "/settings",               icon: "⚙️",  label: "Account Settings" },
+        { href: "/settings/notifications",  icon: "🔔",  label: "Notifications" },
+        { href: "/settings/language",       icon: "🌐",  label: "Language & Region" },
+      ],
+    },
+    {
+      title: "Help & Legal",
+      items: [
+        { href: "/help",     icon: "💬", label: "Help Center" },
+        { href: "/privacy",  icon: "🔒", label: "Privacy Policy" },
+        { href: "/security", icon: "🛡️", label: "Data Security" },
+        { href: "/terms",    icon: "📋", label: "Terms of Use" },
+        { href: "/imprint",  icon: "ℹ️",  label: "Imprint" },
+      ],
+    },
   ];
-  return (
-    <div
-      className="fixed z-[200] overflow-hidden"
-      style={{
-        left: "16px",
-        top: "16px",
-        width: "clamp(220px, 18vw, 280px)",
-        background: "rgba(255,255,255,0.88)",
-        backdropFilter: "blur(24px) saturate(1.6)",
-        WebkitBackdropFilter: "blur(24px) saturate(1.6)",
-        borderRadius: "20px",
-        boxShadow: "0 8px 40px rgba(0,0,0,0.12), 0 1px 0 rgba(255,255,255,0.8) inset",
-        border: "1px solid rgba(255,255,255,0.55)",
-      }}>
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100/60">
-        <span className="text-sm font-bold text-slate-800">Habino</span>
-        <button
-          onClick={onClose}
-          className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition-colors">
-          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-      {/* Nav items */}
-      <nav className="p-2 flex flex-col gap-1">
-        {items.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 hover:bg-white/70 hover:text-slate-900 transition-all">
-            <span className="text-base">{item.icon}</span>
-            {item.label}
-          </Link>
-        ))}
-      </nav>
+
+  const menuRow = (icon: string, label: string, chevron = true, color = "#1e293b") => (
+    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 10px", borderRadius: 12, cursor: "pointer", transition: "background .1s", color }}>
+      <span style={{
+        width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+        background: color === "#ef4444" ? "#fef2f2" : "#f8fafc",
+        display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16,
+      }}>{icon}</span>
+      <span style={{ fontSize: 13, fontWeight: 500, flex: 1 }}>{label}</span>
+      {chevron && (
+        <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" style={{ color: "#cbd5e1", flexShrink: 0 }}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+        </svg>
+      )}
     </div>
+  );
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(15,23,42,0.35)", backdropFilter: "blur(3px)" }}
+        onClick={onClose}
+      />
+      {/* Drawer — slides in from right */}
+      <div className="detail-panel-enter" style={{
+        position: "fixed", right: 0, top: 0, bottom: 0, zIndex: 201,
+        width: 340, background: "white",
+        boxShadow: "-8px 0 48px rgba(0,0,0,0.14)",
+        display: "flex", flexDirection: "column",
+        overflowY: "auto",
+      }}>
+
+        {/* ── Top: logo + close ── */}
+        <div style={{ padding: "18px 18px 14px", borderBottom: "1px solid #f1f5f9", flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+            <span style={{ fontSize: 18, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.03em" }}>Habino</span>
+            <button
+              onClick={onClose}
+              style={{
+                width: 30, height: 30, borderRadius: 99, background: "#f1f5f9",
+                border: "none", cursor: "pointer", fontSize: 14, color: "#64748b",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+            >✕</button>
+          </div>
+
+          {/* Guest / user card */}
+          <div style={{
+            display: "flex", alignItems: "center", gap: 12,
+            padding: "12px 14px", borderRadius: 14,
+            background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
+            border: "1px solid #e2e8f0",
+          }}>
+            <div style={{
+              width: 46, height: 46, borderRadius: 14, flexShrink: 0,
+              background: "linear-gradient(135deg, var(--color-primary), var(--color-secondary))",
+              display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22,
+            }}>👤</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#0f172a" }}>Guest User</p>
+              <p style={{ margin: 0, fontSize: 11, color: "#94a3b8" }}>Sign in to unlock all features</p>
+            </div>
+            <Link href="/auth/login" style={{
+              padding: "7px 13px", borderRadius: 9, fontSize: 11, fontWeight: 700,
+              background: "var(--color-primary)", color: "white", textDecoration: "none",
+              flexShrink: 0, whiteSpace: "nowrap",
+            }}>Sign in</Link>
+          </div>
+        </div>
+
+        {/* ── Sections ── */}
+        <div style={{ flex: 1, padding: "8px 10px" }}>
+          {sections.map((section, si) => (
+            <div key={section.title} style={{ marginBottom: si < sections.length - 1 ? 4 : 0 }}>
+              <p style={{
+                fontSize: 10, fontWeight: 700, color: "#cbd5e1",
+                textTransform: "uppercase", letterSpacing: "0.08em",
+                margin: "14px 0 4px 10px",
+              }}>{section.title}</p>
+              {section.items.map((item) => (
+                <Link key={item.href} href={item.href} style={{ textDecoration: "none" }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#f8fafc"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+                >
+                  {menuRow(item.icon, item.label)}
+                </Link>
+              ))}
+            </div>
+          ))}
+
+          {/* ── Divider ── */}
+          <div style={{ height: 1, background: "#f1f5f9", margin: "12px 0 4px" }} />
+
+          {/* ── Sign out ── */}
+          <button
+            style={{ width: "100%", background: "transparent", border: "none", padding: 0, cursor: "pointer", textAlign: "left" }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#fef2f2"; (e.currentTarget as HTMLElement).style.borderRadius = "12px"; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+          >
+            {menuRow("🚪", "Sign out", false, "#ef4444")}
+          </button>
+        </div>
+
+        {/* ── Footer: copyright + legal links ── */}
+        <div style={{
+          padding: "14px 18px 22px",
+          borderTop: "1px solid #f1f5f9", flexShrink: 0,
+          textAlign: "center",
+        }}>
+          <p style={{ margin: "0 0 4px", fontSize: 10, color: "#cbd5e1", fontWeight: 500 }}>
+            © {new Date().getFullYear()} Habino · All rights reserved
+          </p>
+          <p style={{ margin: 0, fontSize: 10, color: "#cbd5e1" }}>
+            {[
+              { href: "/privacy", label: "Privacy" },
+              { href: "/terms",   label: "Terms" },
+              { href: "/security",label: "Data Security" },
+              { href: "/imprint", label: "Imprint" },
+            ].map((l, i, arr) => (
+              <span key={l.href}>
+                <Link href={l.href} style={{ color: "#94a3b8", textDecoration: "none" }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = "#475569"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = "#94a3b8"; }}
+                >{l.label}</Link>
+                {i < arr.length - 1 && <span style={{ margin: "0 5px", color: "#e2e8f0" }}>·</span>}
+              </span>
+            ))}
+          </p>
+        </div>
+      </div>
+    </>
   );
 }
 
 // ── Property listing card (Airbnb-style: gallery, heart, emoji specs) ─────────
 function PropertyListingCard({
-  property, onSelect, highlighted,
+  property, onSelect, highlighted, displayCurrency = "ETB",
 }: {
   property: PropertyWithCoords;
   onSelect: () => void;
   highlighted: boolean;
+  displayCurrency?: string;
 }) {
   const [photoIdx, setPhotoIdx] = useState(0);
   const [imgErr,   setImgErr]   = useState(false);
@@ -751,9 +917,7 @@ function PropertyListingCard({
 
   const listingEmoji = isRent ? "🔑" : "🏷️";
 
-  const priceFmt = new Intl.NumberFormat("en-US", {
-    style: "currency", currency: p.currency, maximumFractionDigits: 0,
-  }).format(p.price);
+  const priceFmt = fmtConverted(p.price, p.currency, displayCurrency);
 
   function prevPhoto(e: React.MouseEvent) {
     e.stopPropagation();
@@ -991,17 +1155,18 @@ const POPUP_W = 240;
 const POPUP_H = 260; // approximate max height
 
 function MapPinPopup({
-  property, pos, allProperties, onClose,
+  property, pos, allProperties, onClose, displayCurrency = "ETB",
 }: {
   property: PropertyWithCoords;
   pos: PinClickPosition;
   allProperties: PropertyWithCoords[];
   onClose: () => void;
+  displayCurrency?: string;
 }) {
   const color     = TYPE_COLORS[property.property_type] || "#6B7280";
   const typeLabel = TYPE_LABELS[property.property_type]  || property.property_type;
   const isRent    = property.listing_type === "rent";
-  const priceFmt  = fmtFull(property.price, property.currency);
+  const priceFmt  = fmtConverted(property.price, property.currency, displayCurrency);
   const agentName = property.agent_name || "Habino Team";
 
   const [imgErr,    setImgErr]    = useState(false);
@@ -1521,10 +1686,11 @@ export function MapHomePage() {
   const [habinoOpen,     setHabinoOpen]     = useState(false);
   const [highlightedIds, setHighlightedIds] = useState<string[]>([]);
   const [isIdleState,    setIsIdleState]    = useState(true);
-  const [marketContext,  setMarketContext]  = useState<{ city: string; country: string; currency: string } | null>(null);
-  const [mapCenter,      setMapCenter]      = useState<[number, number]>(ADDIS_CENTER);
-  const [mapZoom,        setMapZoom]        = useState(ADDIS_ZOOM);
-  const [hoveredId,      setHoveredId]      = useState<string | null>(null);
+  const [marketContext,    setMarketContext]    = useState<{ city: string; country: string; currency: string } | null>(null);
+  const [mapCenter,        setMapCenter]        = useState<[number, number]>(ADDIS_CENTER);
+  const [mapZoom,          setMapZoom]          = useState(ADDIS_ZOOM);
+  const [hoveredId,        setHoveredId]        = useState<string | null>(null);
+  const [displayCurrency,  setDisplayCurrency]  = useState<DisplayCurrency>("ETB");
 
   const HEADER_H = 56;
   const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
@@ -1557,6 +1723,17 @@ export function MapHomePage() {
 
   const handleViewSuggested = useCallback((_view: "listings" | "map" | "data") => {
     setAiDrawerOpen(false);
+  }, []);
+
+  const handleReset = useCallback(() => {
+    setProperties(ALL_DEMO_PINS);
+    setIsIdleState(true);
+    setHighlightedIds([]);
+    setMarketContext(null);
+    setSelected(null);
+    setSelectedPos(null);
+    setMapCenter(ADDIS_CENTER);
+    setMapZoom(ADDIS_ZOOM);
   }, []);
 
   // ── MOBILE: full-screen AI overlay ────────────────────────────────────────
@@ -1619,7 +1796,7 @@ export function MapHomePage() {
           <div style={{
             padding: "4px 14px", borderRadius: 99, fontSize: 12, fontWeight: 700,
             background: "var(--color-primary)", color: "white", flexShrink: 0,
-          }}>✦ Ask AI</div>
+          }}>✦ Ask Habino</div>
         </button>
 
         <div style={{ flex: 1 }} />
@@ -1665,10 +1842,57 @@ export function MapHomePage() {
                 {marketContext && (
                   <span style={{ fontSize: 12, color: "#94a3b8" }}>in {marketContext.city}</span>
                 )}
+                {/* Reset button — returns to default idle view */}
+                <button
+                  onClick={handleReset}
+                  title="Reset to default view"
+                  style={{
+                    display: "flex", alignItems: "center", gap: 5,
+                    padding: "3px 10px 3px 7px", borderRadius: 99,
+                    border: "1px solid #e2e8f0", background: "white",
+                    fontSize: 11, fontWeight: 600, color: "#64748b",
+                    cursor: "pointer", transition: "all .12s",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+                  }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLElement).style.background = "#fef2f2";
+                    (e.currentTarget as HTMLElement).style.borderColor = "#fca5a5";
+                    (e.currentTarget as HTMLElement).style.color = "#ef4444";
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLElement).style.background = "white";
+                    (e.currentTarget as HTMLElement).style.borderColor = "#e2e8f0";
+                    (e.currentTarget as HTMLElement).style.color = "#64748b";
+                  }}
+                >
+                  <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Reset
+                </button>
               </>
             ) : (
               <span style={{ fontSize: 12, color: "#94a3b8" }}>Browse properties in Addis Ababa</span>
             )}
+
+            {/* ── Currency switcher ── */}
+            <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 2, background: "#f1f5f9", borderRadius: 8, padding: 2 }}>
+              {SUPPORTED_CURRENCIES.map(cur => (
+                <button
+                  key={cur}
+                  onClick={() => setDisplayCurrency(cur)}
+                  style={{
+                    padding: "3px 9px", borderRadius: 6, fontSize: 11, fontWeight: 700,
+                    border: "none", cursor: "pointer", transition: "all .12s",
+                    background: displayCurrency === cur ? "white" : "transparent",
+                    color: displayCurrency === cur ? "#0f172a" : "#94a3b8",
+                    boxShadow: displayCurrency === cur ? "0 1px 3px rgba(0,0,0,0.10)" : "none",
+                  }}
+                >
+                  {cur}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Grid */}
@@ -1700,6 +1924,7 @@ export function MapHomePage() {
                       <PropertyListingCard
                         property={p}
                         highlighted={highlightedIds.includes(p.id) || hoveredId === p.id}
+                        displayCurrency={displayCurrency}
                         onSelect={() => {
                           setSelected(p);
                           // For list-card clicks, anchor popup to map center-right
@@ -1756,6 +1981,8 @@ export function MapHomePage() {
             currentZoom={mapZoom}
             onCityClick={() => {}}
             neighbourhoodLabels={NEIGHBOURHOOD_LABELS}
+            cityBounds={CITY_CONFIG["Addis Ababa"]?.bounds}
+            cityMinZoom={CITY_CONFIG["Addis Ababa"]?.minZoom}
           />
 
           {/* ── Compact popup — appears next to the clicked pin ── */}
@@ -1765,6 +1992,7 @@ export function MapHomePage() {
               pos={selectedPos}
               allProperties={properties}
               onClose={() => { setSelected(null); setSelectedPos(null); }}
+              displayCurrency={displayCurrency}
             />
           )}
         </div>
@@ -1800,7 +2028,7 @@ export function MapHomePage() {
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: 13, color: "white", fontWeight: 700,
               }}>✦</div>
-              <span style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>AI Property Search</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>Ask Habino, your AI Property Agent</span>
               <div style={{ flex: 1 }} />
               <button
                 onClick={() => setAiDrawerOpen(false)}
@@ -1839,7 +2067,7 @@ export function MapHomePage() {
         </button>
       )}
 
-      {/* Habino menu panel */}
+      {/* ── Habino menu — slides in from right ── */}
       {habinoOpen && <HabinoPanel onClose={() => setHabinoOpen(false)} />}
     </div>
   );

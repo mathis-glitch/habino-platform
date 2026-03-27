@@ -741,12 +741,12 @@ export function AIChatPage({
 
       {/* ── Sidebar welcome header — always visible ── */}
       {sidebarMode && (
-        <div className="shrink-0 border-b border-slate-100 bg-white px-4 pt-4 pb-3">
-          <div className="flex items-center gap-2 mb-3">
+        <div className="shrink-0 border-b border-slate-100 bg-white px-4 pt-3 pb-3">
+          <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold shadow-sm shrink-0"
               style={{ background: "linear-gradient(135deg, var(--color-primary), var(--color-secondary))" }}>✦</div>
             <div>
-              <p className="text-sm font-bold text-slate-900 leading-tight">Find your property in Addis</p>
+              <p className="text-sm font-bold text-slate-900 leading-tight">Ask Habino</p>
               <p className="text-[11px] text-slate-400">Describe what you need — I&apos;ll find it on the map.</p>
             </div>
             {userLocation && (
@@ -759,60 +759,11 @@ export function AIChatPage({
               </div>
             )}
           </div>
-          {/* Suggestion chips — grouped by intent */}
-          <div className="flex flex-col gap-2.5">
-            {(["Find", "List & Edit"] as const).map((group) => {
-              const chips = suggestions.filter((s) => (s as { group?: string }).group === group);
-              if (!chips.length) return null;
-              const isListEdit = group === "List & Edit";
-              return (
-                <div key={group}>
-                  <p className="text-[9px] font-bold uppercase tracking-widest mb-1.5 px-0.5"
-                    style={{ color: isListEdit ? "#a5b4fc" : "#cbd5e1" }}>{group}</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {chips.map((s) => (
-                      <button key={s.text} onClick={() => sendMessage(s.text)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all text-xs font-medium whitespace-nowrap"
-                        style={isListEdit ? {
-                          borderColor: "#e0e7ff",
-                          backgroundColor: "#eef2ff",
-                          color: "#4f46e5",
-                        } : {
-                          borderColor: "#e2e8f0",
-                          backgroundColor: "#f8fafc",
-                          color: "#475569",
-                        }}
-                        onMouseEnter={e => {
-                          if (isListEdit) {
-                            (e.currentTarget as HTMLElement).style.backgroundColor = "#e0e7ff";
-                          } else {
-                            (e.currentTarget as HTMLElement).style.backgroundColor = "#ffffff";
-                            (e.currentTarget as HTMLElement).style.borderColor = "#cbd5e1";
-                          }
-                        }}
-                        onMouseLeave={e => {
-                          if (isListEdit) {
-                            (e.currentTarget as HTMLElement).style.backgroundColor = "#eef2ff";
-                          } else {
-                            (e.currentTarget as HTMLElement).style.backgroundColor = "#f8fafc";
-                            (e.currentTarget as HTMLElement).style.borderColor = "#e2e8f0";
-                          }
-                        }}
-                      >
-                        <span>{s.icon}</span>
-                        {s.text}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
         </div>
       )}
 
       {/* ── Input bar ── */}
-      <div className="shrink-0 border-b border-slate-200 bg-white w-full px-3 pt-3 pb-3" style={{ boxSizing: "border-box" }}>
+      <div className="shrink-0 bg-white w-full px-4 pt-3 pb-4" style={{ boxSizing: "border-box" }}>
           {/* Wizard progress bar */}
           {wizardState.step && (() => {
             const isProfile  = wizardState.step.startsWith("profile_");
@@ -853,30 +804,89 @@ export function AIChatPage({
             );
           })()}
 
-          <div className="flex items-end gap-2 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/10 transition-all shadow-sm w-full" style={{ boxSizing: "border-box" }}>
+          {/* ── Premium input field ── */}
+          <div
+            className="w-full transition-all duration-200"
+            style={{
+              background: "white",
+              border: "1.5px solid #e2e8f0",
+              borderRadius: 16,
+              boxShadow: "0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)",
+              boxSizing: "border-box",
+            }}
+            onFocus={() => {}}
+          >
             <textarea
               ref={inputRef}
               value={input}
               onChange={(e) => { setInput(e.target.value); autoResize(e.target); }}
               onKeyDown={handleKeyDown}
-              placeholder="What are you looking for? e.g. 3-bed apartment in Bole…"
+              onFocus={e => {
+                const parent = e.currentTarget.parentElement;
+                if (parent) {
+                  parent.style.borderColor = "var(--color-primary)";
+                  parent.style.boxShadow = "0 0 0 3px color-mix(in srgb, var(--color-primary) 12%, transparent), 0 2px 12px rgba(0,0,0,0.08)";
+                }
+              }}
+              onBlur={e => {
+                const parent = e.currentTarget.parentElement;
+                if (parent) {
+                  parent.style.borderColor = "#e2e8f0";
+                  parent.style.boxShadow = "0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)";
+                }
+              }}
+              placeholder={sidebarMode ? "e.g. 2-bed apartment in Bole under 40k…" : "What are you looking for? e.g. 3-bed apartment in Bole…"}
               rows={sidebarMode ? 3 : 2}
-              className="flex-1 min-w-0 bg-transparent text-sm text-slate-800 placeholder-slate-400 focus:outline-none leading-relaxed"
-              style={{ minHeight: sidebarMode ? 64 : 40, maxHeight: 160, resize: "none", width: "100%" }}
+              className="flex-1 min-w-0 bg-transparent text-sm text-slate-800 placeholder-slate-400 focus:outline-none leading-relaxed w-full"
+              style={{
+                minHeight: sidebarMode ? 72 : 40,
+                maxHeight: 160,
+                resize: "none",
+                width: "100%",
+                padding: "14px 16px 10px",
+                boxSizing: "border-box",
+                display: "block",
+                fontFamily: "inherit",
+              }}
             />
-            <div className="flex items-center gap-1 shrink-0">
-              <MicButton onResult={onVoiceResult} lang={voiceLang.code} size="sm" />
-              <button onClick={() => sendMessage()} disabled={!input.trim() || loading}
-                className="w-9 h-9 rounded-xl flex items-center justify-center transition-all disabled:opacity-30 hover:opacity-90 active:scale-95 shadow-sm"
-                style={{ backgroundColor: "var(--color-primary)" }}>
-                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
-              </button>
+            <div style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              padding: "8px 10px 10px 12px",
+              borderTop: "1px solid #f1f5f9",
+            }}>
+              <span style={{ fontSize: 11, color: "#cbd5e1", fontWeight: 500 }}>
+                {sidebarMode ? "Enter ↵ to send" : "Enter to send · 🎤 Voice"}
+              </span>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <MicButton onResult={onVoiceResult} lang={voiceLang.code} size="sm" />
+                <button
+                  onClick={() => sendMessage()}
+                  disabled={!input.trim() || loading}
+                  style={{
+                    height: 34, paddingLeft: 14, paddingRight: 14,
+                    borderRadius: 10, border: "none", cursor: "pointer",
+                    backgroundColor: "var(--color-primary)", color: "white",
+                    fontSize: 12, fontWeight: 700, letterSpacing: "0.01em",
+                    display: "flex", alignItems: "center", gap: 6,
+                    opacity: (!input.trim() || loading) ? 0.35 : 1,
+                    transition: "opacity .15s, transform .1s",
+                    boxShadow: "0 2px 8px color-mix(in srgb, var(--color-primary) 35%, transparent)",
+                  }}
+                  onMouseEnter={e => { if (input.trim() && !loading) (e.currentTarget as HTMLElement).style.opacity = "0.88"; }}
+                  onMouseLeave={e => { if (input.trim() && !loading) (e.currentTarget as HTMLElement).style.opacity = "1"; }}
+                >
+                  <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7" />
+                  </svg>
+                  Send
+                </button>
+              </div>
             </div>
           </div>
-          {!sidebarMode && <p className="text-center text-[11px] text-slate-300 mt-1.5">Press Enter to send · 🎤 Voice input</p>}
         </div>
+
+      {/* ── Spacer between input and messages ── */}
+      {sidebarMode && <div className="shrink-0 h-3" />}
 
       {/* ── Scrollable content area ── */}
       <div className="flex-1 overflow-y-auto min-h-0">
@@ -931,12 +941,7 @@ export function AIChatPage({
           );
         })()}
 
-        {/* Sidebar empty hint */}
-        {sidebarMode && !hasMessages && !loading && (
-          <div className="flex flex-col items-center justify-center h-20 text-slate-300 text-xs">
-            Tap a suggestion or describe your ideal property
-          </div>
-        )}
+        {/* Sidebar empty hint — removed */}
 
         {/* Hero state — full page mode only */}
         {!hasMessages && !sidebarMode && (

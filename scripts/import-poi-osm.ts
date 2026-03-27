@@ -45,6 +45,15 @@ const FILTER_COUNTRY = getArg("--country");   // e.g. "DE"
 const FILTER_TYPE    = getArg("--type");       // e.g. "school"
 const CITY_LIMIT     = getArg("--limit") ? parseInt(getArg("--limit")!) : Infinity;
 
+// Single-area mode: --lat 9.0192 --lng 38.7525 --radius 100 --city "Addis Ababa" --country ET
+// Runs ONE Overpass query for the given circle instead of iterating over city list.
+const AREA_LAT     = getArg("--lat")     ? parseFloat(getArg("--lat")!)    : null;
+const AREA_LNG     = getArg("--lng")     ? parseFloat(getArg("--lng")!)    : null;
+const AREA_RADIUS  = getArg("--radius")  ? parseInt(getArg("--radius")!)   : 50;   // km
+const AREA_CITY    = getArg("--city")    ?? "Unknown";
+const AREA_COUNTRY = getArg("--country") ?? "XX";
+const SINGLE_AREA  = AREA_LAT !== null && AREA_LNG !== null;
+
 // ── POI type definitions ───────────────────────────────────────────────────────
 // Each entry: [overpass_tag, type_name, category]
 // OSM tag docs: https://wiki.openstreetmap.org/wiki/Map_features
@@ -97,7 +106,7 @@ function loadCities(): CityRecord[] {
     console.log("📍 Loading GeoNames cities (~26k)…");
     const src = fs.readFileSync(geoNamesPath, "utf-8");
     // Parse: ["CityName","CC",lat,lng,"CUR",priceIdx]
-    const matches = [...src.matchAll(/\["([^"]+)","([A-Z]{2})",(-?[\d.]+),(-?[\d.]+)/g)];
+    const matches = Array.from(src.matchAll(/\["([^"]+)","([A-Z]{2})",(-?[\d.]+),(-?[\d.]+)/g));
     cities = matches.map(m => ({
       name:    m[1],
       country: m[2],
@@ -107,7 +116,7 @@ function loadCities(): CityRecord[] {
   } else if (fs.existsSync(extPath)) {
     console.log("📍 Loading extended cities (~1200)…");
     const src = fs.readFileSync(extPath, "utf-8");
-    const matches = [...src.matchAll(/\["([^"]+)","([^"]+)",(-?[\d.]+),(-?[\d.]+)/g)];
+    const matches = Array.from(src.matchAll(/\["([^"]+)","([^"]+)",(-?[\d.]+),(-?[\d.]+)/g));
     cities = matches.map(m => ({
       name:    m[1],
       country: m[2],
@@ -159,8 +168,8 @@ interface OverpassElement {
   tags?: Record<string, string>;
 }
 
-// Build ONE Overpass query fetching ALL poi types at once (24× fewer requests)
-function buildBatchQuery(lat: number, lng: number, radiusM: number, tags: string[]): string {
+// Build ONE Overpass query for a subset of POI types
+function buildBatchQuery(lat: number, lng: number, radiusM: number, tags: string[], timeoutSec = 90): string {
   const unions = tags.flatMap(tag => {
     const [key, val] = tag.split("=");
     return [
@@ -168,31 +177,49 @@ function buildBatchQuery(lat: number, lng: number, radiusM: number, tags: string
       `  way["${key}"="${val}"](around:${radiusM},${lat},${lng});`,
     ];
   }).join("\n");
-  return `[out:json][timeout:60];\n(\n${unions}\n);\nout center tags;`;
+  return `[out:json][timeout:${timeoutSec}];\n(\n${unions}\n);\nout center tags;`;
 }
 
 async function queryOverpassBatch(lat: number, lng: number, radiusM: number, tags: string[]): Promise<OverpassElement[]> {
-  const query = buildBatchQuery(lat, lng, radiusM, tags);
+  const query = buildBatchQuery(lat, lng, radiusM, tags, 90);
 
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; attempt < 4; attempt++) {
     const url = OVERPASS_URLS[overpassIdx % OVERPASS_URLS.length];
     try {
       const res = await fetch(url, {
         method:  "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body:    `data=${encodeURIComponent(query)}`,
-        signal:  AbortSignal.timeout(65_000),
+        signal:  AbortSignal.timeout(100_000),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json() as { elements: OverpassElement[] };
       return json.elements ?? [];
     } catch (e) {
-      if (attempt === 2) throw e;
-      overpassIdx++;
-      await sleep(3000 * (attempt + 1));
+      if (attempt === 3) throw e;
+      overpassIdx++;   // rotate to next mirror
+      const wait = 4000 * (attempt + 1);
+      console.log(`  ↻ Retry ${attempt + 1}/3 in ${wait / 1000}s…`);
+      await sleep(wait);
     }
   }
   return [];
+}
+
+// For large-radius queries: split tags into chunks and merge results
+async function queryOverpassChunked(
+  lat: number, lng: number, radiusM: number,
+  tags: string[], chunkSize = 5
+): Promise<OverpassElement[]> {
+  const results: OverpassElement[] = [];
+  for (let i = 0; i < tags.length; i += chunkSize) {
+    const chunk = tags.slice(i, i + chunkSize);
+    console.log(`   chunk ${Math.floor(i / chunkSize) + 1}/${Math.ceil(tags.length / chunkSize)}: ${chunk.join(", ")}`);
+    const els = await queryOverpassBatch(lat, lng, radiusM, chunk);
+    results.push(...els);
+    if (i + chunkSize < tags.length) await sleep(2500);  // be polite between chunks
+  }
+  return results;
 }
 
 // Classify an element by its OSM tags → our POI type
@@ -244,6 +271,16 @@ function getLatLng(el: OverpassElement): { lat: number; lng: number } | null {
   return null;
 }
 
+// ── Haversine distance (km) ────────────────────────────────────────────────────
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 async function main() {
   console.log("🌍  POI Import — OpenStreetMap → Supabase");
@@ -253,12 +290,87 @@ async function main() {
     throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env.local");
   }
 
-  const cities     = loadCities();
-  const done       = await loadDoneSet();
   const typesToRun = FILTER_TYPE
     ? POI_TYPES.filter(([, type]) => type === FILTER_TYPE)
     : POI_TYPES;
   const tagsToRun  = typesToRun.map(([tag]) => tag);
+
+  // ── SINGLE-AREA MODE ──────────────────────────────────────────────────────
+  // Triggered by: npx tsx scripts/import-poi-osm.ts --lat 9.0192 --lng 38.7525 --radius 100 --city "Addis Ababa" --country ET
+  if (SINGLE_AREA) {
+    const radiusM = AREA_RADIUS * 1000;
+    console.log(`📍 Single-area mode`);
+    console.log(`   Center : ${AREA_LAT}, ${AREA_LNG}`);
+    console.log(`   Radius : ${AREA_RADIUS} km  (${radiusM.toLocaleString()} m)`);
+    console.log(`   City   : ${AREA_CITY} (${AREA_COUNTRY})`);
+    console.log(`   Types  : ${typesToRun.map(([, t]) => t).join(", ")}\n`);
+
+    const done = await loadDoneSet();
+    const allDone = typesToRun.every(([, type]) =>
+      done.has(`${AREA_CITY}||${AREA_COUNTRY}||${type}`)
+    );
+    if (allDone) {
+      console.log("✅ All POI types already imported for this area. Done.");
+      return;
+    }
+
+    console.log("⬇️  Fetching from Overpass API (chunked by type)…");
+    let elements: OverpassElement[] = [];
+    try {
+      elements = await queryOverpassChunked(AREA_LAT!, AREA_LNG!, radiusM, tagsToRun, 5);
+    } catch (e) {
+      throw new Error(`Overpass query failed: ${e}`);
+    }
+    console.log(`   → ${elements.length} raw elements returned`);
+
+    const rows: PoiRow[] = [];
+    for (const el of elements) {
+      const coords = getLatLng(el);
+      if (!coords) continue;
+      const cls = classifyElement(el.tags);
+      if (!cls) continue;
+      if (done.has(`${AREA_CITY}||${AREA_COUNTRY}||${cls.type}`)) continue;
+      rows.push({
+        osm_id:   el.id,
+        osm_type: el.type,
+        name:     el.tags?.name ?? el.tags?.["name:en"] ?? null,
+        type:     cls.type,
+        category: cls.category,
+        lat:      coords.lat,
+        lng:      coords.lng,
+        country:  AREA_COUNTRY,
+        city:     AREA_CITY,
+        metadata: el.tags ? Object.fromEntries(
+          Object.entries(el.tags).filter(([k]) => !["name", "type"].includes(k)).slice(0, 10)
+        ) : null,
+      });
+    }
+
+    console.log(`   → ${rows.length} POIs to insert`);
+    if (rows.length > 0) await upsertBatch(rows);
+
+    // Log by type
+    const countByType = new Map<string, number>();
+    for (const r of rows) countByType.set(r.type, (countByType.get(r.type) ?? 0) + 1);
+    const logRows = typesToRun.map(([, type]) => ({
+      city: AREA_CITY, country: AREA_COUNTRY, poi_type: type,
+      count: countByType.get(type) ?? 0,
+    }));
+    await sb.from("poi_import_log").upsert(logRows, { onConflict: "city,country,poi_type" });
+
+    console.log(`\n🎉 Done! ${rows.length.toLocaleString()} POIs imported for ${AREA_CITY} (${AREA_RADIUS} km radius).`);
+
+    // Breakdown by type
+    for (const [, type] of typesToRun) {
+      const n = countByType.get(type) ?? 0;
+      if (n > 0) console.log(`   ${type.padEnd(20)} ${n}`);
+    }
+    return;
+  }
+
+  // ── CITY-LIST MODE (default) ───────────────────────────────────────────────
+  const cities = loadCities();
+  const done   = await loadDoneSet();
 
   console.log(`\n🏙️  Cities to process: ${cities.length}`);
   console.log(`📌 POI types: ${typesToRun.map(([,t]) => t).join(", ")}`);
@@ -271,13 +383,11 @@ async function main() {
     cityIdx++;
     const cityLabel = `${city.name} (${city.country}) [${cityIdx}/${cities.length}]`;
 
-    // Skip city entirely if ALL types already done
     const allDone = typesToRun.every(([, type]) =>
       done.has(`${city.name}||${city.country}||${type}`)
     );
     if (allDone) continue;
 
-    // ONE request fetching all POI types at once
     let elements: OverpassElement[] = [];
     try {
       elements = await queryOverpassBatch(city.lat, city.lng, 15_000, tagsToRun);
@@ -287,14 +397,12 @@ async function main() {
       continue;
     }
 
-    // Classify each element and build rows
     const rows: PoiRow[] = [];
     for (const el of elements) {
       const coords = getLatLng(el);
       if (!coords) continue;
       const cls = classifyElement(el.tags);
       if (!cls) continue;
-      // Skip if this type was already imported for this city
       if (done.has(`${city.name}||${city.country}||${cls.type}`)) continue;
       rows.push({
         osm_id:   el.id,
@@ -317,10 +425,8 @@ async function main() {
       totalImported += rows.length;
     }
 
-    // Mark all types as done for this city (even if count=0)
     const countByType = new Map<string, number>();
     for (const r of rows) countByType.set(r.type, (countByType.get(r.type) ?? 0) + 1);
-
     const logRows = typesToRun.map(([, type]) => ({
       city: city.name, country: city.country, poi_type: type,
       count: countByType.get(type) ?? 0,
@@ -329,8 +435,6 @@ async function main() {
     for (const [, type] of typesToRun) done.add(`${city.name}||${city.country}||${type}`);
 
     console.log(`  ✅ ${cityLabel}: ${rows.length} POIs`);
-
-    // Polite rate limit — 1 request per city now instead of 24
     await sleep(1500);
   }
 
