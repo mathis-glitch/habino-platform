@@ -307,8 +307,12 @@ export default function LeafletMap({
               position={[p.lat, p.lng]}
               icon={makePinIcon(p, true, false)}
               eventHandlers={{
-                click: (e: L.LeafletMouseEvent) =>
-                  onSelect(p, { x: e.containerPoint.x, y: e.containerPoint.y }),
+                click: (e: L.LeafletMouseEvent) => {
+                  // stopPropagation prevents the click bubbling to the React map
+                  // container div, which would immediately close the popup we open.
+                  e.originalEvent.stopPropagation();
+                  onSelect(p, { x: e.containerPoint.x, y: e.containerPoint.y });
+                },
               }}
               zIndexOffset={1000}
             />
@@ -328,8 +332,10 @@ export default function LeafletMap({
               fillOpacity: dimmed ? 0.25 : 0.85,
             }}
             eventHandlers={{
-              click: (e: L.LeafletMouseEvent) =>
-                onSelect(p, { x: e.containerPoint.x, y: e.containerPoint.y }),
+              click: (e: L.LeafletMouseEvent) => {
+                e.originalEvent.stopPropagation();
+                onSelect(p, { x: e.containerPoint.x, y: e.containerPoint.y });
+              },
             }}
           />
         );

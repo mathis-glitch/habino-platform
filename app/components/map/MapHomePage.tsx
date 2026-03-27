@@ -812,6 +812,7 @@ function PropertyListingCard({
       style={{
         height: CARD_H,
         width: "100%",
+        minWidth: 0,          // prevent grid blowout
         display: "flex",
         flexDirection: "column",
         borderRadius: 12,
@@ -822,40 +823,85 @@ function PropertyListingCard({
           : "0 1px 4px rgba(0,0,0,0.06)",
         background: "white",
         transition: "box-shadow .15s, border-color .15s",
+        cursor: "pointer",
       }}
     >
-      {/* ── Image / Gallery — fixed 140 px height ── */}
-      <div className="relative overflow-hidden bg-slate-100" style={{ height: IMAGE_H, flexShrink: 0 }}>
+      {/* ── Image — fixed IMAGE_H px, 100% wide, inline styles only ── */}
+      <div style={{
+        position: "relative",
+        width: "100%",
+        height: IMAGE_H,
+        flexShrink: 0,
+        overflow: "hidden",
+        background: "#f1f5f9",
+      }}>
         {!imgErr ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={photos[photoIdx] ?? photos[0]}
             alt=""
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              display: "block",
+              transition: "transform 0.3s",
+            }}
             onError={() => setImgErr(true)}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center" style={{ background: `${color}18` }}>
-            <span style={{ fontSize: 30 }}>{typeEmoji}</span>
+          <div style={{
+            width: "100%", height: "100%",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            background: `${color}22`,
+          }}>
+            <span style={{ fontSize: 36 }}>{typeEmoji}</span>
           </div>
         )}
 
         {/* Gradient */}
-        {!imgErr && <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.45) 0%, transparent 52%)" }} />}
+        {!imgErr && (
+          <div style={{
+            position: "absolute", inset: 0,
+            background: "linear-gradient(to top, rgba(0,0,0,0.45) 0%, transparent 52%)",
+            pointerEvents: "none",
+          }} />
+        )}
 
-        {/* Gallery arrows — visible on hover */}
+        {/* Gallery arrows — always rendered (CSS hover via className) */}
         {photos.length > 1 && !imgErr && (
           <>
-            <button onClick={prevPhoto}
-              className="absolute left-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white/90 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-white"
-              style={{ fontSize: 13, color: "#1e293b", fontWeight: 800, lineHeight: 1 }}>‹</button>
-            <button onClick={nextPhoto}
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white/90 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-white"
-              style={{ fontSize: 13, color: "#1e293b", fontWeight: 800, lineHeight: 1 }}>›</button>
+            <button onClick={prevPhoto} style={{
+              position: "absolute", left: 5, top: "50%", transform: "translateY(-50%)",
+              width: 22, height: 22, borderRadius: "50%",
+              background: "rgba(255,255,255,0.9)",
+              border: "none", cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 14, fontWeight: 900, color: "#1e293b", lineHeight: 1,
+              boxShadow: "0 1px 4px rgba(0,0,0,0.15)",
+              zIndex: 4,
+            }}>‹</button>
+            <button onClick={nextPhoto} style={{
+              position: "absolute", right: 5, top: "50%", transform: "translateY(-50%)",
+              width: 22, height: 22, borderRadius: "50%",
+              background: "rgba(255,255,255,0.9)",
+              border: "none", cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 14, fontWeight: 900, color: "#1e293b", lineHeight: 1,
+              boxShadow: "0 1px 4px rgba(0,0,0,0.15)",
+              zIndex: 4,
+            }}>›</button>
             {/* Photo dots */}
-            <div className="absolute bottom-8 left-0 right-0 flex justify-center gap-1 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+            <div style={{
+              position: "absolute", bottom: 24, left: 0, right: 0,
+              display: "flex", justifyContent: "center", gap: 4,
+              pointerEvents: "none", zIndex: 4,
+            }}>
               {photos.map((_, i) => (
-                <div key={i} style={{ width: 4, height: 4, borderRadius: 99, background: i === photoIdx ? "white" : "rgba(255,255,255,0.5)", transition: "background .2s" }} />
+                <div key={i} style={{
+                  width: 4, height: 4, borderRadius: 99,
+                  background: i === photoIdx ? "white" : "rgba(255,255,255,0.5)",
+                }} />
               ))}
             </div>
           </>
@@ -864,28 +910,50 @@ function PropertyListingCard({
         {/* Heart button */}
         <button
           onClick={(e) => { e.stopPropagation(); setLiked(l => !l); }}
-          className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-white/90 flex items-center justify-center shadow-sm transition-all hover:scale-110 active:scale-95"
-          style={{ fontSize: 13 }}
+          style={{
+            position: "absolute", top: 6, right: 6,
+            width: 26, height: 26, borderRadius: "50%",
+            background: "rgba(255,255,255,0.9)",
+            border: "none", cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 12, boxShadow: "0 1px 4px rgba(0,0,0,0.15)",
+            zIndex: 4,
+          }}
         >
           {liked ? "❤️" : "🤍"}
         </button>
 
         {/* Type + listing type badges */}
-        <div className="absolute top-1.5 left-1.5 flex items-center gap-1 flex-wrap">
-          <span className="bg-white/95 text-slate-800 text-[8px] font-bold px-1.5 py-0.5 rounded-full shadow-sm leading-tight">
+        <div style={{
+          position: "absolute", top: 6, left: 6,
+          display: "flex", alignItems: "center", gap: 3, flexWrap: "wrap", zIndex: 4,
+        }}>
+          <span style={{
+            background: "rgba(255,255,255,0.95)", color: "#1e293b",
+            fontSize: 8, fontWeight: 700,
+            padding: "2px 6px", borderRadius: 99,
+            lineHeight: 1.4, boxShadow: "0 1px 3px rgba(0,0,0,0.12)",
+          }}>
             {typeEmoji} {TYPE_LABELS[p.property_type] || p.property_type}
           </span>
-          <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full text-white shadow-sm leading-tight"
-            style={{ backgroundColor: isRent ? "#F59E0B" : color }}>
+          <span style={{
+            fontSize: 8, fontWeight: 700,
+            padding: "2px 6px", borderRadius: 99,
+            color: "white", lineHeight: 1.4,
+            boxShadow: "0 1px 3px rgba(0,0,0,0.12)",
+            backgroundColor: isRent ? "#F59E0B" : color,
+          }}>
             {listingEmoji} {isRent ? "Rent" : "Sale"}
           </span>
         </div>
 
         {/* Price */}
         {!imgErr && (
-          <div className="absolute bottom-1.5 left-2">
-            <span className="text-[11px] font-bold text-white drop-shadow">{priceFmt}</span>
-            {isRent && <span className="text-[9px] text-white/75 ml-0.5">/mo</span>}
+          <div style={{ position: "absolute", bottom: 6, left: 8, zIndex: 4 }}>
+            <span style={{ fontSize: 11, fontWeight: 800, color: "white", textShadow: "0 1px 3px rgba(0,0,0,0.5)" }}>
+              {priceFmt}
+            </span>
+            {isRent && <span style={{ fontSize: 9, color: "rgba(255,255,255,0.8)", marginLeft: 2 }}>/mo</span>}
           </div>
         )}
       </div>
@@ -962,8 +1030,11 @@ function MapPinPopup({
   const priceFmt  = fmtFull(property.price, property.currency);
   const agentName = property.agent_name || "Habino Team";
 
-  const [imgErr, setImgErr] = useState(false);
+  const [imgErr,    setImgErr]    = useState(false);
+  const [photoIdx,  setPhotoIdx]  = useState(0);
   const photos = getPropertyImages(property);
+  // Reset carousel when property changes
+  useEffect(() => { setPhotoIdx(0); setImgErr(false); }, [property.id]);
 
   // Market comparison (quick, same logic as full panel)
   const marketProps = allProperties.filter(
@@ -1011,12 +1082,13 @@ function MapPinPopup({
       }}
       onClick={e => e.stopPropagation()}
     >
-      {/* Image */}
-      <div style={{ position: "relative", height: 120, background: `${color}18`, flexShrink: 0 }}>
+      {/* Image with carousel */}
+      <div style={{ position: "relative", height: 120, background: `${color}18`, flexShrink: 0, overflow: "hidden" }}>
         {!imgErr ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={photos[0]}
+            key={photos[photoIdx]}
+            src={photos[photoIdx]}
             alt=""
             style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
             onError={() => setImgErr(true)}
@@ -1027,7 +1099,39 @@ function MapPinPopup({
           </div>
         )}
         {/* Gradient overlay */}
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 55%)" }} />
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 55%)", pointerEvents: "none" }} />
+
+        {/* Carousel prev/next — always visible (popup is small, hover unreliable) */}
+        {photos.length > 1 && !imgErr && (
+          <>
+            <button
+              onClick={e => { e.stopPropagation(); setPhotoIdx(i => (i - 1 + photos.length) % photos.length); setImgErr(false); }}
+              style={{
+                position: "absolute", left: 5, top: "50%", transform: "translateY(-50%)",
+                width: 20, height: 20, borderRadius: "50%",
+                background: "rgba(255,255,255,0.88)", border: "none", cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 13, fontWeight: 900, color: "#1e293b",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.2)", zIndex: 5,
+              }}>‹</button>
+            <button
+              onClick={e => { e.stopPropagation(); setPhotoIdx(i => (i + 1) % photos.length); setImgErr(false); }}
+              style={{
+                position: "absolute", right: 5, top: "50%", transform: "translateY(-50%)",
+                width: 20, height: 20, borderRadius: "50%",
+                background: "rgba(255,255,255,0.88)", border: "none", cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 13, fontWeight: 900, color: "#1e293b",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.2)", zIndex: 5,
+              }}>›</button>
+            {/* Dot indicators */}
+            <div style={{ position: "absolute", bottom: 26, left: 0, right: 0, display: "flex", justifyContent: "center", gap: 3, zIndex: 5, pointerEvents: "none" }}>
+              {photos.map((_, i) => (
+                <div key={i} style={{ width: 4, height: 4, borderRadius: 99, background: i === photoIdx ? "white" : "rgba(255,255,255,0.5)" }} />
+              ))}
+            </div>
+          </>
+        )}
         {/* Type badge */}
         <div style={{ position: "absolute", top: 7, left: 7, background: color, borderRadius: 99, padding: "2px 8px" }}>
           <span style={{ fontSize: 9, fontWeight: 700, color: "white", textTransform: "uppercase", letterSpacing: "0.06em" }}>
@@ -1603,13 +1707,21 @@ export function MapHomePage() {
                   <p style={{ fontSize: 13, color: "#94a3b8" }}>Try different criteria — click Ask AI to refine your search.</p>
                 </div>
               ) : (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, alignItems: "start", width: "100%" }}>
+                <div style={{
+                  display: "grid",
+                  /* minmax(0,1fr) forces columns to shrink to exactly 1/3 regardless
+                     of content minimum size — the key fix for "2 per row" bug */
+                  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                  gap: 10,
+                  width: "100%",
+                  minWidth: 0,
+                }}>
                   {properties.map(p => (
                     <div
                       key={p.id}
                       onMouseEnter={() => setHoveredId(p.id)}
                       onMouseLeave={() => setHoveredId(null)}
-                      style={{ display: "flex", flexDirection: "column" }}
+                      style={{ minWidth: 0, overflow: "hidden" }}
                     >
                       <PropertyListingCard
                         property={p}
