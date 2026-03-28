@@ -1,11 +1,6 @@
-import dynamic from "next/dynamic";
+import { redirect } from "next/navigation";
 
-// Map homepage must be client-side only (Leaflet is not SSR-safe)
-const MapHomePage = dynamic(
-  () => import("../components/map/MapHomePage").then((m) => ({ default: m.MapHomePage })),
-  { ssr: false }
-);
-
+// Legacy route — redirect to /explore
 export default function MapPage() {
-  return <MapHomePage />;
+  redirect("/explore");
 }

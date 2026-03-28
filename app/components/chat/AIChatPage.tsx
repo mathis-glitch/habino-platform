@@ -295,6 +295,12 @@ function FollowUpChips({ msg, onSend }: { msg: ChatMessage; onSend: (text: strin
     chips.push("Browse all properties");
     chips.push("Widen my budget");
     chips.push("Search nearby areas");
+  } else {
+    // AI responded with text only — offer discovery shortcuts
+    chips.push("🏠 Apartments for rent in Bole");
+    chips.push("🛏️ 2-bed apartment in Kazanchis");
+    chips.push("📝 List my property");
+    chips.push("💰 Cheapest rentals in Addis");
   }
   if (!chips.length) return null;
   return (
@@ -551,12 +557,12 @@ export function AIChatPage({
     if (messages.length === 0) {
       if (wizard === "profile") {
         sendMessage("I want to set up my profile");
-        window.history.replaceState(null, "", "/map");
+        window.history.replaceState(null, "", "/explore");
       } else if (initialQuery) {
         sendMessage(initialQuery);
       } else if (q) {
         sendMessage(decodeURIComponent(q));
-        window.history.replaceState(null, "", "/map");
+        window.history.replaceState(null, "", "/explore");
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -747,7 +753,7 @@ export function AIChatPage({
               style={{ background: "linear-gradient(135deg, var(--color-primary), var(--color-secondary))" }}>✦</div>
             <div>
               <p className="text-sm font-bold text-slate-900 leading-tight">Ask Habino</p>
-              <p className="text-[11px] text-slate-400">Describe what you need — I&apos;ll find it on the map.</p>
+              <p className="text-[11px] text-slate-400">Find, view, rent, buy · or list your property.</p>
             </div>
             {userLocation && (
               <div className="ml-auto flex items-center gap-1 px-2 py-1 rounded-full bg-slate-100 text-[10px] text-slate-400 font-medium shrink-0">
@@ -855,10 +861,9 @@ export function AIChatPage({
               borderTop: "1px solid #f1f5f9",
             }}>
               <span style={{ fontSize: 11, color: "#cbd5e1", fontWeight: 500 }}>
-                {sidebarMode ? "Enter ↵ to send" : "Enter to send · 🎤 Voice"}
+                {sidebarMode ? "Enter ↵ to ask" : "Enter to ask · 🎤 Voice"}
               </span>
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <MicButton onResult={onVoiceResult} lang={voiceLang.code} size="sm" />
                 <button
                   onClick={() => sendMessage()}
                   disabled={!input.trim() || loading}
@@ -878,7 +883,7 @@ export function AIChatPage({
                   <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7" />
                   </svg>
-                  Send
+                  Ask
                 </button>
               </div>
             </div>
@@ -941,7 +946,24 @@ export function AIChatPage({
           );
         })()}
 
-        {/* Sidebar empty hint — removed */}
+        {/* ── Sidebar suggestion chips — shown when no messages yet ── */}
+        {sidebarMode && !hasMessages && (
+          <div className="shrink-0 px-4 pb-4">
+            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide mb-2.5">Try asking:</p>
+            <div className="flex flex-col gap-1.5">
+              {suggestions.slice(0, 8).map((s) => (
+                <button
+                  key={s.text}
+                  onClick={() => sendMessage(s.text)}
+                  className="flex items-center gap-2.5 text-left px-3 py-2 rounded-xl border border-slate-100 bg-white hover:bg-slate-50 hover:border-slate-200 transition-all text-xs text-slate-600 font-medium shadow-sm"
+                >
+                  <span className="text-sm shrink-0">{s.icon}</span>
+                  <span>{s.text}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Hero state — full page mode only */}
         {!hasMessages && !sidebarMode && (

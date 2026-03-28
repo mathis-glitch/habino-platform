@@ -51,12 +51,12 @@ export function LandingLoginPage() {
       if (mode === "signin") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        window.location.href = "/map";
+        window.location.href = "/explore";
       } else {
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=/map` },
+          options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=/explore` },
         });
         if (error) throw error;
         setDone(true);
@@ -74,7 +74,7 @@ export function LandingLoginPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=/map`,
+        redirectTo: `${window.location.origin}/auth/callback?next=/explore`,
       },
     });
     if (error) setError(error.message);

@@ -708,14 +708,6 @@ function PropertyDetailPanel({
         </div>
       </div>
 
-      {/* ── Action button ── */}
-      <div className="shrink-0 px-4 py-3 border-t border-slate-100">
-        <Link href={`/properties/${property.id}`}
-          className="flex items-center justify-center w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
-          style={{ backgroundColor: color }}>
-          View full listing
-        </Link>
-      </div>
     </div>
   );
 }
@@ -751,6 +743,12 @@ function HabinoPanel({ onClose }: { onClose: () => void }) {
         { href: "/security", icon: "🛡️", label: "Data Security" },
         { href: "/terms",    icon: "📋", label: "Terms of Use" },
         { href: "/imprint",  icon: "ℹ️",  label: "Imprint" },
+      ],
+    },
+    {
+      title: "About",
+      items: [
+        { href: "/about",    icon: "✦",  label: "About Habino" },
       ],
     },
   ];
@@ -869,9 +867,9 @@ function HabinoPanel({ onClose }: { onClose: () => void }) {
           </p>
           <p style={{ margin: 0, fontSize: 10, color: "#cbd5e1" }}>
             {[
+              { href: "/about",   label: "About" },
               { href: "/privacy", label: "Privacy" },
               { href: "/terms",   label: "Terms" },
-              { href: "/security",label: "Data Security" },
               { href: "/imprint", label: "Imprint" },
             ].map((l, i, arr) => (
               <span key={l.href}>
@@ -1155,12 +1153,13 @@ const POPUP_W = 240;
 const POPUP_H = 260; // approximate max height
 
 function MapPinPopup({
-  property, pos, allProperties, onClose, displayCurrency = "ETB",
+  property, pos, allProperties, onClose, onViewDetail, displayCurrency = "ETB",
 }: {
   property: PropertyWithCoords;
   pos: PinClickPosition;
   allProperties: PropertyWithCoords[];
   onClose: () => void;
+  onViewDetail?: (p: PropertyWithCoords) => void;
   displayCurrency?: string;
 }) {
   const color     = TYPE_COLORS[property.property_type] || "#6B7280";
@@ -1333,17 +1332,17 @@ function MapPinPopup({
         </div>
 
         {/* CTA */}
-        <Link
-          href={`/properties/${property.id}`}
+        <button
+          onClick={() => { onViewDetail?.(property); onClose(); }}
           style={{
             display: "block", width: "100%", textAlign: "center",
             padding: "7px 0", borderRadius: 8,
             fontSize: 11, fontWeight: 700, color: "white",
-            background: color, textDecoration: "none",
+            background: color, border: "none", cursor: "pointer",
           }}
         >
           View full listing →
-        </Link>
+        </button>
       </div>
 
       {/* Triangle tail pointing down toward pin (only when not sentinel) */}
@@ -1691,6 +1690,7 @@ export function MapHomePage() {
   const [mapZoom,          setMapZoom]          = useState(ADDIS_ZOOM);
   const [hoveredId,        setHoveredId]        = useState<string | null>(null);
   const [displayCurrency,  setDisplayCurrency]  = useState<DisplayCurrency>("ETB");
+  const [detailProperty,   setDetailProperty]   = useState<PropertyWithCoords | null>(null);
 
   const HEADER_H = 56;
   const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
@@ -1768,7 +1768,7 @@ export function MapHomePage() {
         flexShrink: 0, background: "white", zIndex: 20,
       }}>
         {/* Logo */}
-        <Link href="/map" style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.02em", textDecoration: "none", flexShrink: 0 }}>
+        <Link href="/explore" style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.02em", textDecoration: "none", flexShrink: 0 }}>
           Habino
         </Link>
 
@@ -1895,8 +1895,20 @@ export function MapHomePage() {
             </div>
           </div>
 
+          {/* ── Inline detail view — slides in when 'View full listing' is clicked ── */}
+          {detailProperty && (
+            <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", width: "100%", background: "white" }}>
+              <PropertyDetailPanel
+                property={detailProperty}
+                allProperties={properties}
+                displayCurrency={displayCurrency}
+                onClose={() => setDetailProperty(null)}
+              />
+            </div>
+          )}
+
           {/* Grid */}
-          <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", width: "100%" }}>
+          {!detailProperty && <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", width: "100%" }}>
             <div style={{ padding: "16px 16px 40px", boxSizing: "border-box", width: "100%" }}>
               {properties.length === 0 && !isIdleState ? (
                 <div style={{ textAlign: "center", padding: "60px 20px" }}>
@@ -1938,7 +1950,7 @@ export function MapHomePage() {
                 </div>
               )}
             </div>
-          </div>
+          </div>}
         </div>
 
         {/* ── RIGHT: Sticky map ─────────────────────────────────── */}
@@ -1951,24 +1963,6 @@ export function MapHomePage() {
           }}
           onClick={() => { if (selected) { setSelected(null); setSelectedPos(null); } }}
         >
-          {/* Idle hint */}
-          {isIdleState && (
-            <div style={{
-              position: "absolute", top: 14, left: "50%", transform: "translateX(-50%)",
-              zIndex: 500, pointerEvents: "none",
-              background: "rgba(255,255,255,0.92)", backdropFilter: "blur(10px)",
-              borderRadius: 12, padding: "8px 16px",
-              boxShadow: "0 2px 12px rgba(0,0,0,0.09)",
-              border: "1px solid rgba(226,232,240,0.8)",
-              display: "flex", alignItems: "center", gap: 8, whiteSpace: "nowrap",
-            }}>
-              <span style={{ fontSize: 13 }}>✦</span>
-              <span style={{ fontSize: 11, fontWeight: 600, color: "#475569" }}>
-                Click Ask AI to search — results appear here
-              </span>
-            </div>
-          )}
-
           <LeafletMap
             center={mapCenter}
             zoom={mapZoom}
@@ -1992,6 +1986,7 @@ export function MapHomePage() {
               pos={selectedPos}
               allProperties={properties}
               onClose={() => { setSelected(null); setSelectedPos(null); }}
+              onViewDetail={(p) => { setDetailProperty(p); setSelected(null); setSelectedPos(null); }}
               displayCurrency={displayCurrency}
             />
           )}
@@ -2004,9 +1999,9 @@ export function MapHomePage() {
       ══════════════════════════════════════════════════════ */}
       {aiDrawerOpen && (
         <>
-          {/* Backdrop */}
+          {/* Backdrop — light tint so map stays visible */}
           <div
-            style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(15,23,42,0.35)", backdropFilter: "blur(3px)" }}
+            style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(15,23,42,0.12)" }}
             onClick={() => setAiDrawerOpen(false)}
           />
           {/* Drawer */}
@@ -2028,7 +2023,7 @@ export function MapHomePage() {
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: 13, color: "white", fontWeight: 700,
               }}>✦</div>
-              <span style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>Ask Habino, your AI Property Agent</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: "#0f172a" }}>Ask Habino, I&apos;m here to assist you</span>
               <div style={{ flex: 1 }} />
               <button
                 onClick={() => setAiDrawerOpen(false)}
