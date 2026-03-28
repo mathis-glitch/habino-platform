@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import Link from "next/link";
 
 export default async function LoginPage({
@@ -44,7 +45,7 @@ export default async function LoginPage({
                 autoComplete="email"
                 placeholder="you@example.com"
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:border-transparent bg-white transition-all"
-                style={{ "--tw-ring-color": "#00A884" } as React.CSSProperties}
+                style={{ "--tw-ring-color": "#00A884" } as CSSProperties}
               />
             </div>
 
