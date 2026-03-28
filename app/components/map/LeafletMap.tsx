@@ -6,11 +6,20 @@ import L from "leaflet";
 import type { Property } from "@/lib/types";
 
 // ── Shared canvas renderer ────────────────────────────────────────────────────
-// All listing CircleMarkers share ONE <canvas> element instead of one DOM node
-// per pin. At 5 000 pins this is ~10–50× faster than SVG/divIcon markers.
+// All unselected CircleMarkers share ONE <canvas> element (zero DOM nodes per pin).
+// padding:0.5 ensures markers near tile edges are not clipped.
 // Must be created after window is available (client-side only).
 const PIN_RENDERER: L.Canvas | undefined =
   typeof window !== "undefined" ? L.canvas({ padding: 0.5 }) : undefined;
+
+// ── Module-level icon cache — avoids recreating L.divIcon on every render ─────
+// Only the selected pin and neighbourhood labels need divIcon; the cache prevents
+// redundant HTML string construction + DOM allocation for the selected state.
+const _iconCache = new Map<string, L.DivIcon>();
+function getCachedDivIcon(key: string, build: () => L.DivIcon): L.DivIcon {
+  if (!_iconCache.has(key)) _iconCache.set(key, build());
+  return _iconCache.get(key)!;
+}
 
 export type PropertyWithCoords = Property & { lat: number; lng: number };
 
@@ -203,7 +212,7 @@ function BoundsWatcher({ onBoundsChange }: { onBoundsChange: (b: MapBounds) => v
 
 // ── Neighbourhood label icon ──────────────────────────────────────────────────
 function makeNeighbourhoodIcon(name: string): L.DivIcon {
-  return L.divIcon({
+  return getCachedDivIcon(`nb:${name}`, () => L.divIcon({
     className: "",
     html: `<div style="
       font-family: system-ui, -apple-system, sans-serif;
@@ -221,7 +230,7 @@ function makeNeighbourhoodIcon(name: string): L.DivIcon {
     ">${name}</div>`,
     iconSize: undefined,
     iconAnchor: [0, 0],
-  });
+  }));
 }
 
 export type NeighbourhoodLabel = { name: string; lat: number; lng: number };
@@ -305,6 +314,7 @@ export default function LeafletMap({
       zoomControl={false}
       scrollWheelZoom
       attributionControl={false}
+      preferCanvas={true}
       style={{
         position: "absolute", inset: 0,
         background: "#f0ede8", zIndex: 0,
@@ -363,19 +373,22 @@ export default function LeafletMap({
         />
       ))}
 
-      {/* ── Individual listing pins (zoom >= CLUSTER_ZOOM) ────────────────── */}
-      {/* All pins share a single canvas element via PIN_RENDERER (~10-50× faster  */}
-      {/* than divIcon/SVG at 5 000+ pins). Selected pin uses a DOM Marker on top. */}
+      {/* ── Individual listing pins (zoom >= CLUSTER_ZOOM) ──────────────────────
+          Performance design:
+          • Unselected pins → <CircleMarker> on a shared canvas (preferCanvas=true).
+            Zero DOM nodes per pin; the entire layer is ONE <canvas> element.
+            No emoji text rendering, no per-pin layout, no GPU layer per pin.
+          • Selected pin   → single <Marker> with divIcon (1 DOM node is fine).
+          ─────────────────────────────────────────────────────────────────────── */}
       {!showClusters && properties.map((p) => {
         const selected    = p.id === selectedId;
         const highlighted = highlightSet?.has(p.id) ?? false;
         const dimmed      = !selected && !!highlightSet && !highlighted;
-        // When any pin is selected, all non-selected pins turn neutral gray
         const grayedOut   = !selected && hasSelection;
         const color       = TYPE_COLORS[p.property_type] ?? "#3B82F6";
 
         if (selected) {
-          // Selected pin: DOM Marker so it floats above the canvas layer
+          // Selected pin: DOM Marker — floats above canvas, shows price + pulse ring
           return (
             <Marker
               key={p.id}
@@ -383,8 +396,6 @@ export default function LeafletMap({
               icon={makePinIcon(p, true, false)}
               eventHandlers={{
                 click: (e: L.LeafletMouseEvent) => {
-                  // stopPropagation prevents the click bubbling to the React map
-                  // container div, which would immediately close the popup we open.
                   e.originalEvent.stopPropagation();
                   onSelect(p, { x: e.containerPoint.x, y: e.containerPoint.y });
                 },
@@ -394,45 +405,45 @@ export default function LeafletMap({
           );
         }
 
-        // Unselected pin: small emoji bubble
-        const emoji  = TYPE_EMOJIS[p.property_type] || "🏗️";
-        const sz     = highlighted ? 34 : 28;
-        const emojiSz = highlighted ? 17 : 14;
-        const opacity = dimmed ? 0.28 : grayedOut ? 0.45 : 1;
-        const scale   = dimmed ? 0.78 : grayedOut ? 0.88 : highlighted ? 1.12 : 1;
-        const shadow  = highlighted
-          ? `0 0 0 2px white, 0 0 0 3.5px ${color}, 0 4px 12px ${color}66`
-          : "0 2px 8px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.10)";
-
-        const emojiIcon = L.divIcon({
-          className: "",
-          html: `<div style="
-            width:${sz}px; height:${sz}px; border-radius:50%;
-            background:white;
-            box-shadow:${shadow};
-            border:1.5px solid rgba(0,0,0,0.07);
-            display:flex; align-items:center; justify-content:center;
-            font-size:${emojiSz}px; line-height:1;
-            transform:scale(${scale}); opacity:${opacity};
-            transition:transform .15s, opacity .15s;
-            cursor:pointer; user-select:none;
-          ">${emoji}</div>`,
-          iconSize:   [sz, sz],
-          iconAnchor: [sz / 2, sz / 2],
-        });
+        // Unselected pin: canvas CircleMarker (no DOM node, no emoji rendering)
+        const radius      = highlighted ? 13 : 9;
+        const fillColor   = dimmed || grayedOut ? "#94a3b8" : color;
+        const fillOpacity = dimmed ? 0.22 : grayedOut ? 0.40 : 0.90;
+        const weight      = dimmed ? 0 : highlighted ? 2.5 : 2;
 
         return (
-          <Marker
+          <CircleMarker
             key={p.id}
-            position={[p.lat, p.lng]}
-            icon={emojiIcon}
+            center={[p.lat, p.lng]}
+            radius={radius}
+            pathOptions={{
+              color: "white",
+              fillColor,
+              fillOpacity,
+              weight,
+            }}
             eventHandlers={{
               click: (e: L.LeafletMouseEvent) => {
                 e.originalEvent.stopPropagation();
                 onSelect(p, { x: e.containerPoint.x, y: e.containerPoint.y });
               },
             }}
-          />
+          >
+            {/* Price tooltip on hover — no permanent DOM cost */}
+            {!dimmed && (
+              <Tooltip direction="top" offset={[0, -radius - 4]} opacity={1} sticky={false}>
+                <span style={{ fontWeight: 700, fontSize: 12, color: "#1e293b" }}>
+                  {fmtPrice(p.price)}
+                  {p.listing_type === "rent" && (
+                    <span style={{ fontSize: 10, fontWeight: 500, color: "#64748b" }}>/mo</span>
+                  )}
+                </span>
+                <span style={{ fontSize: 10, color: "#64748b", marginLeft: 4 }}>
+                  · {TYPE_LABELS[p.property_type] ?? p.property_type}
+                </span>
+              </Tooltip>
+            )}
+          </CircleMarker>
         );
       })}
     </MapContainer>
