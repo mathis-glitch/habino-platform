@@ -57,7 +57,16 @@ export default function BottomNav() {
         className="md:hidden fixed bottom-5 left-1/2 z-50 floating-nav-enter"
         style={{ transform: "translateX(-50%)", paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        <div className="flex items-center gap-1 bg-white/95 backdrop-blur-md shadow-xl border border-slate-100 rounded-2xl px-2 py-1.5">
+        <div
+          className="flex items-center gap-0.5 rounded-2xl px-2 py-1.5"
+          style={{
+            background: "rgba(255,255,255,0.96)",
+            backdropFilter: "blur(20px) saturate(180%)",
+            WebkitBackdropFilter: "blur(20px) saturate(180%)",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.14), 0 1px 0 rgba(255,255,255,0.8) inset",
+            border: "1px solid rgba(255,255,255,0.6)",
+          }}
+        >
           {TABS.map((tab) => {
             const active = tab.href === "/" ? true : false;
             return (
@@ -86,8 +95,13 @@ export default function BottomNav() {
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-100"
-      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-slate-100/80"
+      style={{
+        paddingBottom: "env(safe-area-inset-bottom)",
+        background: "rgba(255,255,255,0.96)",
+        backdropFilter: "blur(20px) saturate(180%)",
+        WebkitBackdropFilter: "blur(20px) saturate(180%)",
+      }}
     >
       <div className="flex items-stretch h-[60px]">
         {TABS.map((tab) => {

@@ -117,23 +117,26 @@ export function LandingLoginPage() {
       <div
         className="relative z-10 w-full max-w-sm mx-4"
         style={{
-          background: "rgba(255,255,255,0.10)",
-          backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
-          border: "1px solid rgba(255,255,255,0.20)",
-          borderRadius: 24,
-          padding: "36px 32px 32px",
-          boxShadow: "0 24px 64px rgba(0,0,0,0.4)",
+          background: "rgba(255,255,255,0.11)",
+          backdropFilter: "blur(28px) saturate(180%)",
+          WebkitBackdropFilter: "blur(28px) saturate(180%)",
+          border: "1px solid rgba(255,255,255,0.22)",
+          borderRadius: 28,
+          padding: "40px 36px 36px",
+          boxShadow: "0 32px 80px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.1) inset",
         }}
       >
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl mb-3 shadow-lg"
-            style={{ background: "linear-gradient(135deg, #00A884, #0F1F3D)" }}>
-            <span className="text-white text-xl font-bold">H</span>
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-[18px] mb-4"
+            style={{
+              background: "linear-gradient(145deg, #2E7D46, #0F1F3D)",
+              boxShadow: "0 8px 24px rgba(46,125,70,0.35), 0 1px 0 rgba(255,255,255,0.15) inset",
+            }}>
+            <span className="text-white text-2xl font-black tracking-tight">H</span>
           </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Habino</h1>
-          <p className="text-white/60 text-sm mt-1">Real estate in Addis Ababa</p>
+          <h1 className="text-[26px] font-black text-white tracking-tight leading-tight">Habino</h1>
+          <p className="text-white/55 text-sm mt-1.5">Real estate in Addis Ababa</p>
         </div>
 
         {done ? (
@@ -190,8 +193,8 @@ export function LandingLoginPage() {
                 placeholder="Email address"
                 className="w-full px-4 py-3 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 transition-all"
                 style={{
-                  background: "rgba(255,255,255,0.12)",
-                  border: "1px solid rgba(255,255,255,0.18)",
+                  background: "rgba(255,255,255,0.10)",
+                  border: "1px solid rgba(255,255,255,0.20)",
                   color: "#fff",
                   caretColor: "#fff",
                 }}
@@ -205,8 +208,8 @@ export function LandingLoginPage() {
                 placeholder="Password"
                 className="w-full px-4 py-3 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 transition-all"
                 style={{
-                  background: "rgba(255,255,255,0.12)",
-                  border: "1px solid rgba(255,255,255,0.18)",
+                  background: "rgba(255,255,255,0.10)",
+                  border: "1px solid rgba(255,255,255,0.20)",
                   color: "#fff",
                   caretColor: "#fff",
                 }}
@@ -223,8 +226,11 @@ export function LandingLoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50 mt-1"
-                style={{ background: "linear-gradient(135deg, #00A884 0%, #00c49a 100%)" }}
+                className="w-full py-3.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50 mt-1"
+                style={{
+                  background: "linear-gradient(135deg, #2E7D46 0%, #3a9e5a 100%)",
+                  boxShadow: "0 4px 16px rgba(46,125,70,0.4)",
+                }}
               >
                 {loading ? "Please wait…" : mode === "signin" ? "Sign in" : "Create account"}
               </button>

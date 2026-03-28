@@ -272,7 +272,7 @@ function DetailDrawer({
             <div className="px-5 py-4 border-b border-slate-100">
               <div className="grid grid-cols-3 gap-3">
                 {stats.map((s) => (
-                  <div key={s.label} className="bg-slate-50 rounded-xl p-3 text-center">
+                  <div key={s.label} className="bg-slate-50/80 rounded-xl p-3 text-center border border-slate-100/60">
                     <p className="text-base mb-0.5">{s.icon}</p>
                     <p className="text-sm font-bold text-slate-800">{s.value}</p>
                     <p className="text-[10px] text-slate-400 mt-0.5">{s.label}</p>
@@ -327,12 +327,13 @@ function DetailDrawer({
           <button
             onClick={bookViewing}
             className="flex-1 py-3 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-95"
-            style={{ backgroundColor: "var(--color-primary)" }}>
+            style={{ backgroundColor: "var(--color-primary)", boxShadow: "0 2px 10px rgba(46,125,70,0.25)" }}>
             Book a Viewing
           </button>
           <Link
             href="/"
-            className="flex items-center justify-center px-4 py-3 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">
+            className="flex items-center justify-center px-4 py-3 rounded-xl border border-slate-100/80 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+            style={{ boxShadow: "var(--shadow-xs)" }}>
             Ask AI
           </Link>
         </div>
@@ -358,9 +359,10 @@ function SavedCard({
   const img = property.images?.[0]?.url;
   return (
     <div
-      className={`relative bg-white rounded-2xl border shadow-sm overflow-hidden transition-all duration-150 cursor-pointer group ${
-        selected ? "border-primary ring-2 ring-primary/20" : "border-slate-100 hover:border-slate-200 hover:shadow-md"
+      className={`relative bg-white rounded-2xl border overflow-hidden transition-all duration-150 cursor-pointer group ${
+        selected ? "border-primary ring-2 ring-primary/20" : "border-slate-100/80 hover:border-slate-200 hover:-translate-y-0.5"
       }`}
+      style={{ boxShadow: selected ? "0 0 0 3px rgba(46,125,70,0.12)" : "var(--shadow-sm)" }}
       style={{ "--tw-ring-color": "var(--color-primary)" } as React.CSSProperties}
       onClick={onOpen}>
 

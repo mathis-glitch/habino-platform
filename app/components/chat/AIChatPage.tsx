@@ -81,10 +81,12 @@ function ChatPropertyCard({ property, lang = "en" }: { property: Property; lang?
   const saved = isSaved(property.id);
 
   return (
-    <div className="relative bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group">
+    <div className="relative bg-white rounded-2xl overflow-hidden border border-slate-100/80 hover:-translate-y-0.5 transition-all duration-200 group"
+      style={{ boxShadow: "var(--shadow-sm)" }}>
       <button
         onClick={() => toggle(property.id)}
-        className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-sm transition-all hover:scale-110"
+        className="absolute top-2 right-2 z-10 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center transition-all hover:scale-110"
+        style={{ boxShadow: "0 1px 6px rgba(0,0,0,0.10)" }}
       >
         <svg className="w-3.5 h-3.5" fill={saved ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24"
           style={{ color: saved ? "#ef4444" : "#94a3b8" }}>
@@ -94,7 +96,7 @@ function ChatPropertyCard({ property, lang = "en" }: { property: Property; lang?
       </button>
 
       <div>
-        <div className="relative h-16 bg-slate-100 overflow-hidden">
+        <div className="relative h-24 bg-slate-100 overflow-hidden">
           {hero ? (
             <Image src={hero} alt={property.title} fill
               className="object-cover group-hover:scale-105 transition-transform duration-500"
@@ -307,7 +309,8 @@ function FollowUpChips({ msg, onSend }: { msg: ChatMessage; onSend: (text: strin
     <div className="flex flex-wrap gap-2 mt-2">
       {chips.map((chip) => (
         <button key={chip} onClick={() => onSend(chip)}
-          className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-xs text-slate-600 font-medium hover:border-slate-300 hover:bg-slate-50 transition-all">
+          className="px-3 py-1.5 rounded-xl border border-slate-100/80 bg-white text-xs text-slate-600 font-medium hover:border-slate-300 hover:bg-slate-50 transition-all"
+          style={{ boxShadow: "var(--shadow-xs)" }}>
           {chip}
         </button>
       ))}
@@ -922,7 +925,7 @@ export function AIChatPage({
                 <div className="flex gap-2">
                   <div className="w-6 h-6 rounded-lg shrink-0 flex items-center justify-center text-white text-[10px] font-bold"
                     style={{ background: "linear-gradient(135deg, var(--color-primary), var(--color-secondary))" }}>✨</div>
-                  <div className="bg-white border border-slate-200 rounded-xl rounded-tl-sm px-4 py-2.5 shadow-sm flex items-center gap-1.5">
+                  <div className="bg-white border border-slate-100/80 rounded-xl rounded-tl-sm px-4 py-2.5 flex items-center gap-1.5" style={{ boxShadow: "var(--shadow-sm)" }}>
                     <span className="w-1.5 h-1.5 rounded-full bg-slate-300 animate-bounce" style={{ animationDelay: "0ms", animationDuration: "1s" }} />
                     <span className="w-1.5 h-1.5 rounded-full bg-slate-300 animate-bounce" style={{ animationDelay: "200ms", animationDuration: "1s" }} />
                     <span className="w-1.5 h-1.5 rounded-full bg-slate-300 animate-bounce" style={{ animationDelay: "400ms", animationDuration: "1s" }} />
@@ -934,7 +937,7 @@ export function AIChatPage({
                     style={{ background: "linear-gradient(135deg, var(--color-primary), var(--color-secondary))" }}>✨</div>
                   <div className="flex flex-col gap-1 max-w-[85%]">
                     {lastAssistant.content && (
-                      <div className="px-3 py-2 rounded-xl text-xs leading-relaxed bg-white border border-slate-200 text-slate-700 rounded-tl-sm shadow-sm">
+                      <div className="px-3 py-2 rounded-xl text-xs leading-relaxed bg-white border border-slate-100/80 text-slate-700 rounded-tl-sm" style={{ boxShadow: "var(--shadow-sm)" }}>
                         {renderText(lastAssistant.content)}
                       </div>
                     )}
@@ -972,7 +975,7 @@ export function AIChatPage({
                         <button
                           key={s.text}
                           onClick={() => sendMessage(s.text)}
-                          className="flex items-center gap-2.5 text-left px-3 py-2 rounded-xl border border-slate-100 bg-white hover:bg-slate-50 hover:border-slate-200 transition-all text-xs text-slate-600 font-medium"
+                          className="flex items-center gap-2.5 text-left px-3 py-2.5 rounded-xl border border-slate-100/80 bg-white hover:bg-slate-50 hover:border-slate-200 transition-all text-xs text-slate-600 font-medium"
                         >
                           <span className="text-sm shrink-0">{s.icon}</span>
                           <span>{s.text}</span>
@@ -1013,7 +1016,8 @@ export function AIChatPage({
             <div className="grid grid-cols-2 gap-2.5 max-w-lg w-full">
               {suggestions.slice(0, 8).map((s) => (
                 <button key={s.text} onClick={() => sendMessage(s.text)}
-                  className="flex items-center gap-3 text-left px-4 py-3 rounded-2xl border border-slate-200 bg-white/60 hover:bg-white hover:shadow-sm hover:border-slate-300 transition-all text-sm text-slate-600 font-medium">
+                  className="flex items-center gap-3 text-left px-4 py-3 rounded-2xl border border-slate-100/80 bg-white/80 hover:bg-white hover:border-slate-200 transition-all text-sm text-slate-600 font-medium"
+                  style={{ boxShadow: "var(--shadow-xs)" }}>
                   <span className="text-base">{s.icon}</span>{s.text}
                 </button>
               ))}
@@ -1037,8 +1041,10 @@ export function AIChatPage({
                     <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
                       msg.role === "user"
                         ? "text-white rounded-tr-sm"
-                        : "bg-white border border-slate-200 text-slate-700 rounded-tl-sm shadow-sm"
-                    }`} style={msg.role === "user" ? { backgroundColor: "var(--color-primary)" } : {}}>
+                        : "bg-white border border-slate-100/80 text-slate-700 rounded-tl-sm"
+                    }`} style={msg.role === "user"
+                      ? { backgroundColor: "var(--color-primary)", boxShadow: "0 2px 8px rgba(46,125,70,0.20)" }
+                      : { boxShadow: "var(--shadow-sm)" }}>
                       {msg.role === "assistant" ? renderText(msg.content) : msg.content}
                     </div>
                   )}
@@ -1066,7 +1072,7 @@ export function AIChatPage({
                   style={{ background: "linear-gradient(135deg, var(--color-primary), var(--color-secondary))" }}>
                   ✨
                 </div>
-                <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-sm px-5 py-3.5 shadow-sm flex items-center gap-2">
+                <div className="bg-white border border-slate-100/80 rounded-2xl rounded-tl-sm px-5 py-3.5 flex items-center gap-2" style={{ boxShadow: "var(--shadow-sm)" }}>
                   <span className="w-2 h-2 rounded-full bg-slate-300 animate-bounce" style={{ animationDelay: "0ms", animationDuration: "1s" }} />
                   <span className="w-2 h-2 rounded-full bg-slate-300 animate-bounce" style={{ animationDelay: "200ms", animationDuration: "1s" }} />
                   <span className="w-2 h-2 rounded-full bg-slate-300 animate-bounce" style={{ animationDelay: "400ms", animationDuration: "1s" }} />

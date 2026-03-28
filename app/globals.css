@@ -11,24 +11,27 @@
   --color-primary-dark: #235f35;
   --color-primary-light: #e8f5ed;
 
-  /* Elevation / shadow scale */
-  --shadow-xs: 0 1px 2px rgba(0,0,0,0.06);
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
-  --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.05);
-  --shadow-lg: 0 10px 30px rgba(0,0,0,0.10), 0 4px 8px rgba(0,0,0,0.06);
-  --shadow-xl: 0 20px 50px rgba(0,0,0,0.12), 0 8px 16px rgba(0,0,0,0.06);
+  /* Elevation / shadow scale — softer, more premium */
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-sm: 0 1px 4px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.04);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.09), 0 4px 8px rgba(0,0,0,0.05);
+  --shadow-xl: 0 20px 60px rgba(0,0,0,0.11), 0 8px 16px rgba(0,0,0,0.05);
+  --shadow-header: 0 1px 0 rgba(0,0,0,0.06), 0 2px 12px rgba(0,0,0,0.04);
 
-  /* Radius scale */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
+  /* Radius scale — more generous */
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 22px;
+  --radius-2xl: 28px;
 
   /* Animation */
   --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
-  --duration-fast: 150ms;
-  --duration-base: 220ms;
-  --duration-slow: 350ms;
+  --ease-out: cubic-bezier(0.0, 0.0, 0.2, 1);
+  --duration-fast: 140ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
 }
 
 @layer base {
@@ -44,21 +47,21 @@
 
   body {
     @apply bg-slate-50 text-slate-800;
-    font-size: 16px;
+    font-size: 15px;
     line-height: 1.6;
+    letter-spacing: -0.005em;
   }
 
   /* Smooth tap interaction — eliminates 300ms delay on mobile */
   * { touch-action: manipulation; }
 
-  /* Custom scrollbar */
-  ::-webkit-scrollbar        { width: 5px; height: 5px; }
+  /* Custom scrollbar — thinner, more refined */
+  ::-webkit-scrollbar        { width: 4px; height: 4px; }
   ::-webkit-scrollbar-track  { background: transparent; }
-  ::-webkit-scrollbar-thumb  { background: #CBD5E1; border-radius: 99px; }
+  ::-webkit-scrollbar-thumb  { background: #E2E8F0; border-radius: 99px; }
   ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
 
-  /* Prevent browser UA stylesheet from overriding button text color,
-     which causes SVGs using currentColor to render in browser-default blue */
+  /* Prevent browser UA stylesheet from overriding button text color */
   button { color: inherit; }
 
   /* Focus rings use primary color */
@@ -75,6 +78,12 @@
     font-family: inherit;
     font-size: 14px;
   }
+
+  /* Better heading rhythm */
+  h1, h2, h3, h4, h5, h6 {
+    letter-spacing: -0.02em;
+    line-height: 1.25;
+  }
 }
 
 /* AI drawer slide-in animation */
@@ -83,7 +92,7 @@
   to   { transform: translateX(0);     opacity: 1; }
 }
 .ai-drawer-enter {
-  animation: slideInLeft 0.26s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: slideInLeft 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* Property detail panel slide-in from right */
@@ -92,7 +101,7 @@
   to   { transform: translateX(0);    opacity: 1; }
 }
 .detail-panel-enter {
-  animation: slideInRight 0.26s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: slideInRight 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* Floating pill nav entrance */
@@ -101,7 +110,7 @@
   to   { transform: translate(-50%, 0);    opacity: 1; }
 }
 .floating-nav-enter {
-  animation: slideUpFade 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: slideUpFade 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 /* Shimmer skeleton */
@@ -132,19 +141,22 @@
   .border-primary { border-color: var(--color-primary); }
   .ring-primary   { --tw-ring-color: var(--color-primary); }
 
-  /* Buttons */
+  /* Buttons — more rounded, better feel */
   .btn-primary {
-    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg
-           font-semibold text-white text-sm transition-all duration-150
-           hover:opacity-90 active:scale-95 select-none;
+    @apply inline-flex items-center justify-center px-5 py-2.5 rounded-xl
+           font-semibold text-white text-sm transition-all
+           hover:opacity-90 active:scale-[0.97] select-none;
     background-color: var(--color-primary);
+    box-shadow: 0 1px 3px rgba(46,125,70,0.3), 0 1px 2px rgba(0,0,0,0.08);
+    transition-duration: var(--duration-fast);
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg
-           font-semibold text-sm border-2 transition-all duration-150 select-none;
+    @apply inline-flex items-center justify-center px-5 py-2.5 rounded-xl
+           font-semibold text-sm border-2 transition-all select-none;
     color: var(--color-primary);
     border-color: var(--color-primary);
+    transition-duration: var(--duration-fast);
   }
 
   .btn-secondary:hover {
@@ -152,16 +164,16 @@
     @apply text-white;
   }
 
-  /* Card */
+  /* Card — more refined */
   .card {
-    @apply bg-white rounded-2xl border border-slate-100;
+    @apply bg-white rounded-2xl border border-slate-100/80;
     box-shadow: var(--shadow-sm);
     transition: box-shadow var(--duration-base) var(--ease-spring),
                 transform var(--duration-base) var(--ease-spring);
   }
   .card:hover {
     box-shadow: var(--shadow-md);
-    transform: translateY(-1px);
+    transform: translateY(-2px);
   }
 
   /* Primary-tinted light background */
@@ -171,11 +183,29 @@
 
   /* Skeleton loading animation */
   .skeleton {
-    @apply animate-pulse bg-slate-200 rounded-lg;
+    @apply animate-pulse bg-slate-100 rounded-xl;
   }
 
   /* Line clamp utilities */
   .line-clamp-1 { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; }
   .line-clamp-2 { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
   .line-clamp-3 { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+
+  /* Glass effect for panels/cards over images */
+  .glass {
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+  }
+
+  /* Subtle inset shadow for inputs / search boxes */
+  .input-ring {
+    @apply border border-slate-200 rounded-xl bg-white;
+    box-shadow: 0 0 0 0 transparent;
+    transition: box-shadow var(--duration-fast), border-color var(--duration-fast);
+  }
+  .input-ring:focus-within {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(46,125,70,0.10);
+  }
 }
