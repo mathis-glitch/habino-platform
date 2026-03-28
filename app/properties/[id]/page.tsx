@@ -188,7 +188,7 @@ export default async function PropertyDetailPage({
           {/* ── Similar listings ── */}
           {similar && similar.length > 0 && (
             <section className="mt-8">
-              <h2 className="font-semibold text-slate-800 mb-4">Ähnliche Inserate</h2>
+              <h2 className="font-semibold text-slate-800 mb-4">Similar listings</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {(similar as Property[]).map((p) => (
                   <PropertyCard key={p.id} property={p} />

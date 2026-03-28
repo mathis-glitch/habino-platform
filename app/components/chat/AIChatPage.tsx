@@ -462,24 +462,24 @@ interface UserLocation { city: string; country: string; currency: string }
 
 function makeSuggestions(_loc: UserLocation | null) {
   return [
-    // ── Suchen ────────────────────────────────────────────────────────────
-    { icon: "🏠", text: "Apartments for rent in Bole",          group: "Suchen" },
-    { icon: "🛏️", text: "2-bedroom apartment in Kazanchis",     group: "Suchen" },
-    { icon: "🏡", text: "Family home in Megenagna",              group: "Suchen" },
-    { icon: "🏘️", text: "Houses for sale in Ayat",              group: "Suchen" },
-    { icon: "🌇", text: "Luxury villa in Bole",                  group: "Suchen" },
-    { icon: "💰", text: "Cheapest rentals in Addis Ababa",       group: "Suchen" },
-    // ── Inserieren ────────────────────────────────────────────────────────
-    { icon: "📝", text: "List my apartment for rent",            group: "Inserieren" },
-    { icon: "🏡", text: "List my house for sale",                group: "Inserieren" },
-    { icon: "🏢", text: "List my commercial property",           group: "Inserieren" },
-    { icon: "✏️", text: "Edit my listing",                       group: "Inserieren" },
-    { icon: "💲", text: "Update my listing price",               group: "Inserieren" },
-    // ── Vermieten ─────────────────────────────────────────────────────────
-    { icon: "📄", text: "Draft a rental contract",               group: "Vermieten" },
-    { icon: "🤝", text: "Find a tenant for my apartment",        group: "Vermieten" },
-    { icon: "💵", text: "What's a fair rent for my area?",       group: "Vermieten" },
-    { icon: "📋", text: "What documents do I need to rent out?", group: "Vermieten" },
+    // ── Search ────────────────────────────────────────────────────────────
+    { icon: "🏠", text: "Apartments for rent in Bole",          group: "Search" },
+    { icon: "🛏️", text: "2-bedroom apartment in Kazanchis",     group: "Search" },
+    { icon: "🏡", text: "Family home in Megenagna",              group: "Search" },
+    { icon: "🏘️", text: "Houses for sale in Ayat",              group: "Search" },
+    { icon: "🌇", text: "Luxury villa in Bole",                  group: "Search" },
+    { icon: "💰", text: "Cheapest rentals in Addis Ababa",       group: "Search" },
+    // ── List ──────────────────────────────────────────────────────────────
+    { icon: "📝", text: "List my apartment for rent",            group: "List" },
+    { icon: "🏡", text: "List my house for sale",                group: "List" },
+    { icon: "🏢", text: "List my commercial property",           group: "List" },
+    { icon: "✏️", text: "Edit my listing",                       group: "List" },
+    { icon: "💲", text: "Update my listing price",               group: "List" },
+    // ── Rent Out ──────────────────────────────────────────────────────────
+    { icon: "📄", text: "Draft a rental contract",               group: "Rent Out" },
+    { icon: "🤝", text: "Find a tenant for my apartment",        group: "Rent Out" },
+    { icon: "💵", text: "What's a fair rent for my area?",       group: "Rent Out" },
+    { icon: "📋", text: "What documents do I need to rent out?", group: "Rent Out" },
     // ── Market ────────────────────────────────────────────────────────────
     { icon: "📊", text: "Average rents in Bole this year",       group: "Market" },
     { icon: "📈", text: "Property price trends in Addis",        group: "Market" },
@@ -953,9 +953,9 @@ export function AIChatPage({
 
         {/* ── Sidebar suggestion chips — grouped by category ── */}
         {sidebarMode && !hasMessages && (() => {
-          const groups = ["Suchen", "Inserieren", "Vermieten", "Market"] as const;
+          const groups = ["Search", "List", "Rent Out", "Market"] as const;
           const groupIcons: Record<string, string> = {
-            Suchen: "🔍", Inserieren: "📝", Vermieten: "🏠", Market: "📊",
+            Search: "🔍", List: "📝", "Rent Out": "🏠", Market: "📊",
           };
           return (
             <div className="overflow-y-auto flex-1 px-4 pb-4">

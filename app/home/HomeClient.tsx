@@ -292,7 +292,7 @@ export function HomeClient() {
 
   // Greeting helper
   const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Guten Morgen" : hour < 18 ? "Guten Tag" : "Guten Abend";
+  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -301,7 +301,7 @@ export function HomeClient() {
       <div className="px-5 pt-6 pb-14 text-white"
         style={{ background: "linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark, #235f35) 100%)" }}>
         <h1 className="font-bold text-2xl">{greeting} 👋</h1>
-        <p className="text-white/75 text-sm mt-1">Dein persönliches Immobilien-Dashboard</p>
+        <p className="text-white/75 text-sm mt-1">Your personal property dashboard</p>
       </div>
 
       <div className="max-w-4xl mx-auto px-4 -mt-8">
@@ -309,9 +309,9 @@ export function HomeClient() {
         {/* ── Stats row — first card green-filled like Figma ─────── */}
         <div className="grid grid-cols-3 gap-3 mb-5">
           {[
-            { label: "Gespeichert", value: savedProps.length, primary: true },
-            { label: "Verträge",    value: contracts.length,  primary: false },
-            { label: "Aktive",      value: activeProps.length, primary: false },
+            { label: "Saved",      value: savedProps.length,  primary: true },
+            { label: "Contracts",  value: contracts.length,   primary: false },
+            { label: "Active",     value: activeProps.length, primary: false },
           ].map(({ label, value, primary }) => (
             <div key={label}
               className={`rounded-xl p-3 shadow-sm border text-center transition-colors ${
@@ -329,19 +329,19 @@ export function HomeClient() {
         {/* ── Quick actions ────────────────────────────────────────── */}
         <div className="grid grid-cols-2 gap-3 mb-6">
           <Link
-            href="/?q=Immobilie+inserieren"
+            href="/?q=List+my+property"
             className="flex items-center gap-3 p-4 rounded-xl text-white shadow-sm active:scale-[0.98] transition-all"
             style={{ backgroundColor: "var(--color-primary)" }}
           >
             <div className="w-9 h-9 rounded-lg bg-white/20 flex items-center justify-center text-lg shrink-0">🏠</div>
-            <span className="text-sm font-semibold leading-snug">Immobilie inserieren</span>
+            <span className="text-sm font-semibold leading-snug">List a property</span>
           </Link>
           <Link
             href={CONTRACT_CHAT_URL}
             className="flex items-center gap-3 p-4 bg-white border border-slate-200 rounded-xl shadow-sm active:scale-[0.98] transition-all hover:border-slate-300"
           >
             <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-lg shrink-0">📄</div>
-            <span className="text-sm font-semibold text-slate-800 leading-snug">Vertrag erstellen</span>
+            <span className="text-sm font-semibold text-slate-800 leading-snug">Create a contract</span>
           </Link>
         </div>
 

@@ -17,7 +17,7 @@ export function SaveButton({ propertyId }: { propertyId: string }) {
     <button
       onClick={() => toggle(propertyId)}
       className="w-9 h-9 rounded-xl flex items-center justify-center transition-all hover:scale-110 active:scale-95 bg-white/90 backdrop-blur-sm shadow-sm"
-      aria-label={saved ? "Aus Gespeichert entfernen" : "Speichern"}
+      aria-label={saved ? "Remove from saved" : "Save"}
     >
       <svg className="w-5 h-5" fill={saved ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24"
         style={{ color: saved ? "#ef4444" : "#64748b" }}>
@@ -29,7 +29,7 @@ export function SaveButton({ propertyId }: { propertyId: string }) {
 }
 
 export function StickyContactBar({ agentPhone, agentEmail, propertyTitle, propertyId }: Props) {
-  const whatsappMsg = encodeURIComponent(`Hallo, ich interessiere mich für: ${propertyTitle}`);
+  const whatsappMsg = encodeURIComponent(`Hi, I'm interested in: ${propertyTitle}`);
   const whatsappNum = agentPhone?.replace(/\D/g, "");
 
   return (
@@ -63,13 +63,13 @@ export function StickyContactBar({ agentPhone, agentEmail, propertyTitle, proper
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
               d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
           </svg>
-          Anruf
+          Call
         </a>
       )}
 
-      {/* Besichtigung via chat */}
+      {/* Viewing via chat */}
       <Link
-        href={`/?q=${encodeURIComponent("Ich möchte eine Besichtigung für: " + propertyTitle)}`}
+        href={`/?q=${encodeURIComponent("I'd like to book a viewing for: " + propertyTitle)}`}
         className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90 active:scale-[0.98]"
         style={{ backgroundColor: "var(--color-primary)" }}
       >
@@ -77,7 +77,7 @@ export function StickyContactBar({ agentPhone, agentEmail, propertyTitle, proper
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
             d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
-        Besichtigung
+        Book viewing
       </Link>
     </div>
   );

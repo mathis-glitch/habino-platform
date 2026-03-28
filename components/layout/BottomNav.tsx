@@ -13,6 +13,9 @@ const TABS = [
 export default function BottomNav() {
   const pathname = usePathname();
 
+  // Hide the bottom nav on the landing page
+  if (pathname === "/") return null;
+
   return (
     <nav
       className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-100"

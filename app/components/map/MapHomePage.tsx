@@ -442,27 +442,64 @@ function fmtConverted(price: number, fromCurrency: string, displayCurrency: stri
 // We use three independent hash offsets so each property gets three distinct photos.
 import { TYPE_COLORS, TYPE_LABELS } from "./LeafletMap";
 
-/** Always returns exactly 3 deterministic placeholder URLs for this property. */
+// ── Curated real-estate photos per property type ───────────────────────────
+// All Unsplash CDN URLs — reliable, royalty-free, always available.
+const PHOTO_SETS: Record<string, string[]> = {
+  apartment: [
+    "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&q=80",
+    "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&q=80",
+    "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&q=80",
+  ],
+  house: [
+    "https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=800&q=80",
+    "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=800&q=80",
+    "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&q=80",
+  ],
+  villa: [
+    "https://images.unsplash.com/photo-1613977257363-707ba9348227?w=800&q=80",
+    "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80",
+    "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80",
+  ],
+  office: [
+    "https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=800&q=80",
+    "https://images.unsplash.com/photo-1615874959474-d609969a20ed?w=800&q=80",
+    "https://images.unsplash.com/photo-1497366811353-6870744d04b2?w=800&q=80",
+  ],
+  commercial: [
+    "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&q=80",
+    "https://images.unsplash.com/photo-1486325212027-8081e485255e?w=800&q=80",
+    "https://images.unsplash.com/photo-1524230572899-a752b3835840?w=800&q=80",
+  ],
+  land: [
+    "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80",
+    "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80",
+    "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=800&q=80",
+  ],
+  plot: [
+    "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80",
+    "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80",
+    "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=800&q=80",
+  ],
+};
+const PHOTO_DEFAULT = [
+  "https://images.unsplash.com/photo-1524230572899-a752b3835840?w=800&q=80",
+  "https://images.unsplash.com/photo-1486325212027-8081e485255e?w=800&q=80",
+  "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&q=80",
+];
+
+/** Returns 3 curated real-estate photos for this property type. */
 function getPropertyImages(property: PropertyWithCoords): string[] {
   // Prefer real images from the database if present
   const realImgs = (property as Property & { images?: { url: string }[] }).images
     ?.map(i => i.url).filter(Boolean) ?? [];
   if (realImgs.length >= 1) return realImgs.slice(0, 3);
 
-  // Derive a stable integer hash from the property ID
-  let h = 5381;
-  for (const c of property.id) h = ((h << 5) + h + c.charCodeAt(0)) & 0x7fffffff;
-
-  // Three independent seeds → three distinct Picsum photos, always available
-  const seed1 = (Math.abs(h)              % 1000) + 1;
-  const seed2 = (Math.abs(h * 6364136223) % 1000) + 1;
-  const seed3 = (Math.abs(h * 1664525)    % 1000) + 1;
-
-  return [
-    `https://picsum.photos/seed/${seed1}/800/500`,
-    `https://picsum.photos/seed/${seed2}/800/500`,
-    `https://picsum.photos/seed/${seed3}/800/500`,
-  ];
+  // Use curated photos per property type, rotated by property hash
+  const set = PHOTO_SETS[property.property_type] ?? PHOTO_DEFAULT;
+  let h = 0;
+  for (const c of property.id) h = ((h * 31) + c.charCodeAt(0)) >>> 0;
+  const start = h % set.length;
+  return [...set.slice(start), ...set.slice(0, start)];
 }
 
 function getPropertyImage(property: PropertyWithCoords): string {
@@ -473,11 +510,11 @@ function getAgentAvatar(agentName: string): string {
   return `https://i.pravatar.cc/80?u=${encodeURIComponent(agentName)}`;
 }
 
-/** Pseudo-random verified flag — uses property id hash so it's stable across renders */
+/** Pseudo-random verified flag — stable hash, exactly 50% of listings verified */
 function isVerified(id: string): boolean {
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
-  return h % 5 !== 0; // ~80% of listings show verified
+  return h % 2 === 0; // exactly 50%
 }
 
 /** Inline verified badge component */
@@ -513,8 +550,9 @@ function PropertyDetailPanel({
   allProperties: PropertyWithCoords[];
   displayCurrency?: string;
 }) {
-  const [photoIdx,  setPhotoIdx]  = useState(0);
-  const [imgErr,    setImgErr]    = useState(false);
+  const [photoIdx, setPhotoIdx] = useState(0);
+  const [imgErr,   setImgErr]   = useState(false);
+  const [descExp,  setDescExp]  = useState(false);
 
   const color     = TYPE_COLORS[property.property_type] || "#6B7280";
   const typeLabel = TYPE_LABELS[property.property_type] || property.property_type;
@@ -523,222 +561,284 @@ function PropertyDetailPanel({
   const ppm       = property.area_sqm && property.area_sqm > 0
     ? fmtConverted(Math.round(property.price / property.area_sqm), property.currency, displayCurrency) + "/m²"
     : null;
-  const isResidential = ["apartment","house","villa"].includes(property.property_type);
+  const isResidential = ["apartment", "house", "villa"].includes(property.property_type);
 
-  // ── Carousel images ───────────────────────────────────────────────────────
-  const photos = getPropertyImages(property);
+  const photos    = getPropertyImages(property);
+  useEffect(() => { setPhotoIdx(0); setImgErr(false); setDescExp(false); }, [property.id]);
 
-  // Reset on property change
-  useEffect(() => { setPhotoIdx(0); setImgErr(false); }, [property.id]);
-
-  // ── WhatsApp ──────────────────────────────────────────────────────────────
+  // WhatsApp
   const waMsg = `Hi! I'm interested in: "${property.title}" in ${property.neighbourhood || property.city}. Is it still available?`;
   const waUrl = property.agent_phone
-    ? `https://wa.me/${property.agent_phone.replace(/\D/g,"")}?text=${encodeURIComponent(waMsg)}`
+    ? `https://wa.me/${property.agent_phone.replace(/\D/g, "")}?text=${encodeURIComponent(waMsg)}`
     : `https://wa.me/?text=${encodeURIComponent(waMsg)}`;
 
-  // ── Market comparison (price/m² vs. other listings with area data) ────────
-  const marketProps = allProperties.filter(
-    p => p.area_sqm && p.area_sqm > 0 && p.listing_type === property.listing_type && p.id !== property.id
-  );
-  const avgMarketPpm = marketProps.length > 0
-    ? marketProps.reduce((s, p) => s + p.price / p.area_sqm!, 0) / marketProps.length
-    : null;
-  const thisPpm     = property.area_sqm && property.area_sqm > 0 ? property.price / property.area_sqm : null;
-  const pctVsMkt    = avgMarketPpm && thisPpm ? ((thisPpm - avgMarketPpm) / avgMarketPpm) * 100 : null;
+  // Market comparison
+  const marketProps  = allProperties.filter(p => p.area_sqm && p.area_sqm > 0 && p.listing_type === property.listing_type && p.id !== property.id);
+  const avgMarketPpm = marketProps.length > 0 ? marketProps.reduce((s, p) => s + p.price / p.area_sqm!, 0) / marketProps.length : null;
+  const thisPpm      = property.area_sqm && property.area_sqm > 0 ? property.price / property.area_sqm : null;
+  const pctVsMkt     = avgMarketPpm && thisPpm ? ((thisPpm - avgMarketPpm) / avgMarketPpm) * 100 : null;
+  const mktColor     = pctVsMkt == null ? "#64748b" : pctVsMkt < -10 ? "#16a34a" : pctVsMkt > 10 ? "#ea580c" : "#8b5cf6";
+  const mktBg        = pctVsMkt == null ? "#f8fafc" : pctVsMkt < -10 ? "#f0fdf4" : pctVsMkt > 10 ? "#fff7ed" : "#faf5ff";
+  const mktBorder    = pctVsMkt == null ? "#e2e8f0" : pctVsMkt < -10 ? "#bbf7d0" : pctVsMkt > 10 ? "#fed7aa" : "#e9d5ff";
+  const mktLabel     = pctVsMkt == null ? "No market data" : pctVsMkt < -10 ? "✓ Below market" : pctVsMkt > 10 ? "↑ Above market" : "≈ At market";
+  const mktIcon      = pctVsMkt == null ? "📊" : pctVsMkt < -10 ? "🟢" : pctVsMkt > 10 ? "🟠" : "🟣";
 
-  const mktColor  = pctVsMkt == null ? "#64748b" : pctVsMkt < -10 ? "#16a34a" : pctVsMkt > 10 ? "#ea580c" : "#8b5cf6";
-  const mktBg     = pctVsMkt == null ? "#f8fafc" : pctVsMkt < -10 ? "#f0fdf4" : pctVsMkt > 10 ? "#fff7ed" : "#faf5ff";
-  const mktBorder = pctVsMkt == null ? "#e2e8f0" : pctVsMkt < -10 ? "#bbf7d0" : pctVsMkt > 10 ? "#fed7aa" : "#e9d5ff";
-  const mktLabel  = pctVsMkt == null ? "No market data" : pctVsMkt < -10 ? "✓ Below Market" : pctVsMkt > 10 ? "↑ Above Market" : "≈ At Market";
-
-  // Emoji fallback per type
+  // Emoji / type
   const typeEmoji =
-    property.property_type === "apartment" ? "🏢" : property.property_type === "house" ? "🏠"
-    : property.property_type === "villa" ? "🏡" : property.property_type === "office" ? "🏗️"
-    : property.property_type === "hall" ? "🎪" : property.property_type === "production" ? "🏭" : "🌿";
+    property.property_type === "apartment" ? "🏢"
+    : property.property_type === "house"       ? "🏠"
+    : property.property_type === "villa"       ? "🏡"
+    : property.property_type === "office"      ? "🏗️"
+    : property.property_type === "hall"        ? "🎪"
+    : property.property_type === "production"  ? "🏭"
+    : "🌿";
 
+  // Carousel nav button
   const navBtn = (dir: "prev" | "next") => (
     <button
       onClick={e => { e.stopPropagation(); setPhotoIdx(i => dir === "prev" ? (i - 1 + photos.length) % photos.length : (i + 1) % photos.length); setImgErr(false); }}
       style={{
         position: "absolute", top: "50%", transform: "translateY(-50%)",
-        [dir === "prev" ? "left" : "right"]: 10,
-        width: 28, height: 28, borderRadius: "50%",
-        background: "rgba(0,0,0,0.35)", backdropFilter: "blur(4px)",
-        border: "none", cursor: "pointer",
+        [dir === "prev" ? "left" : "right"]: 8,
+        width: 32, height: 32, borderRadius: "50%",
+        background: "rgba(15,23,42,0.45)", backdropFilter: "blur(6px)",
+        border: "1px solid rgba(255,255,255,0.18)", cursor: "pointer",
         display: "flex", alignItems: "center", justifyContent: "center", color: "white",
         zIndex: 5,
       }}>
-      <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+      <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" d={dir === "prev" ? "M15 19l-7-7 7-7" : "M9 5l7 7-7 7"} />
       </svg>
     </button>
   );
 
+  const agentName = property.agent_name || "Habino Team";
+  const verified  = isVerified(property.id);
+
+  // Spec pills
+  const specs: { icon: string; value: string; label: string }[] = [];
+  if (isResidential && property.bedrooms  > 0) specs.push({ icon: "🛏", value: String(property.bedrooms),  label: property.bedrooms  === 1 ? "bed"  : "beds"  });
+  if (isResidential && property.bathrooms > 0) specs.push({ icon: "🚿", value: String(property.bathrooms), label: property.bathrooms === 1 ? "bath" : "baths" });
+  if (property.area_sqm)                       specs.push({ icon: "📐", value: String(property.area_sqm),  label: "m²"   });
+  if (ppm)                                     specs.push({ icon: "💰", value: ppm,                        label: "/ m²" });
+
   return (
-    <div className="flex flex-col overflow-hidden h-full bg-white">
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: "white", overflow: "hidden" }}>
 
-      {/* ── Hero / carousel ── */}
-      <div className="relative w-full shrink-0" style={{ height: 210 }}>
-
-        {/* Image or fallback */}
-        {!imgErr ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            key={photos[photoIdx]}
-            src={photos[photoIdx]}
-            alt=""
-            className="w-full h-full object-cover"
-            onError={() => setImgErr(true)}
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center" style={{ background: `${color}15` }}>
-            <span style={{ fontSize: 52 }}>{typeEmoji}</span>
-          </div>
-        )}
-
-        {/* Gradient */}
-        <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.52) 0%, transparent 55%)" }} />
-
-        {/* Prev / Next arrows (only if multiple photos) */}
-        {photos.length > 1 && !imgErr && navBtn("prev")}
-        {photos.length > 1 && !imgErr && navBtn("next")}
-
-        {/* Dot indicators */}
-        {photos.length > 1 && !imgErr && (
-          <div style={{ position: "absolute", bottom: 44, left: "50%", transform: "translateX(-50%)", display: "flex", gap: 5, zIndex: 5 }}>
-            {photos.map((_, i) => (
-              <button key={i} onClick={e => { e.stopPropagation(); setPhotoIdx(i); setImgErr(false); }}
-                style={{ width: 6, height: 6, borderRadius: "50%", border: "none", cursor: "pointer", padding: 0,
-                  background: i === photoIdx % photos.length ? "white" : "rgba(255,255,255,0.45)", transition: "background .2s" }} />
-            ))}
-          </div>
-        )}
-
-        {/* Type badge (top-left) */}
-        <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full" style={{ background: color }}>
-          <span className="text-[10px] font-bold text-white uppercase tracking-wider">{typeLabel}</span>
-          <span className="text-[10px] text-white/80">{isRent ? "· Rent" : "· Sale"}</span>
-        </div>
-
-        {/* Close button (top-right) */}
-        <button onClick={onClose}
-          style={{
-            position: "absolute", top: 10, right: 10, zIndex: 10,
-            width: 30, height: 30, borderRadius: "50%",
-            background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)",
-            border: "none", cursor: "pointer",
-            display: "flex", alignItems: "center", justifyContent: "center", color: "white",
-          }}>
-          <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+      {/* ── Sticky top bar ── */}
+      <div style={{
+        display: "flex", alignItems: "center", gap: 8,
+        padding: "10px 12px", borderBottom: "1px solid #f1f5f9",
+        background: "white", flexShrink: 0, zIndex: 10,
+        minHeight: 48,
+      }}>
+        <button onClick={onClose} style={{
+          width: 32, height: 32, borderRadius: "50%",
+          background: "#f1f5f9", border: "none", cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          flexShrink: 0, color: "#475569",
+        }}>
+          <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-
-        {/* Price (bottom-left) */}
-        <div className="absolute bottom-3 left-4">
-          <span className="text-2xl font-extrabold text-white drop-shadow">{priceFmt}</span>
-          {isRent && <span className="text-sm text-white/80 ml-1">/mo</span>}
-        </div>
+        <p style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "#1e293b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", margin: 0 }}>
+          {property.title}
+        </p>
+        {verified && <VerifiedBadge small />}
       </div>
 
-      {/* ── Scrollable body ── */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="px-4 pt-3 pb-2">
+      {/* ── Scrollable content ── */}
+      <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}>
 
-          <p className="text-sm font-semibold text-slate-800 leading-snug mb-0.5">{property.title}</p>
-          <p className="text-xs text-slate-400 mb-3 flex items-center gap-1">
-            <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-            </svg>
-            {[property.neighbourhood, property.city].filter(Boolean).join(", ")}
-          </p>
-
-          {/* ── Market comparison badge ── */}
-          {pctVsMkt !== null && (
-            <div className="mb-3 p-2.5 rounded-xl border" style={{ background: mktBg, borderColor: mktBorder }}>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: mktColor }}>{mktLabel}</span>
-                <span className="text-[10px] font-semibold" style={{ color: mktColor }}>
-                  {pctVsMkt > 0 ? "+" : ""}{Math.round(pctVsMkt)}% vs avg/m²
-                </span>
-              </div>
-              {/* Progress bar */}
-              <div className="relative rounded-full overflow-hidden" style={{ height: 6, background: "#e2e8f0" }}>
-                <div style={{
-                  position: "absolute", top: 0, left: 0, height: "100%", borderRadius: 999,
-                  width: `${Math.min(100, Math.max(4, 50 + pctVsMkt * 1.5))}%`,
-                  background: mktColor, transition: "width .3s",
-                }} />
-                <div style={{ position: "absolute", top: 0, left: "50%", height: "100%", width: 2, background: "rgba(0,0,0,0.18)" }} />
-              </div>
-              <p className="text-[9px] mt-1" style={{ color: "#94a3b8" }}>vs. avg. price/m² · {marketProps.length} comparable listings</p>
+        {/* ── Photo carousel ── */}
+        <div style={{ position: "relative", width: "100%", aspectRatio: "16/9", background: `${color}15`, flexShrink: 0 }}>
+          {!imgErr ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img key={photos[photoIdx]} src={photos[photoIdx]} alt=""
+              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+              onError={() => setImgErr(true)} />
+          ) : (
+            <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
+              <span style={{ fontSize: 48 }}>{typeEmoji}</span>
+              <span style={{ fontSize: 11, color: "#94a3b8" }}>No photo available</span>
             </div>
           )}
 
-          {/* ── Specs ── */}
-          <div className="grid grid-cols-4 gap-2 mb-3">
-            {isResidential && property.bedrooms > 0 && (
-              <div className="bg-slate-50 rounded-xl p-2 text-center">
-                <p className="text-base font-bold text-slate-800">{property.bedrooms}</p>
-                <p className="text-[10px] text-slate-400 mt-0.5">Beds</p>
-              </div>
-            )}
-            {isResidential && property.bathrooms > 0 && (
-              <div className="bg-slate-50 rounded-xl p-2 text-center">
-                <p className="text-base font-bold text-slate-800">{property.bathrooms}</p>
-                <p className="text-[10px] text-slate-400 mt-0.5">Baths</p>
-              </div>
-            )}
-            {property.area_sqm && (
-              <div className="bg-slate-50 rounded-xl p-2 text-center">
-                <p className="text-base font-bold text-slate-800">{property.area_sqm}</p>
-                <p className="text-[10px] text-slate-400 mt-0.5">m²</p>
-              </div>
-            )}
-            {ppm && (
-              <div className="rounded-xl p-2 text-center" style={{ background: `${color}12` }}>
-                <p className="text-[11px] font-bold leading-tight" style={{ color }}>{ppm}</p>
-                <p className="text-[10px] text-slate-400 mt-0.5">per m²</p>
-              </div>
-            )}
-          </div>
+          {/* Gradient overlay */}
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.45) 0%, transparent 50%)", pointerEvents: "none" }} />
 
-          {/* Description */}
-          {property.description && (
-            <p className="text-xs text-slate-500 leading-relaxed mb-3 line-clamp-3">{property.description}</p>
+          {/* Prev / Next */}
+          {photos.length > 1 && !imgErr && navBtn("prev")}
+          {photos.length > 1 && !imgErr && navBtn("next")}
+
+          {/* Dot indicators */}
+          {photos.length > 1 && !imgErr && (
+            <div style={{ position: "absolute", bottom: 36, left: "50%", transform: "translateX(-50%)", display: "flex", gap: 4, zIndex: 5 }}>
+              {photos.map((_, i) => (
+                <button key={i} onClick={e => { e.stopPropagation(); setPhotoIdx(i); setImgErr(false); }}
+                  style={{ width: 5, height: 5, borderRadius: "50%", border: "none", cursor: "pointer", padding: 0,
+                    background: i === photoIdx % photos.length ? "white" : "rgba(255,255,255,0.4)", transition: "background .2s" }} />
+              ))}
+            </div>
           )}
 
-          {/* ── Agent ── always shown; falls back to "Habino Team" */}
-          {(() => {
-            const agentName = property.agent_name || "Habino Team";
-            return (
-              <div className="border border-slate-100 rounded-xl p-3 mb-3 flex items-center gap-3">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={getAgentAvatar(agentName)} alt="" className="w-10 h-10 rounded-full object-cover shrink-0 border-2 border-white shadow-sm" />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <p className="text-sm font-semibold text-slate-800 truncate">{agentName}</p>
-                    {isVerified(property.id) && <VerifiedBadge small />}
-                  </div>
-                  <p className="text-[10px] text-slate-400 uppercase tracking-wide font-medium">Broker · Habino</p>
-                </div>
-                <a href={waUrl} target="_blank" rel="noopener noreferrer"
-                  className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-white transition-opacity hover:opacity-90"
-                  style={{ background: "#25D366" }}>
-                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
-                    <path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.558 4.117 1.533 5.845L.054 23.5l5.805-1.524A11.932 11.932 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.896 0-3.67-.52-5.183-1.424l-.371-.22-3.443.904.921-3.36-.242-.386A9.944 9.944 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
-                  </svg>
-                  WhatsApp
-                </a>
-              </div>
-            );
-          })()}
+          {/* Price + type badge overlay at bottom */}
+          <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "8px 12px", display: "flex", alignItems: "flex-end", justifyContent: "space-between", zIndex: 4 }}>
+            <div>
+              <p style={{ margin: 0, fontSize: 22, fontWeight: 800, color: "white", lineHeight: 1.1, textShadow: "0 1px 6px rgba(0,0,0,0.4)" }}>
+                {priceFmt}{isRent && <span style={{ fontSize: 12, fontWeight: 500, marginLeft: 4, opacity: 0.85 }}>/mo</span>}
+              </p>
+            </div>
+            <div style={{
+              display: "flex", alignItems: "center", gap: 4,
+              background: color, borderRadius: 999,
+              padding: "3px 10px", flexShrink: 0,
+            }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: "white", textTransform: "uppercase", letterSpacing: "0.06em" }}>{typeLabel}</span>
+              <span style={{ width: 3, height: 3, borderRadius: "50%", background: "rgba(255,255,255,0.5)" }} />
+              <span style={{ fontSize: 10, color: "rgba(255,255,255,0.85)", fontWeight: 500 }}>{isRent ? "Rent" : "Sale"}</span>
+            </div>
+          </div>
         </div>
-      </div>
 
+        {/* ── Body sections ── */}
+        <div style={{ padding: "16px 14px 0" }}>
+
+          {/* Location row */}
+          <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 14 }}>
+            <svg width="12" height="12" fill="none" stroke="#94a3b8" strokeWidth={2} viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+            <p style={{ margin: 0, fontSize: 12, color: "#64748b" }}>
+              {[property.neighbourhood, property.city].filter(Boolean).join(", ")}
+            </p>
+          </div>
+
+          {/* ── Spec pills ── */}
+          {specs.length > 0 && (
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+              {specs.map(s => (
+                <div key={s.label} style={{
+                  display: "flex", alignItems: "center", gap: 5,
+                  background: "#f8fafc", border: "1px solid #e2e8f0",
+                  borderRadius: 10, padding: "6px 10px",
+                }}>
+                  <span style={{ fontSize: 13 }}>{s.icon}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "#1e293b" }}>{s.value}</span>
+                  <span style={{ fontSize: 11, color: "#94a3b8" }}>{s.label}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* ── Description ── */}
+          {property.description && (
+            <div style={{ marginBottom: 16 }}>
+              <p style={{ margin: "0 0 6px", fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.07em" }}>About</p>
+              {descExp ? (
+                <p style={{ margin: 0, fontSize: 13, color: "#475569", lineHeight: 1.65 }}>
+                  {property.description}
+                </p>
+              ) : (
+                <p style={{
+                  margin: 0, fontSize: 13, color: "#475569", lineHeight: 1.65,
+                  display: "-webkit-box", WebkitBoxOrient: "vertical",
+                  WebkitLineClamp: 4, overflow: "hidden",
+                }}>
+                  {property.description}
+                </p>
+              )}
+              {property.description.length > 200 && (
+                <button onClick={() => setDescExp(x => !x)} style={{
+                  background: "none", border: "none", padding: 0, marginTop: 4,
+                  fontSize: 12, color: "var(--color-primary)", cursor: "pointer", fontWeight: 600,
+                }}>
+                  {descExp ? "Show less ↑" : "Read more ↓"}
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* ── Market comparison ── */}
+          {pctVsMkt !== null && (
+            <div style={{ marginBottom: 16, padding: "12px 14px", borderRadius: 14, border: `1px solid ${mktBorder}`, background: mktBg }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 14 }}>{mktIcon}</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: mktColor }}>{mktLabel}</span>
+                </div>
+                <span style={{ fontSize: 12, fontWeight: 700, color: mktColor }}>
+                  {pctVsMkt > 0 ? "+" : ""}{Math.round(pctVsMkt)}%
+                </span>
+              </div>
+              <div style={{ height: 5, background: "#e2e8f0", borderRadius: 999, overflow: "hidden", position: "relative" }}>
+                <div style={{
+                  position: "absolute", top: 0, left: 0, height: "100%",
+                  width: `${Math.min(100, Math.max(4, 50 + pctVsMkt * 1.5))}%`,
+                  background: mktColor, borderRadius: 999,
+                }} />
+                <div style={{ position: "absolute", top: 0, left: "50%", width: 2, height: "100%", background: "rgba(0,0,0,0.15)" }} />
+              </div>
+              <p style={{ margin: "5px 0 0", fontSize: 10, color: "#94a3b8" }}>
+                vs. avg. price/m² across {marketProps.length} comparable listings
+              </p>
+            </div>
+          )}
+
+          {/* ── Agent card ── */}
+          <div style={{
+            marginBottom: 16, padding: "12px 14px",
+            border: "1px solid #e2e8f0", borderRadius: 16, background: "#fafafa",
+            display: "flex", alignItems: "center", gap: 12,
+          }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={getAgentAvatar(agentName)} alt=""
+              style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover", flexShrink: 0, border: "2px solid white", boxShadow: "0 1px 4px rgba(0,0,0,0.12)" }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#1e293b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{agentName}</p>
+                {verified && <VerifiedBadge small />}
+              </div>
+              <p style={{ margin: 0, fontSize: 10, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                Licensed broker · Habino
+              </p>
+            </div>
+          </div>
+
+        </div>
+
+        {/* ── CTA buttons ── bottom of scroll, with padding */}
+        <div style={{ padding: "0 14px 80px", display: "flex", flexDirection: "column", gap: 8 }}>
+          <a href={waUrl} target="_blank" rel="noopener noreferrer"
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              padding: "13px 0", borderRadius: 14,
+              background: "#25D366", color: "white",
+              fontSize: 14, fontWeight: 700, textDecoration: "none",
+              boxShadow: "0 2px 8px rgba(37,211,102,0.3)",
+            }}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+              <path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.558 4.117 1.533 5.845L.054 23.5l5.805-1.524A11.932 11.932 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.896 0-3.67-.52-5.183-1.424l-.371-.22-3.443.904.921-3.36-.242-.386A9.944 9.944 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
+            </svg>
+            Contact on WhatsApp
+          </a>
+          <button style={{
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            padding: "13px 0", borderRadius: 14,
+            background: "white", border: "1.5px solid #e2e8f0", color: "#1e293b",
+            fontSize: 14, fontWeight: 600, cursor: "pointer",
+          }}>
+            <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            Request a Viewing
+          </button>
+        </div>
+
+      </div>
     </div>
   );
 }
@@ -1801,10 +1901,14 @@ export function MapHomePage() {
         display: "flex", alignItems: "center", padding: "0 20px", gap: 14,
         flexShrink: 0, background: "white", zIndex: 20,
       }}>
-        {/* Logo */}
-        <Link href="/explore" style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.02em", textDecoration: "none", flexShrink: 0 }}>
+        {/* Logo — click to hard-reload */}
+        <a
+          href="/explore"
+          onClick={e => { e.preventDefault(); window.location.href = "/explore"; }}
+          style={{ fontSize: 16, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.02em", textDecoration: "none", flexShrink: 0, cursor: "pointer" }}
+        >
           Habino
-        </Link>
+        </a>
 
         {/* AI Search trigger pill — mimics Airbnb's center search bar */}
         <button
@@ -1931,7 +2035,7 @@ export function MapHomePage() {
 
           {/* ── Inline detail view — slides in when 'View full listing' is clicked ── */}
           {detailProperty && (
-            <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", width: "100%", background: "white" }}>
+            <div style={{ flex: 1, overflow: "hidden", width: "100%", background: "white" }}>
               <PropertyDetailPanel
                 property={detailProperty}
                 allProperties={properties}

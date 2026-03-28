@@ -84,7 +84,7 @@ export default function SettingsPage() {
       router.refresh();
     } else {
       const data = await res.json();
-      setError(data.error || "Speichern fehlgeschlagen.");
+      setError(data.error || "Save failed. Please try again.");
     }
     setSaving(false);
   }
@@ -98,48 +98,48 @@ export default function SettingsPage() {
         <div className="flex items-center gap-2 text-sm text-slate-400 mb-6">
           <Link href="/admin" className="hover:text-slate-600 transition-colors">Dashboard</Link>
           <span>›</span>
-          <span className="text-slate-700 font-medium">Einstellungen</span>
+          <span className="text-slate-700 font-medium">Settings</span>
         </div>
 
-        <h1 className="text-2xl font-bold text-slate-900 mb-8">Brand & Einstellungen</h1>
+        <h1 className="text-2xl font-bold text-slate-900 mb-8">Brand & Settings</h1>
 
         {loading ? (
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-8 text-center text-slate-400">
-            Wird geladen…
+            Loading…
           </div>
         ) : (
           <form onSubmit={handleSave} className="flex flex-col gap-5">
 
             {/* Brand */}
             <div className={sectionClass}>
-              <h2 className="font-semibold text-slate-800">Plattform</h2>
+              <h2 className="font-semibold text-slate-800">Platform</h2>
               <div>
-                <label className={labelClass}>Plattformname *</label>
+                <label className={labelClass}>Platform name *</label>
                 <input type="text" required value={form.name}
                   onChange={(e) => set("name", e.target.value)}
-                  className={inputClass} placeholder="Meine Immobilienplattform" />
+                  className={inputClass} placeholder="My Property Platform" />
               </div>
               <div>
-                <label className={labelClass}>Slogan</label>
+                <label className={labelClass}>Tagline</label>
                 <input type="text" value={form.tagline}
                   onChange={(e) => set("tagline", e.target.value)}
-                  className={inputClass} placeholder="Finden Sie Ihr Traumhaus" />
+                  className={inputClass} placeholder="Find your dream home" />
               </div>
               <div>
-                <label className={labelClass}>Logo-URL</label>
+                <label className={labelClass}>Logo URL</label>
                 <input type="url" value={form.logo_url}
                   onChange={(e) => set("logo_url", e.target.value)}
                   className={inputClass} placeholder="https://example.com/logo.png" />
-                <p className="text-xs text-slate-400 mt-1">Direkte Bild-URL einfügen. Logo-Upload wird bald verfügbar.</p>
+                <p className="text-xs text-slate-400 mt-1">Paste a direct image URL. Logo upload coming soon.</p>
               </div>
             </div>
 
             {/* Colors */}
             <div className={sectionClass}>
-              <h2 className="font-semibold text-slate-800">Farben</h2>
+              <h2 className="font-semibold text-slate-800">Colours</h2>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className={labelClass}>Primärfarbe</label>
+                  <label className={labelClass}>Primary colour</label>
                   <div className="flex items-center gap-2">
                     <input type="color" value={form.primary_color}
                       onChange={(e) => set("primary_color", e.target.value)}
@@ -150,7 +150,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
                 <div>
-                  <label className={labelClass}>Sekundärfarbe</label>
+                  <label className={labelClass}>Secondary colour</label>
                   <div className="flex items-center gap-2">
                     <input type="color" value={form.secondary_color}
                       onChange={(e) => set("secondary_color", e.target.value)}
@@ -164,42 +164,42 @@ export default function SettingsPage() {
               <div className="flex gap-3 mt-1">
                 <div className="h-8 rounded-lg flex-1 flex items-center justify-center text-white text-xs font-medium"
                   style={{ backgroundColor: form.primary_color }}>
-                  Primär
+                  Primary
                 </div>
                 <div className="h-8 rounded-lg flex-1 flex items-center justify-center text-white text-xs font-medium"
                   style={{ backgroundColor: form.secondary_color }}>
-                  Sekundär
+                  Secondary
                 </div>
               </div>
             </div>
 
             {/* Contact */}
             <div className={sectionClass}>
-              <h2 className="font-semibold text-slate-800">Kontakt</h2>
+              <h2 className="font-semibold text-slate-800">Contact</h2>
               <div>
-                <label className={labelClass}>E-Mail-Adresse</label>
+                <label className={labelClass}>Email address</label>
                 <input type="email" value={form.contact_email}
                   onChange={(e) => set("contact_email", e.target.value)}
-                  className={inputClass} placeholder="hallo@ihreplatform.de" />
+                  className={inputClass} placeholder="hello@yourplatform.com" />
               </div>
               <div>
-                <label className={labelClass}>WhatsApp-Nummer</label>
+                <label className={labelClass}>WhatsApp number</label>
                 <input type="text" value={form.whatsapp}
                   onChange={(e) => set("whatsapp", e.target.value)}
-                  className={inputClass} placeholder="+49 172 0000000" />
+                  className={inputClass} placeholder="+251 911 000000" />
               </div>
             </div>
 
             {/* Domain */}
             <div className={sectionClass}>
-              <h2 className="font-semibold text-slate-800">Eigene Domain</h2>
+              <h2 className="font-semibold text-slate-800">Custom domain</h2>
               <div>
                 <label className={labelClass}>Domain</label>
                 <input type="text" value={form.custom_domain}
                   onChange={(e) => set("custom_domain", e.target.value)}
-                  className={inputClass} placeholder="app.ihreplatform.de" />
+                  className={inputClass} placeholder="app.yourplatform.com" />
                 <p className="text-xs text-slate-400 mt-1">
-                  Setzen Sie den DNS CNAME Ihrer Domain auf{" "}
+                  Point your domain&apos;s DNS CNAME record to{" "}
                   <code className="bg-slate-100 px-1.5 py-0.5 rounded-md">cname.vercel-dns.com</code>.
                 </p>
               </div>
@@ -210,19 +210,19 @@ export default function SettingsPage() {
             )}
             {success && (
               <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 text-emerald-700 text-sm">
-                Einstellungen erfolgreich gespeichert!
+                Settings saved successfully!
               </div>
             )}
 
             <div className="flex gap-3 justify-end">
               <button type="button" onClick={() => router.back()}
                 className="px-6 py-2.5 rounded-xl text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">
-                Abbrechen
+                Cancel
               </button>
               <button type="submit" disabled={saving}
                 className="flex items-center gap-2 px-8 py-2.5 rounded-xl text-white text-sm font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity"
                 style={{ backgroundColor: "var(--color-primary)" }}>
-                {saving ? "Wird gespeichert…" : "Einstellungen speichern"}
+                {saving ? "Saving…" : "Save settings"}
               </button>
             </div>
           </form>

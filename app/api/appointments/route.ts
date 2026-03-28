@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
   const { property_id, property_title, name, email, phone, preferred_date, message } = body;
 
   if (!name || !email || !preferred_date) {
-    return NextResponse.json({ error: "Name, E-Mail und Wunschtermin sind Pflichtfelder." }, { status: 400 });
+    return NextResponse.json({ error: "Name, email and preferred date are required." }, { status: 400 });
   }
 
   const supabase = createServiceClient();

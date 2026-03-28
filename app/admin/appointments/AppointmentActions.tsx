@@ -22,22 +22,22 @@ export function AppointmentActions({ id, status }: { id: string; status: string 
     return (
       <button onClick={() => update("cancelled")} disabled={loading}
         className="text-xs text-slate-400 hover:text-red-500 transition-colors disabled:opacity-50">
-        Absagen
+        Cancel
       </button>
     );
   }
   if (status === "cancelled") {
-    return <span className="text-xs text-slate-300">Abgesagt</span>;
+    return <span className="text-xs text-slate-300">Cancelled</span>;
   }
   return (
     <div className="flex items-center gap-3">
       <button onClick={() => update("confirmed")} disabled={loading}
         className="text-xs font-medium text-emerald-600 hover:text-emerald-700 transition-colors disabled:opacity-50">
-        Bestätigen
+        Confirm
       </button>
       <button onClick={() => update("cancelled")} disabled={loading}
         className="text-xs text-slate-400 hover:text-red-500 transition-colors disabled:opacity-50">
-        Absagen
+        Cancel
       </button>
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -8,12 +9,15 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export default function InstallPrompt() {
-  const [prompt, setPrompt]     = useState<BeforeInstallPromptEvent | null>(null);
-  const [visible, setVisible]   = useState(false);
-  const [isIOS, setIsIOS]       = useState(false);
+  const [prompt, setPrompt]       = useState<BeforeInstallPromptEvent | null>(null);
+  const [visible, setVisible]     = useState(false);
+  const [isIOS, setIsIOS]         = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
+    // Never show on the landing / login page
+    if (pathname === "/") return;
     // Don't show if already installed (standalone mode)
     if (window.matchMedia("(display-mode: standalone)").matches) return;
     // Don't show if user already dismissed
@@ -25,7 +29,6 @@ export default function InstallPrompt() {
     setIsIOS(ios);
 
     if (ios) {
-      // Show iOS hint after 3 seconds
       const t = setTimeout(() => setVisible(true), 3000);
       return () => clearTimeout(t);
     }
@@ -38,7 +41,7 @@ export default function InstallPrompt() {
     };
     window.addEventListener("beforeinstallprompt", handler);
     return () => window.removeEventListener("beforeinstallprompt", handler);
-  }, []);
+  }, [pathname]);
 
   function dismiss() {
     setVisible(false);
@@ -54,7 +57,7 @@ export default function InstallPrompt() {
     setPrompt(null);
   }
 
-  if (!visible || dismissed) return null;
+  if (!visible || dismissed || pathname === "/") return null;
 
   return (
     <div className="fixed bottom-20 left-4 right-4 z-50 md:left-auto md:right-6 md:w-80 animate-in slide-in-from-bottom-4 duration-300">
@@ -65,17 +68,17 @@ export default function InstallPrompt() {
           {/* App icon */}
           <div className="w-12 h-12 rounded-xl shrink-0 flex items-center justify-center text-white font-black text-lg"
             style={{ backgroundColor: "var(--color-primary)" }}>
-            h
+            H
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-slate-900 text-sm">Habino installieren</p>
+            <p className="font-semibold text-slate-900 text-sm">Install Habino</p>
             {isIOS ? (
               <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
-                Tippe auf <strong>Teilen</strong> und dann <strong>„Zum Home-Bildschirm"</strong> um die App zu installieren.
+                Tap <strong>Share</strong> then <strong>"Add to Home Screen"</strong> to install the app.
               </p>
             ) : (
               <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
-                Füge Habino zum Homescreen hinzu — wie eine echte App, ohne App Store.
+                Add Habino to your home screen — works like a native app, no App Store needed.
               </p>
             )}
             {!isIOS && (
@@ -84,7 +87,7 @@ export default function InstallPrompt() {
                 className="mt-3 w-full py-2 rounded-lg text-white text-sm font-semibold transition-all hover:opacity-90 active:scale-[0.98]"
                 style={{ backgroundColor: "var(--color-primary)" }}
               >
-                Installieren
+                Install
               </button>
             )}
           </div>

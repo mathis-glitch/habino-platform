@@ -14,22 +14,22 @@ interface Props {
 const CURRENCIES = ["EUR", "USD", "GBP", "CHF", "AED", "KES", "NGN", "ZAR"];
 
 const LISTING_TYPES = [
-  { value: "rent", label: "Zur Miete" },
-  { value: "buy",  label: "Zum Verkauf" },
+  { value: "rent", label: "For Rent" },
+  { value: "buy",  label: "For Sale" },
 ];
 
 const PROPERTY_TYPES = [
-  { value: "apartment",  label: "Wohnung" },
-  { value: "house",      label: "Haus" },
+  { value: "apartment",  label: "Apartment" },
+  { value: "house",      label: "House" },
   { value: "villa",      label: "Villa" },
   { value: "studio",     label: "Studio" },
-  { value: "commercial", label: "Gewerbe" },
-  { value: "land",       label: "Grundstück" },
+  { value: "commercial", label: "Commercial" },
+  { value: "land",       label: "Land / Plot" },
 ];
 
 const STATUS_OPTIONS = [
-  { value: "draft",  label: "Entwurf speichern",  desc: "Nicht öffentlich sichtbar." },
-  { value: "active", label: "Veröffentlichen",     desc: "Sofort für alle sichtbar." },
+  { value: "draft",  label: "Save as draft",  desc: "Not publicly visible." },
+  { value: "active", label: "Publish",         desc: "Visible to everyone immediately." },
 ];
 
 export function ListingForm({ property, tenantId }: Props) {
@@ -72,7 +72,7 @@ export function ListingForm({ property, tenantId }: Props) {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
     if (previewUrls.length + files.length > 10) {
-      setError("Maximal 10 Fotos pro Inserat.");
+      setError("Maximum 10 photos per listing.");
       return;
     }
     setUploading(true);
@@ -90,7 +90,7 @@ export function ListingForm({ property, tenantId }: Props) {
         setPendingFiles((prev) => [...prev, ...files]);
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Upload fehlgeschlagen.");
+      setError(err instanceof Error ? err.message : "Upload failed. Please try again.");
     } finally {
       setUploading(false);
     }
@@ -133,7 +133,7 @@ export function ListingForm({ property, tenantId }: Props) {
       router.push("/admin/listings");
       router.refresh();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Speichern fehlgeschlagen.");
+      setError(err instanceof Error ? err.message : "Save failed. Please try again.");
       setSaving(false);
     }
   }
@@ -145,19 +145,19 @@ export function ListingForm({ property, tenantId }: Props) {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5 max-w-3xl">
 
-      {/* Grunddaten */}
+      {/* Basic info */}
       <div className={sectionClass}>
-        <h2 className="font-semibold text-slate-800">Grunddaten</h2>
+        <h2 className="font-semibold text-slate-800">Basic info</h2>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className={labelClass}>Angebotstyp</label>
+            <label className={labelClass}>Listing type</label>
             <select value={form.listing_type} onChange={(e) => update("listing_type", e.target.value)} className={inputClass}>
               {LISTING_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </div>
           <div>
-            <label className={labelClass}>Immobilientyp</label>
+            <label className={labelClass}>Property type</label>
             <select value={form.property_type} onChange={(e) => update("property_type", e.target.value)} className={inputClass}>
               {PROPERTY_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
@@ -165,36 +165,36 @@ export function ListingForm({ property, tenantId }: Props) {
         </div>
 
         <div>
-          <label className={labelClass}>Titel *</label>
+          <label className={labelClass}>Title *</label>
           <input required type="text" value={form.title}
             onChange={(e) => update("title", e.target.value)}
-            placeholder="z.B. Moderne 3-Zimmer-Wohnung mit Balkon"
+            placeholder="e.g. Modern 3-bed apartment with balcony in Bole"
             className={inputClass} />
         </div>
 
         <div>
-          <label className={labelClass}>Beschreibung</label>
+          <label className={labelClass}>Description</label>
           <textarea value={form.description}
             onChange={(e) => update("description", e.target.value)}
-            placeholder="Beschreiben Sie die Immobilie ausführlich..."
+            placeholder="Describe the property in detail..."
             rows={4} className={`${inputClass} resize-none`} />
         </div>
       </div>
 
-      {/* Preis */}
+      {/* Price */}
       <div className={sectionClass}>
-        <h2 className="font-semibold text-slate-800">Preis</h2>
+        <h2 className="font-semibold text-slate-800">Price</h2>
         <div className="grid grid-cols-3 gap-4">
           <div className="col-span-2">
             <label className={labelClass}>
-              Preis *{form.listing_type === "rent" && <span className="text-slate-400 font-normal ml-1">(pro Monat)</span>}
+              Price *{form.listing_type === "rent" && <span className="text-slate-400 font-normal ml-1">(per month)</span>}
             </label>
             <input required type="number" min="0" value={form.price}
               onChange={(e) => update("price", e.target.value)}
-              placeholder="z.B. 1200" className={inputClass} />
+              placeholder="e.g. 35000" className={inputClass} />
           </div>
           <div>
-            <label className={labelClass}>Währung</label>
+            <label className={labelClass}>Currency</label>
             <select value={form.currency} onChange={(e) => update("currency", e.target.value)} className={inputClass}>
               {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
@@ -202,83 +202,83 @@ export function ListingForm({ property, tenantId }: Props) {
         </div>
       </div>
 
-      {/* Ausstattung */}
+      {/* Features */}
       <div className={sectionClass}>
-        <h2 className="font-semibold text-slate-800">Ausstattung</h2>
+        <h2 className="font-semibold text-slate-800">Features</h2>
         <div className="grid grid-cols-3 gap-4">
           <div>
-            <label className={labelClass}>Zimmer</label>
+            <label className={labelClass}>Bedrooms</label>
             <input type="number" min="0" value={form.bedrooms}
               onChange={(e) => update("bedrooms", e.target.value)} className={inputClass} />
           </div>
           <div>
-            <label className={labelClass}>Bäder</label>
+            <label className={labelClass}>Bathrooms</label>
             <input type="number" min="0" value={form.bathrooms}
               onChange={(e) => update("bathrooms", e.target.value)} className={inputClass} />
           </div>
           <div>
-            <label className={labelClass}>Fläche (m²)</label>
+            <label className={labelClass}>Area (m²)</label>
             <input type="number" min="0" value={form.area_sqm}
               onChange={(e) => update("area_sqm", e.target.value)}
-              placeholder="z.B. 78" className={inputClass} />
+              placeholder="e.g. 85" className={inputClass} />
           </div>
         </div>
       </div>
 
-      {/* Lage */}
+      {/* Location */}
       <div className={sectionClass}>
-        <h2 className="font-semibold text-slate-800">Lage</h2>
+        <h2 className="font-semibold text-slate-800">Location</h2>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className={labelClass}>Stadt *</label>
+            <label className={labelClass}>City *</label>
             <input required type="text" value={form.city}
               onChange={(e) => update("city", e.target.value)}
-              placeholder="z.B. Hamburg" className={inputClass} />
+              placeholder="e.g. Addis Ababa" className={inputClass} />
           </div>
           <div>
-            <label className={labelClass}>Stadtteil</label>
+            <label className={labelClass}>Neighbourhood</label>
             <input type="text" value={form.neighbourhood}
               onChange={(e) => update("neighbourhood", e.target.value)}
-              placeholder="z.B. Eimsbüttel" className={inputClass} />
+              placeholder="e.g. Bole, Kazanchis" className={inputClass} />
           </div>
         </div>
         <div>
-          <label className={labelClass}>Vollständige Adresse (optional)</label>
+          <label className={labelClass}>Full address (optional)</label>
           <input type="text" value={form.address}
             onChange={(e) => update("address", e.target.value)}
-            placeholder="z.B. Musterstraße 12, 20095 Hamburg" className={inputClass} />
+            placeholder="e.g. Bole Road, Addis Ababa" className={inputClass} />
         </div>
       </div>
 
-      {/* Ansprechpartner */}
+      {/* Contact */}
       <div className={sectionClass}>
-        <h2 className="font-semibold text-slate-800">Ansprechpartner</h2>
+        <h2 className="font-semibold text-slate-800">Contact person</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <label className={labelClass}>Name</label>
             <input type="text" value={form.agent_name}
               onChange={(e) => update("agent_name", e.target.value)}
-              placeholder="Max Mustermann" className={inputClass} />
+              placeholder="Abebe Girma" className={inputClass} />
           </div>
           <div>
-            <label className={labelClass}>Telefon</label>
+            <label className={labelClass}>Phone</label>
             <input type="tel" value={form.agent_phone}
               onChange={(e) => update("agent_phone", e.target.value)}
-              placeholder="+49 40 000000" className={inputClass} />
+              placeholder="+251 911 000000" className={inputClass} />
           </div>
           <div>
-            <label className={labelClass}>E-Mail</label>
+            <label className={labelClass}>Email</label>
             <input type="email" value={form.agent_email}
               onChange={(e) => update("agent_email", e.target.value)}
-              placeholder="makler@beispiel.de" className={inputClass} />
+              placeholder="agent@habino.com" className={inputClass} />
           </div>
         </div>
       </div>
 
-      {/* Fotos */}
+      {/* Photos */}
       <div className={sectionClass}>
-        <h2 className="font-semibold text-slate-800">Fotos</h2>
-        <p className="text-sm text-slate-400 -mt-2">Bis zu 10 Fotos. Das erste Bild wird als Titelbild verwendet.</p>
+        <h2 className="font-semibold text-slate-800">Photos</h2>
+        <p className="text-sm text-slate-400 -mt-2">Up to 10 photos. The first photo is used as the cover image.</p>
 
         {previewUrls.length > 0 && (
           <div className="grid grid-cols-4 gap-2">
@@ -287,7 +287,7 @@ export function ListingForm({ property, tenantId }: Props) {
                 <Image src={url} alt="" fill className="object-cover" sizes="120px" />
                 {i === 0 && (
                   <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] text-center py-0.5">
-                    Titelbild
+                    Cover photo
                   </div>
                 )}
               </div>
@@ -301,14 +301,14 @@ export function ListingForm({ property, tenantId }: Props) {
             onClick={() => fileRef.current?.click()}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50">
             {uploading && <LoadingSpinner className="h-4 w-4" />}
-            {uploading ? "Wird hochgeladen..." : "Fotos hochladen"}
+            {uploading ? "Uploading..." : "Upload photos"}
           </button>
         </div>
       </div>
 
-      {/* Sichtbarkeit */}
+      {/* Visibility */}
       <div className={sectionClass}>
-        <h2 className="font-semibold text-slate-800">Sichtbarkeit</h2>
+        <h2 className="font-semibold text-slate-800">Visibility</h2>
         <div className="flex gap-3 flex-wrap">
           {STATUS_OPTIONS.map((s) => (
             <button key={s.value} type="button" onClick={() => update("status", s.value)}
@@ -336,11 +336,11 @@ export function ListingForm({ property, tenantId }: Props) {
           className="flex items-center gap-2 px-8 py-2.5 rounded-xl text-white text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-50"
           style={{ backgroundColor: "var(--color-primary)" }}>
           {saving && <LoadingSpinner className="h-4 w-4" />}
-          {isEdit ? "Änderungen speichern" : "Inserat erstellen"}
+          {isEdit ? "Save changes" : "Create listing"}
         </button>
         <button type="button" onClick={() => router.back()}
           className="px-6 py-2.5 rounded-xl text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">
-          Abbrechen
+          Cancel
         </button>
       </div>
     </form>

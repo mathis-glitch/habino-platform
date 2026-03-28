@@ -32,7 +32,7 @@ export default async function AppointmentsPage() {
       cancelled: "bg-slate-100 text-slate-500",
     };
     const labels: Record<string, string> = {
-      pending: "Ausstehend", confirmed: "Bestätigt", cancelled: "Abgesagt",
+      pending: "Pending", confirmed: "Confirmed", cancelled: "Cancelled",
     };
     return (
       <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${map[status] || map.pending}`}>
@@ -49,16 +49,16 @@ export default async function AppointmentsPage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <Link href="/admin" className="text-sm text-slate-400 hover:text-primary transition-colors">← Dashboard</Link>
-            <h1 className="text-2xl font-bold text-slate-900 mt-1">Terminanfragen</h1>
+            <h1 className="text-2xl font-bold text-slate-900 mt-1">Viewing requests</h1>
           </div>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mb-8">
           {[
-            { label: "Gesamt",     value: appointments?.length || 0, color: "text-slate-900" },
-            { label: "Ausstehend", value: pending,                   color: "text-amber-600" },
-            { label: "Bestätigt",  value: confirmed,                 color: "text-emerald-600" },
+            { label: "Total",     value: appointments?.length || 0, color: "text-slate-900" },
+            { label: "Pending",   value: pending,                   color: "text-amber-600" },
+            { label: "Confirmed", value: confirmed,                 color: "text-emerald-600" },
           ].map(({ label, value, color }) => (
             <div key={label} className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
               <p className={`text-3xl font-bold ${color}`}>{value}</p>
@@ -77,20 +77,20 @@ export default async function AppointmentsPage() {
                     d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
-              <p className="text-slate-600 font-medium">Noch keine Terminanfragen</p>
-              <p className="text-sm text-slate-400 mt-1">Sobald Interessenten über den KI-Agent Termine buchen, erscheinen sie hier.</p>
+              <p className="text-slate-600 font-medium">No viewing requests yet</p>
+              <p className="text-sm text-slate-400 mt-1">When prospects book viewings via the AI agent, they'll appear here.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-slate-50 text-slate-500 text-xs uppercase">
                   <tr>
-                    <th className="px-5 py-3 text-left">Interessent</th>
-                    <th className="px-5 py-3 text-left">Inserat</th>
-                    <th className="px-5 py-3 text-left">Wunschtermin</th>
+                    <th className="px-5 py-3 text-left">Enquirer</th>
+                    <th className="px-5 py-3 text-left">Listing</th>
+                    <th className="px-5 py-3 text-left">Requested date</th>
                     <th className="px-5 py-3 text-left">Status</th>
-                    <th className="px-5 py-3 text-left">Eingang</th>
-                    <th className="px-5 py-3 text-left">Aktionen</th>
+                    <th className="px-5 py-3 text-left">Received</th>
+                    <th className="px-5 py-3 text-left">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -114,7 +114,7 @@ export default async function AppointmentsPage() {
                       <td className="px-5 py-4 text-slate-600">{appt.preferred_date}</td>
                       <td className="px-5 py-4">{statusBadge(appt.status)}</td>
                       <td className="px-5 py-4 text-slate-400 text-xs">
-                        {new Date(appt.created_at).toLocaleDateString("de-DE")}
+                        {new Date(appt.created_at).toLocaleDateString("en-GB")}
                       </td>
                       <td className="px-5 py-4">
                         <AppointmentActions id={appt.id} status={appt.status} />

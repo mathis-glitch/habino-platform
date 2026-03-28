@@ -22,7 +22,7 @@ export default async function LoginPage({
           <Link href="/">
             <span className="text-2xl font-bold" style={{ color: "#00A884" }}>Habino</span>
           </Link>
-          <p className="text-slate-500 mt-1.5 text-sm">In Ihrem Admin-Bereich anmelden</p>
+          <p className="text-slate-500 mt-1.5 text-sm">Sign in to your admin account</p>
         </div>
 
         {/* Card */}
@@ -32,21 +32,21 @@ export default async function LoginPage({
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                E-Mail-Adresse
+                Email address
               </label>
               <input
                 type="email"
                 name="email"
                 required
                 autoComplete="email"
-                placeholder="max@beispiel.de"
+                placeholder="you@example.com"
                 className={inputClass}
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                Passwort
+                Password
               </label>
               <input
                 type="password"
@@ -69,14 +69,14 @@ export default async function LoginPage({
               className="w-full py-3 rounded-xl text-white font-semibold text-sm hover:opacity-90 transition-opacity"
               style={{ background: "linear-gradient(135deg, #00A884, #0F1F3D)" }}
             >
-              Anmelden
+              Sign in
             </button>
           </form>
 
           <p className="text-center text-sm text-slate-400 mt-6">
-            Noch kein Konto?{" "}
+            No account yet?{" "}
             <Link href="/auth/register" className="font-medium hover:underline" style={{ color: "#00A884" }}>
-              Kostenlos registrieren
+              Register for free
             </Link>
           </p>
         </div>

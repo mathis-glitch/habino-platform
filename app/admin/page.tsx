@@ -46,7 +46,7 @@ export default async function AdminDashboard() {
   const onboardingComplete = hasListings && hasContact;
 
   function statusLabel(s: string) {
-    return s === "active" ? "Aktiv" : s === "draft" ? "Entwurf" : s;
+    return s === "active" ? "Active" : s === "draft" ? "Draft" : s;
   }
   function statusColor(s: string) {
     return s === "active"
@@ -64,50 +64,50 @@ export default async function AdminDashboard() {
         {/* Title */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <p className="text-sm text-slate-400">Willkommen zurück</p>
+            <p className="text-sm text-slate-400">Welcome back</p>
             <h1 className="text-2xl font-bold text-slate-900 mt-0.5">Admin Dashboard</h1>
           </div>
           <Link href="/admin/listings/new"
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-sm font-semibold hover:opacity-90 transition-opacity shadow-sm"
             style={{ backgroundColor: "var(--color-primary)" }}>
-            + Inserat anlegen
+            + Add listing
           </Link>
         </div>
 
         {/* Onboarding checklist — shown until complete */}
         {!onboardingComplete && (
           <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-6 mb-8 text-white">
-            <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-1">Erste Schritte</p>
-            <h2 className="text-lg font-bold mb-5">Richten Sie Ihre Plattform ein</h2>
+            <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-1">Getting started</p>
+            <h2 className="text-lg font-bold mb-5">Set up your platform</h2>
             <div className="flex flex-col gap-3">
               {[
                 {
                   done: true,
-                  label: "Account erstellt",
-                  desc: "Sie sind angemeldet und bereit.",
+                  label: "Account created",
+                  desc: "You are signed in and ready to go.",
                   href: undefined,
                   action: undefined,
                 },
                 {
                   done: hasListings,
-                  label: "Erstes Inserat anlegen",
-                  desc: "Veröffentlichen Sie Ihre erste Immobilie.",
+                  label: "Add your first listing",
+                  desc: "Publish your first property on the platform.",
                   href: "/admin/listings/new",
-                  action: "Jetzt anlegen →",
+                  action: "Add now →",
                 },
                 {
                   done: hasContact,
-                  label: "Kontaktdaten hinterlegen",
-                  desc: "E-Mail & Telefon für Interessentenanfragen.",
+                  label: "Add contact details",
+                  desc: "Email & phone for enquiry notifications.",
                   href: "/admin/settings",
-                  action: "Einstellungen öffnen →",
+                  action: "Open settings →",
                 },
                 {
                   done: hasColor,
-                  label: "Brand anpassen",
-                  desc: "Logo, Farben und Namen Ihrer Plattform.",
+                  label: "Customise your brand",
+                  desc: "Logo, colours and name of your platform.",
                   href: "/admin/settings",
-                  action: "Brand einstellen →",
+                  action: "Set up brand →",
                 },
               ].map(({ done, label, desc, href, action }) => (
                 <div key={label} className={`flex items-center gap-4 p-4 rounded-xl transition-all ${done ? "opacity-50" : "bg-white/5"}`}>
@@ -136,10 +136,10 @@ export default async function AdminDashboard() {
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[
-            { label: "Inserate gesamt",    value: total,  color: "text-slate-900" },
-            { label: "Aktiv",              value: active, color: "text-emerald-600" },
-            { label: "Entwurf",            value: draft,  color: "text-slate-500" },
-            { label: "Termine ausstehend", value: appts,  color: "text-amber-600" },
+            { label: "Total listings",  value: total,  color: "text-slate-900" },
+            { label: "Active",          value: active, color: "text-emerald-600" },
+            { label: "Draft",           value: draft,  color: "text-slate-500" },
+            { label: "Pending viewings", value: appts, color: "text-amber-600" },
           ].map(({ label, value, color }) => (
             <div key={label} className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
               <p className={`text-3xl font-bold ${color}`}>{value}</p>
@@ -151,9 +151,9 @@ export default async function AdminDashboard() {
         {/* Recent listings */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-6">
           <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-            <h2 className="font-semibold text-slate-800">Neueste Inserate</h2>
+            <h2 className="font-semibold text-slate-800">Recent listings</h2>
             <Link href="/admin/listings" className="text-sm hover:underline" style={{ color: "var(--color-primary)" }}>
-              Alle anzeigen →
+              View all →
             </Link>
           </div>
 
@@ -164,12 +164,12 @@ export default async function AdminDashboard() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
                 </svg>
               </div>
-              <p className="text-slate-600 font-medium">Noch keine Inserate</p>
-              <p className="text-sm text-slate-400 mt-1">Legen Sie jetzt Ihr erstes Inserat an.</p>
+              <p className="text-slate-600 font-medium">No listings yet</p>
+              <p className="text-sm text-slate-400 mt-1">Add your first listing to get started.</p>
               <Link href="/admin/listings/new"
                 className="inline-block mt-4 px-5 py-2.5 rounded-xl text-white text-sm font-semibold hover:opacity-90 transition-opacity"
                 style={{ backgroundColor: "var(--color-primary)" }}>
-                + Inserat anlegen
+                + Add listing
               </Link>
             </div>
           ) : (
@@ -177,11 +177,11 @@ export default async function AdminDashboard() {
               <table className="w-full text-sm">
                 <thead className="bg-slate-50 text-slate-500 text-xs uppercase">
                   <tr>
-                    <th className="px-5 py-3 text-left">Immobilie</th>
-                    <th className="px-5 py-3 text-left">Preis</th>
-                    <th className="px-5 py-3 text-left">Typ</th>
+                    <th className="px-5 py-3 text-left">Property</th>
+                    <th className="px-5 py-3 text-left">Price</th>
+                    <th className="px-5 py-3 text-left">Type</th>
                     <th className="px-5 py-3 text-left">Status</th>
-                    <th className="px-5 py-3 text-left">Aktion</th>
+                    <th className="px-5 py-3 text-left">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -193,7 +193,7 @@ export default async function AdminDashboard() {
                       </td>
                       <td className="px-5 py-3.5 text-slate-600">{formatPrice(p.price, p.currency)}</td>
                       <td className="px-5 py-3.5 text-slate-600">
-                        {p.listing_type === "buy" ? "Kaufen" : "Mieten"}
+                        {p.listing_type === "buy" ? "For Sale" : "For Rent"}
                       </td>
                       <td className="px-5 py-3.5">
                         <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColor(p.status)}`}>
@@ -202,7 +202,7 @@ export default async function AdminDashboard() {
                       </td>
                       <td className="px-5 py-3.5">
                         <Link href={`/admin/listings/${p.id}`} className="text-sm font-medium hover:underline" style={{ color: "var(--color-primary)" }}>
-                          Bearbeiten
+                          Edit
                         </Link>
                       </td>
                     </tr>
@@ -218,17 +218,17 @@ export default async function AdminDashboard() {
           <Link href="/admin/settings"
             className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 hover:shadow-md transition-shadow flex items-center justify-between">
             <div>
-              <p className="font-semibold text-slate-800">Brand & Einstellungen</p>
-              <p className="text-sm text-slate-500 mt-0.5">Logo, Farben, Kontakt</p>
+              <p className="font-semibold text-slate-800">Brand & Settings</p>
+              <p className="text-sm text-slate-500 mt-0.5">Logo, colours, contact</p>
             </div>
             <span className="text-slate-400">→</span>
           </Link>
           <Link href="/admin/appointments"
             className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 hover:shadow-md transition-shadow flex items-center justify-between">
             <div>
-              <p className="font-semibold text-slate-800">Terminanfragen</p>
+              <p className="font-semibold text-slate-800">Viewing requests</p>
               <p className="text-sm text-slate-500 mt-0.5">
-                {appts > 0 ? `${appts} ausstehend` : "Alle Anfragen anzeigen"}
+                {appts > 0 ? `${appts} pending` : "View all requests"}
               </p>
             </div>
             {appts > 0 && (

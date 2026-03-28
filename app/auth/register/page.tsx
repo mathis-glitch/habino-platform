@@ -32,7 +32,7 @@ export default function RegisterPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (form.password !== form.confirm) {
-      setError("Passwörter stimmen nicht überein.");
+      setError("Passwords do not match.");
       return;
     }
     setLoading(true);
@@ -52,7 +52,7 @@ export default function RegisterPage() {
     const data = await res.json();
 
     if (!res.ok) {
-      setError(data.error || "Registrierung fehlgeschlagen.");
+      setError(data.error || "Registration failed. Please try again.");
       setLoading(false);
       return;
     }
@@ -76,17 +76,17 @@ export default function RegisterPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-2xl font-bold text-slate-900 mb-2">Willkommen bei Habino!</h2>
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">Welcome to Habino!</h2>
           <p className="text-slate-500 text-sm mb-1">
-            Ihre Plattform <strong>{form.platform_name}</strong> wurde erfolgreich eingerichtet.
+            Your platform <strong>{form.platform_name}</strong> has been set up successfully.
           </p>
           <p className="text-slate-400 text-xs mb-8">
             Slug: <code className="bg-slate-100 px-1.5 py-0.5 rounded">{created?.slug}</code>
           </p>
 
           <div className="bg-slate-50 rounded-xl p-4 text-left mb-6 flex flex-col gap-3">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1">Nächste Schritte</p>
-            {["Erstes Inserat anlegen", "Brand & Farben anpassen", "KI Agent testen"].map((s, i) => (
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1">Next steps</p>
+            {["Add your first listing", "Customise brand & colours", "Test the AI agent"].map((s, i) => (
               <div key={s} className="flex items-center gap-3 text-sm text-slate-700">
                 <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-500 text-xs flex items-center justify-center font-bold shrink-0">
                   {i + 1}
@@ -101,7 +101,7 @@ export default function RegisterPage() {
             className="w-full py-3 rounded-xl text-white font-semibold text-sm hover:opacity-90 transition-opacity"
             style={{ background: "linear-gradient(135deg, #00A884, #0F1F3D)" }}
           >
-            Zum Admin Dashboard →
+            Go to Admin Dashboard →
           </button>
         </div>
       </div>
@@ -116,13 +116,13 @@ export default function RegisterPage() {
           <Link href="/">
             <span className="text-2xl font-bold" style={{ color: "#00A884" }}>Habino</span>
           </Link>
-          <p className="text-slate-500 mt-1.5 text-sm">Eigene Immobilienplattform erstellen</p>
+          <p className="text-slate-500 mt-1.5 text-sm">Create your real estate platform</p>
         </div>
 
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-8">
 
           <div className="flex flex-wrap gap-2 mb-6">
-            {["KI-Agent", "Inseratsverwaltung", "Terminanfragen", "Marktdaten"].map((f) => (
+            {["AI Agent", "Listing management", "Viewing requests", "Market data"].map((f) => (
               <span key={f} className="px-2.5 py-1 rounded-full bg-slate-100 text-xs text-slate-600 font-medium">
                 ✓ {f}
               </span>
@@ -132,44 +132,44 @@ export default function RegisterPage() {
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Plattformname *</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Platform name *</label>
               <input type="text" required value={form.platform_name}
                 onChange={(e) => set("platform_name", e.target.value)}
                 className={inputClass}
-                placeholder="z.B. Meine Immobilien Hamburg" />
-              <p className="text-xs text-slate-400 mt-1">Name Ihrer Plattform — kann später geändert werden.</p>
+                placeholder="e.g. Habino Bole Properties" />
+              <p className="text-xs text-slate-400 mt-1">Name of your platform — you can change this later.</p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Ihr Name *</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Your name *</label>
               <input type="text" required value={form.full_name}
                 onChange={(e) => set("full_name", e.target.value)}
                 className={inputClass}
-                placeholder="Max Mustermann" />
+                placeholder="Abebe Girma" />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">E-Mail-Adresse *</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Email address *</label>
               <input type="email" required value={form.email}
                 onChange={(e) => set("email", e.target.value)}
                 className={inputClass}
-                placeholder="max@beispiel.de" />
+                placeholder="you@example.com" />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Passwort *</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Password *</label>
               <input type="password" required minLength={8} value={form.password}
                 onChange={(e) => set("password", e.target.value)}
                 className={inputClass}
-                placeholder="Mindestens 8 Zeichen" />
+                placeholder="At least 8 characters" />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Passwort bestätigen *</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Confirm password *</label>
               <input type="password" required value={form.confirm}
                 onChange={(e) => set("confirm", e.target.value)}
                 className={inputClass}
-                placeholder="Passwort wiederholen" />
+                placeholder="Repeat your password" />
             </div>
 
             {error && (
@@ -181,14 +181,14 @@ export default function RegisterPage() {
             <button type="submit" disabled={loading}
               className="w-full py-3 rounded-xl text-white font-semibold text-sm hover:opacity-90 disabled:opacity-50 transition-opacity mt-1"
               style={{ background: "linear-gradient(135deg, #00A884, #0F1F3D)" }}>
-              {loading ? "Plattform wird eingerichtet…" : "Kostenlos starten →"}
+              {loading ? "Setting up your platform…" : "Get started for free →"}
             </button>
           </form>
 
           <p className="text-center text-sm text-slate-400 mt-6">
-            Bereits registriert?{" "}
+            Already have an account?{" "}
             <Link href="/auth/login" className="font-medium hover:underline" style={{ color: "#00A884" }}>
-              Anmelden
+              Sign in
             </Link>
           </p>
         </div>
