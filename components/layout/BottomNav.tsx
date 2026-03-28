@@ -48,7 +48,41 @@ const TABS = [
 export default function BottomNav() {
   const pathname = usePathname();
 
-  if (pathname === "/") return null;
+  // On the map ("/") — show as floating pill above the map instead of hiding
+  const isMap = pathname === "/";
+
+  if (isMap) {
+    return (
+      <nav
+        className="md:hidden fixed bottom-5 left-1/2 z-50 floating-nav-enter"
+        style={{ transform: "translateX(-50%)", paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        <div className="flex items-center gap-1 bg-white/95 backdrop-blur-md shadow-xl border border-slate-100 rounded-2xl px-2 py-1.5">
+          {TABS.map((tab) => {
+            const active = tab.href === "/" ? true : false;
+            return (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                className="flex flex-col items-center justify-center gap-0.5 px-4 py-1.5 rounded-xl transition-all active:scale-95"
+                style={{ background: active ? "var(--color-primary-light)" : "transparent" }}
+              >
+                <span style={{ color: active ? "var(--color-primary)" : "#94a3b8" }}>
+                  {tab.icon(active)}
+                </span>
+                <span
+                  className="text-[10px] font-semibold"
+                  style={{ color: active ? "var(--color-primary)" : "#94a3b8" }}
+                >
+                  {tab.label}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+    );
+  }
 
   return (
     <nav

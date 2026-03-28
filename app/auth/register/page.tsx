@@ -82,7 +82,7 @@ export default function RegisterPage() {
             <div className="w-full max-w-[380px] text-center">
               <div style={{
                 width: 56, height: 56, borderRadius: 12,
-                background: "#4a7c59",
+                background: "var(--color-primary)",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 margin: "0 auto 20px",
               }}>
@@ -103,13 +103,13 @@ export default function RegisterPage() {
                 <p style={{ fontSize: 11, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 12 }}>Next steps</p>
                 {["Add your first listing", "Customise brand & colours", "Test the AI agent"].map((s, i) => (
                   <div key={s} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14, color: "#374151", marginBottom: i < 2 ? 10 : 0 }}>
-                    <span style={{ width: 22, height: 22, borderRadius: "50%", background: "#4a7c59", color: "white", fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{i + 1}</span>
+                    <span style={{ width: 22, height: 22, borderRadius: "50%", background: "var(--color-primary)", color: "white", fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{i + 1}</span>
                     {s}
                   </div>
                 ))}
               </div>
               <button onClick={() => router.push("/admin")}
-                style={{ width: "100%", padding: "13px", background: "#4a7c59", border: "none", borderRadius: 6, color: "white", fontSize: 15, fontWeight: 600, cursor: "pointer" }}>
+                style={{ width: "100%", padding: "13px", background: "var(--color-primary)", border: "none", borderRadius: 6, color: "white", fontSize: 15, fontWeight: 600, cursor: "pointer" }}>
                 Go to Dashboard →
               </button>
             </div>
@@ -210,7 +210,7 @@ export default function RegisterPage() {
               <button type="submit" disabled={loading}
                 style={{
                   width: "100%", padding: "13px",
-                  background: loading ? "#86a896" : "#4a7c59",
+                  background: loading ? "var(--color-primary-dark)" : "var(--color-primary)",
                   border: "none", borderRadius: 6,
                   color: "white", fontSize: 15, fontWeight: 600,
                   cursor: loading ? "not-allowed" : "pointer",
@@ -222,7 +222,7 @@ export default function RegisterPage() {
 
             <p style={{ marginTop: 20, fontSize: 13, color: "#6b7280", textAlign: "center" }}>
               Already have an account?{" "}
-              <Link href="/auth/login" style={{ color: "#4a7c59", fontWeight: 600, textDecoration: "none" }}>
+              <Link href="/auth/login" style={{ color: "var(--color-primary)", fontWeight: 600, textDecoration: "none" }}>
                 Sign in
               </Link>
             </p>

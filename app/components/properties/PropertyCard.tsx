@@ -16,12 +16,12 @@ export function PropertyCard({ property }: PropertyCardProps) {
   const saved = isSaved(property.id);
 
   return (
-    <div className="group relative bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
+    <div className="group relative bg-white rounded-2xl overflow-hidden border border-slate-100 transition-all duration-200 hover:-translate-y-1" style={{ boxShadow: "var(--shadow-sm)" }} onMouseOver={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = "var(--shadow-lg)"; }} onMouseOut={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = "var(--shadow-sm)"; }}>
 
       {/* Save button */}
       <button
         onClick={(e) => { e.preventDefault(); toggle(property.id); }}
-        aria-label={saved ? "Aus Merkliste entfernen" : "Merken"}
+        aria-label={saved ? "Remove from saved" : "Save listing"}
         className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-sm transition-all hover:scale-110 active:scale-95"
       >
         <svg
@@ -49,11 +49,20 @@ export function PropertyCard({ property }: PropertyCardProps) {
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <svg className="w-10 h-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1}
+            <div
+              className="w-full h-full flex flex-col items-center justify-center gap-2"
+              style={{
+                background: "linear-gradient(135deg, #e8f5ed 0%, #f0faf4 50%, #e2f0e8 100%)",
+              }}
+            >
+              <svg className="w-10 h-10" fill="none" stroke="#4a7c59" strokeWidth={1.2} viewBox="0 0 24 24" style={{ opacity: 0.5 }}>
+                <path strokeLinecap="round" strokeLinejoin="round"
                   d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 22V12h6v10" />
               </svg>
+              <span style={{ fontSize: 10, fontWeight: 600, color: "#4a7c59", opacity: 0.6, letterSpacing: "0.05em", textTransform: "uppercase" }}>
+                {property.property_type}
+              </span>
             </div>
           )}
 
@@ -63,7 +72,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
               className="px-2.5 py-1 rounded-full text-xs font-semibold text-white"
               style={{ backgroundColor: property.listing_type === "buy" ? "#3B82F6" : "var(--color-primary)" }}
             >
-              {property.listing_type === "buy" ? "Kaufen" : "Mieten"}
+              {property.listing_type === "buy" ? "Buy" : "Rent"}
             </span>
           </div>
         </div>
@@ -88,21 +97,32 @@ export function PropertyCard({ property }: PropertyCardProps) {
             {property.neighbourhood ? `${property.neighbourhood}, ${property.city}` : property.city}
           </p>
 
-          <div className="border-t border-slate-100 mt-3 pt-3 flex items-center gap-3 text-xs text-slate-400">
+          <div className="border-t border-slate-100 mt-3 pt-3 flex items-center gap-3 text-xs text-slate-500">
             {property.bedrooms > 0 && (
               <span className="flex items-center gap-1">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                    d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                    d="M3 10h18M3 10V7a1 1 0 011-1h16a1 1 0 011 1v3M3 10v7a1 1 0 001 1h16a1 1 0 001-1v-7M8 10V8m8 2V8" />
                 </svg>
-                {property.bedrooms} Zi.
+                {property.bedrooms} bd
               </span>
             )}
             {property.bathrooms > 0 && (
-              <span>{property.bathrooms} Bad</span>
+              <span className="flex items-center gap-1">
+                <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M4 12h16M4 12a2 2 0 01-2-2V7a2 2 0 012-2h3m13 7a2 2 0 01-2 2H4m16 0v3a2 2 0 01-2 2H6a2 2 0 01-2-2v-3" />
+                </svg>
+                {property.bathrooms} ba
+              </span>
             )}
             {property.area_sqm && (
-              <span>{property.area_sqm} m²</span>
+              <span className="flex items-center gap-1">
+                <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                </svg>
+                {property.area_sqm} m²
+              </span>
             )}
           </div>
         </div>
