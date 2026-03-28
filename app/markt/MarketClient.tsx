@@ -1,68 +1,93 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { PriceTrendChart, DistrictChart } from "./MarktCharts";
 
-// ── Static data (replace with Supabase / GIS queries later) ──────────────────
-const CITIES = ["Hamburg", "Berlin", "Munich", "Frankfurt", "Cologne"];
+// ── Static data — Addis Ababa & major Ethiopian cities ────────────────────────
+const CITIES = ["Addis Ababa", "Hawassa", "Bahir Dar", "Dire Dawa", "Mekelle"];
 
 const DISTRICTS: Record<string, string[]> = {
-  Hamburg:   ["All districts", "City Centre / HafenCity", "Altona", "Eimsbüttel", "Hamburg-Nord", "Wandsbek", "Harburg"],
-  Berlin:    ["All districts", "Mitte", "Prenzlauer Berg", "Friedrichshain", "Kreuzberg", "Charlottenburg", "Neukölln"],
-  Munich:    ["All districts", "Maxvorstadt", "Schwabing", "Bogenhausen", "Pasing", "Neuhausen", "Giesing"],
-  Frankfurt: ["All districts", "Sachsenhausen", "Bornheim", "Westend", "Nordend", "Gallus", "Eschersheim"],
-  Cologne:   ["All districts", "Altstadt", "Ehrenfeld", "Nippes", "Lindenthal", "Kalk", "Porz"],
+  "Addis Ababa": ["All districts", "Bole", "Kazanchis", "CMC", "Megenagna", "Sarbet", "Lideta", "Piassa", "Merkato"],
+  "Hawassa":     ["All districts", "Tabor", "Hawella", "Mehal Ketema", "Addis Ketema", "Haik Dar"],
+  "Bahir Dar":   ["All districts", "Sefene Selam", "Ghion", "Belay Zeleke", "Shum Abo", "Meshualekia"],
+  "Dire Dawa":   ["All districts", "Kezira", "Sabian", "Gendekore", "Addis Ketema", "Legehare"],
+  "Mekelle":     ["All districts", "Adi Haki", "Enda Mariam", "Hadnet", "Hawelti", "Ayder"],
 };
 
 const USAGE_TYPES = [
   { key: "residential", label: "Residential" },
-  { key: "commercial",  label: "Commercial" },
-  { key: "land",        label: "Land" },
+  { key: "commercial",  label: "Commercial"  },
+  { key: "land",        label: "Land"         },
 ];
 
+// Prices in ETB per m²
 const STATS: Record<string, Record<string, { buy: string; rent: string | null; yield: string; trend: string; up: boolean }>> = {
   residential: {
-    "City Centre / HafenCity": { buy: "$6,200", rent: "$18.50", yield: "3.6%", trend: "+4.1%", up: true },
-    "Altona":                  { buy: "$5,800", rent: "$17.20", yield: "3.5%", trend: "+3.2%", up: true },
-    "Eimsbüttel":              { buy: "$5,500", rent: "$16.80", yield: "3.7%", trend: "+2.9%", up: true },
-    "Hamburg-Nord":            { buy: "$5,100", rent: "$15.60", yield: "3.7%", trend: "+1.8%", up: true },
-    "Wandsbek":                { buy: "$4,200", rent: "$13.40", yield: "3.8%", trend: "+0.9%", up: true },
-    "Harburg":                 { buy: "$3,200", rent: "$11.00", yield: "4.1%", trend: "-0.4%", up: false },
-    "All districts":           { buy: "$4,720", rent: "$16.30", yield: "3.7%", trend: "+2.8%", up: true },
+    "All districts":  { buy: "ETB 28,400", rent: "ETB 320",  yield: "3.8%", trend: "+5.2%", up: true  },
+    "Bole":           { buy: "ETB 45,000", rent: "ETB 520",  yield: "3.6%", trend: "+6.1%", up: true  },
+    "Kazanchis":      { buy: "ETB 38,000", rent: "ETB 440",  yield: "3.9%", trend: "+5.8%", up: true  },
+    "CMC":            { buy: "ETB 32,000", rent: "ETB 380",  yield: "4.1%", trend: "+4.5%", up: true  },
+    "Megenagna":      { buy: "ETB 30,000", rent: "ETB 350",  yield: "4.2%", trend: "+4.8%", up: true  },
+    "Sarbet":         { buy: "ETB 26,000", rent: "ETB 290",  yield: "4.0%", trend: "+3.9%", up: true  },
+    "Lideta":         { buy: "ETB 22,000", rent: "ETB 250",  yield: "4.3%", trend: "+2.8%", up: true  },
+    "Piassa":         { buy: "ETB 20,000", rent: "ETB 230",  yield: "4.4%", trend: "+1.6%", up: true  },
+    "Merkato":        { buy: "ETB 16,000", rent: "ETB 180",  yield: "4.7%", trend: "+0.8%", up: true  },
   },
   commercial: {
-    "All districts":           { buy: "$6,320", rent: "$24.80", yield: "4.7%", trend: "+1.9%", up: true },
-    "City Centre / HafenCity": { buy: "$8,500", rent: "$32.00", yield: "4.5%", trend: "+2.2%", up: true },
-    "Altona":                  { buy: "$7,200", rent: "$26.50", yield: "4.4%", trend: "+1.8%", up: true },
+    "All districts":  { buy: "ETB 52,000", rent: "ETB 720",  yield: "5.2%", trend: "+4.8%", up: true  },
+    "Bole":           { buy: "ETB 78,000", rent: "ETB 1,100",yield: "5.0%", trend: "+5.9%", up: true  },
+    "Kazanchis":      { buy: "ETB 68,000", rent: "ETB 950",  yield: "5.1%", trend: "+5.3%", up: true  },
+    "CMC":            { buy: "ETB 48,000", rent: "ETB 680",  yield: "5.4%", trend: "+4.1%", up: true  },
+    "Megenagna":      { buy: "ETB 44,000", rent: "ETB 620",  yield: "5.3%", trend: "+3.8%", up: true  },
+    "Merkato":        { buy: "ETB 38,000", rent: "ETB 550",  yield: "5.8%", trend: "+2.1%", up: true  },
+    "Piassa":         { buy: "ETB 35,000", rent: "ETB 480",  yield: "5.6%", trend: "+1.4%", up: true  },
   },
   land: {
-    "All districts":           { buy: "$1,390", rent: null, yield: "—",   trend: "+1.2%", up: true },
-    "City Centre / HafenCity": { buy: "$3,200", rent: null, yield: "—",   trend: "+2.8%", up: true },
-    "Altona":                  { buy: "$2,400", rent: null, yield: "—",   trend: "+1.5%", up: true },
+    "All districts":  { buy: "ETB 8,500",  rent: null, yield: "—", trend: "+7.2%", up: true  },
+    "Bole":           { buy: "ETB 18,000", rent: null, yield: "—", trend: "+8.4%", up: true  },
+    "Kazanchis":      { buy: "ETB 14,000", rent: null, yield: "—", trend: "+7.9%", up: true  },
+    "CMC":            { buy: "ETB 9,500",  rent: null, yield: "—", trend: "+6.8%", up: true  },
+    "Megenagna":      { buy: "ETB 8,800",  rent: null, yield: "—", trend: "+6.4%", up: true  },
+    "Sarbet":         { buy: "ETB 7,200",  rent: null, yield: "—", trend: "+5.6%", up: true  },
+    "Merkato":        { buy: "ETB 5,800",  rent: null, yield: "—", trend: "+3.2%", up: true  },
   },
 };
 
 const MICRO_FACTORS: Record<string, { score: number; label: string; icon: string }[]> = {
-  "City Centre / HafenCity": [
-    { score: 95, label: "Public Transport", icon: "🚇" },
-    { score: 90, label: "Amenities",        icon: "🏪" },
-    { score: 85, label: "Green Space",      icon: "🌳" },
-    { score: 92, label: "Schools",          icon: "🏫" },
-    { score: 80, label: "Noise Level",      icon: "🔇" },
+  "Bole": [
+    { score: 90, label: "Public Transport", icon: "🚌" },
+    { score: 95, label: "Amenities",        icon: "🏪" },
+    { score: 72, label: "Green Space",      icon: "🌳" },
+    { score: 88, label: "Schools",          icon: "🏫" },
+    { score: 78, label: "Noise Level",      icon: "🔇" },
   ],
-  "Eimsbüttel": [
-    { score: 88, label: "Public Transport", icon: "🚇" },
-    { score: 92, label: "Amenities",        icon: "🏪" },
-    { score: 90, label: "Green Space",      icon: "🌳" },
-    { score: 94, label: "Schools",          icon: "🏫" },
-    { score: 88, label: "Noise Level",      icon: "🔇" },
+  "Kazanchis": [
+    { score: 85, label: "Public Transport", icon: "🚌" },
+    { score: 88, label: "Amenities",        icon: "🏪" },
+    { score: 68, label: "Green Space",      icon: "🌳" },
+    { score: 82, label: "Schools",          icon: "🏫" },
+    { score: 72, label: "Noise Level",      icon: "🔇" },
+  ],
+  "CMC": [
+    { score: 74, label: "Public Transport", icon: "🚌" },
+    { score: 76, label: "Amenities",        icon: "🏪" },
+    { score: 88, label: "Green Space",      icon: "🌳" },
+    { score: 90, label: "Schools",          icon: "🏫" },
+    { score: 86, label: "Noise Level",      icon: "🔇" },
+  ],
+  "Megenagna": [
+    { score: 88, label: "Public Transport", icon: "🚌" },
+    { score: 82, label: "Amenities",        icon: "🏪" },
+    { score: 70, label: "Green Space",      icon: "🌳" },
+    { score: 80, label: "Schools",          icon: "🏫" },
+    { score: 74, label: "Noise Level",      icon: "🔇" },
   ],
   "All districts": [
-    { score: 82, label: "Public Transport", icon: "🚇" },
+    { score: 78, label: "Public Transport", icon: "🚌" },
     { score: 80, label: "Amenities",        icon: "🏪" },
-    { score: 78, label: "Green Space",      icon: "🌳" },
-    { score: 83, label: "Schools",          icon: "🏫" },
-    { score: 75, label: "Noise Level",      icon: "🔇" },
+    { score: 74, label: "Green Space",      icon: "🌳" },
+    { score: 80, label: "Schools",          icon: "🏫" },
+    { score: 72, label: "Noise Level",      icon: "🔇" },
   ],
 };
 
@@ -84,13 +109,13 @@ function ScoreBar({ score }: { score: number }) {
 }
 
 export default function MarketClient() {
-  const [city,    setCity]    = useState("Hamburg");
+  const [city,     setCity]     = useState("Addis Ababa");
   const [district, setDistrict] = useState("All districts");
-  const [usage,   setUsage]   = useState("residential");
+  const [usage,    setUsage]    = useState("residential");
 
-  const stats = getStats(usage, district);
-  const micro = getMicro(district);
-  const districts = DISTRICTS[city] || DISTRICTS["Hamburg"];
+  const stats     = getStats(usage, district);
+  const micro     = getMicro(district);
+  const districts = DISTRICTS[city] || DISTRICTS["Addis Ababa"];
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 flex flex-col gap-6">
@@ -100,10 +125,10 @@ export default function MarketClient() {
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 border border-amber-100 text-amber-600 text-xs font-semibold mb-3">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
-            Sample data · GIS integration coming soon
+            Indicative data · Live GIS integration coming soon
           </div>
           <h1 className="text-2xl font-bold text-slate-900">Market Report</h1>
-          <p className="text-slate-500 text-sm mt-0.5">Real estate market intelligence by location & usage type</p>
+          <p className="text-slate-500 text-sm mt-0.5">Real estate market intelligence by city, district & usage type</p>
         </div>
 
         {/* City + District selectors */}
@@ -135,10 +160,10 @@ export default function MarketClient() {
       {stats && (
         <div className={`grid gap-4 ${usage === "land" ? "grid-cols-3" : "grid-cols-2 md:grid-cols-4"}`}>
           {[
-            { label: "Avg. Sale Price/m²", value: stats.buy,  icon: "🏠" },
-            ...(stats.rent ? [{ label: "Avg. Rent/m²",       value: stats.rent, icon: "🔑" }] : []),
-            { label: "Gross Yield",         value: stats.yield, icon: "📈" },
-            { label: "Price Trend (MoM)",   value: stats.trend, icon: stats.up ? "⬆️" : "⬇️", up: stats.up },
+            { label: "Avg. Sale Price/m²",   value: stats.buy,   icon: "🏠" },
+            ...(stats.rent ? [{ label: "Avg. Rent/m²/mo", value: stats.rent, icon: "🔑" }] : []),
+            { label: "Gross Yield",           value: stats.yield, icon: "📈" },
+            { label: "Price Trend (MoM)",     value: stats.trend, icon: stats.up ? "⬆️" : "⬇️", up: stats.up },
           ].map(({ label, value, icon, up }) => (
             <div key={label} className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
               <span className="text-2xl mb-2 block">{icon}</span>
@@ -232,18 +257,18 @@ export default function MarketClient() {
         {[
           {
             tag: "Market Dynamics", tagColor: "bg-blue-50 text-blue-700",
-            title: "Seller's Market",
-            body: "Demand outpaces supply by ~23%. Properties are on the market for an average of 24 days — act fast.",
+            title: "Strong Demand",
+            body: "Demand for residential units in Bole and Kazanchis outpaces supply by ~31%. Properties in prime areas average 18 days on market.",
           },
           {
             tag: "Price Outlook", tagColor: "bg-emerald-50 text-emerald-700",
-            title: "Moderate Growth",
-            body: "Sale prices are rising 2–4% MoM. Prime locations like City Centre show the strongest gains.",
+            title: "Consistent Growth",
+            body: "Sale prices in Addis Ababa have risen 5–8% MoM in 2025–26, driven by urban expansion and infrastructure investment.",
           },
           {
             tag: "Rental Market", tagColor: "bg-amber-50 text-amber-700",
-            title: "Tight Supply",
-            body: "Rents are up across all districts. Eimsbüttel and West End are seeing above-average increases.",
+            title: "Rising Rents",
+            body: "Rental demand is strong in Bole and Megenagna. Yield averages 3.8–4.2% for residential and up to 5.8% for commercial.",
           },
         ].map(({ tag, tagColor, title, body }) => (
           <div key={title} className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
@@ -255,7 +280,7 @@ export default function MarketClient() {
       </div>
 
       <p className="text-xs text-slate-300 text-center pb-2">
-        * All figures are sample data for demonstration. Live GIS & market data will be integrated via Supabase.
+        * All figures are indicative estimates for demonstration. Live market data will be integrated via Supabase GIS.
       </p>
     </div>
   );

@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { SavedListingsClient } from "./SavedListingsClient";
 
 export default function SavedPage() {
-  redirect("/home");
+  return <SavedListingsClient />;
 }

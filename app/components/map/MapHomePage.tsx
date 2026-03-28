@@ -437,6 +437,146 @@ function fmtConverted(price: number, fromCurrency: string, displayCurrency: stri
   }).format(converted);
 }
 
+// ── Rich listing content helpers ───────────────────────────────────────────────
+
+/** Deterministic hash (same as isVerified) */
+function hashId(id: string): number {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return h;
+}
+
+/** Nearby places per neighbourhood */
+const NEIGHBOURHOOD_NEARBY: Record<string, { place: string; icon: string; walk: string; dist: string }[]> = {
+  Bole: [
+    { place: "Bole Int'l Airport",       icon: "✈️", walk: "5 min",  dist: "2.1 km" },
+    { place: "Edna Mall",                icon: "🛍️", walk: "8 min",  dist: "3.2 km" },
+    { place: "Bole Medhanealem Church",  icon: "⛪", walk: "6 min",  dist: "1.9 km" },
+    { place: "St. Gabriel Hospital",     icon: "🏥", walk: "12 min", dist: "4.8 km" },
+    { place: "Bole Ring Road",           icon: "🛣️", walk: "3 min",  dist: "1.0 km" },
+  ],
+  Kazanchis: [
+    { place: "AU Conference Center",     icon: "🏛️", walk: "7 min",  dist: "1.6 km" },
+    { place: "ECA Compound",             icon: "🌐", walk: "5 min",  dist: "0.9 km" },
+    { place: "Meskel Square",            icon: "🏙️", walk: "10 min", dist: "2.2 km" },
+    { place: "National Museum",          icon: "🏺", walk: "12 min", dist: "2.8 km" },
+    { place: "UN Compound",              icon: "🇺🇳", walk: "8 min",  dist: "1.8 km" },
+  ],
+  CMC: [
+    { place: "CMC Michael Church",       icon: "⛪", walk: "4 min",  dist: "0.8 km" },
+    { place: "Ayat Real Estate",         icon: "🏗️", walk: "6 min",  dist: "1.3 km" },
+    { place: "CMC Bus Terminal",         icon: "🚌", walk: "5 min",  dist: "1.1 km" },
+    { place: "Bole Road",                icon: "🛣️", walk: "15 min", dist: "5.0 km" },
+    { place: "Gofa Market",              icon: "🛒", walk: "9 min",  dist: "2.1 km" },
+  ],
+  Megenagna: [
+    { place: "Megenagna Roundabout",     icon: "🔄", walk: "2 min",  dist: "0.4 km" },
+    { place: "Wollo Sefer Market",       icon: "🛒", walk: "6 min",  dist: "1.2 km" },
+    { place: "Japan Embassy",            icon: "🏛️", walk: "8 min",  dist: "1.7 km" },
+    { place: "Gerji Area",               icon: "🏘️", walk: "10 min", dist: "2.5 km" },
+    { place: "Ring Road Expressway",     icon: "🛣️", walk: "5 min",  dist: "1.0 km" },
+  ],
+  Piassa: [
+    { place: "Holy Trinity Cathedral",   icon: "⛪", walk: "5 min",  dist: "1.1 km" },
+    { place: "Merkato (main market)",    icon: "🛒", walk: "12 min", dist: "3.0 km" },
+    { place: "National Palace",          icon: "🏛️", walk: "8 min",  dist: "1.9 km" },
+    { place: "Piassa Square",            icon: "🏙️", walk: "2 min",  dist: "0.4 km" },
+    { place: "Addis Ababa University",   icon: "🎓", walk: "10 min", dist: "2.3 km" },
+  ],
+  Merkato: [
+    { place: "Merkato Central Market",   icon: "🛒", walk: "2 min",  dist: "0.3 km" },
+    { place: "Addis Ketema Sub-city",    icon: "🏢", walk: "6 min",  dist: "1.4 km" },
+    { place: "Minibus Station",          icon: "🚌", walk: "4 min",  dist: "0.9 km" },
+    { place: "St. Raguel Church",        icon: "⛪", walk: "8 min",  dist: "1.8 km" },
+    { place: "Ring Road",                icon: "🛣️", walk: "10 min", dist: "2.6 km" },
+  ],
+  Sarbet: [
+    { place: "Sarbet Roundabout",        icon: "🔄", walk: "3 min",  dist: "0.6 km" },
+    { place: "Dembel City Center",       icon: "🛍️", walk: "7 min",  dist: "1.5 km" },
+    { place: "Yeka Sub-city Office",     icon: "🏢", walk: "6 min",  dist: "1.2 km" },
+    { place: "Bole Airport",             icon: "✈️", walk: "18 min", dist: "7.0 km" },
+    { place: "Ring Road",                icon: "🛣️", walk: "4 min",  dist: "0.8 km" },
+  ],
+  Lideta: [
+    { place: "Lideta Commercial College",icon: "🎓", walk: "5 min",  dist: "1.0 km" },
+    { place: "Lideta Market",            icon: "🛒", walk: "3 min",  dist: "0.7 km" },
+    { place: "Kaliti Bus Terminal",      icon: "🚌", walk: "20 min", dist: "8.0 km" },
+    { place: "Mexico Square",            icon: "🏙️", walk: "10 min", dist: "2.2 km" },
+    { place: "St. Mary Church",          icon: "⛪", walk: "6 min",  dist: "1.3 km" },
+  ],
+  "Addis Ketema": [
+    { place: "Merkato Market",           icon: "🛒", walk: "5 min",  dist: "1.0 km" },
+    { place: "Addis Ketema Square",      icon: "🏙️", walk: "3 min",  dist: "0.6 km" },
+    { place: "Light Rail Station",       icon: "🚈", walk: "7 min",  dist: "1.5 km" },
+    { place: "Ring Road",                icon: "🛣️", walk: "12 min", dist: "3.0 km" },
+    { place: "Tekle Haymanot Church",    icon: "⛪", walk: "8 min",  dist: "1.8 km" },
+  ],
+};
+
+const DEFAULT_NEARBY = [
+  { place: "City Centre",                icon: "🏙️", walk: "15 min", dist: "5.0 km" },
+  { place: "Nearest Supermarket",        icon: "🛒", walk: "8 min",  dist: "2.0 km" },
+  { place: "Public Transport Stop",      icon: "🚌", walk: "5 min",  dist: "1.0 km" },
+  { place: "International School",       icon: "🏫", walk: "12 min", dist: "3.5 km" },
+  { place: "Hospital",                   icon: "🏥", walk: "15 min", dist: "4.8 km" },
+];
+
+function getNearby(neighbourhood: string) {
+  return NEIGHBOURHOOD_NEARBY[neighbourhood] ?? DEFAULT_NEARBY;
+}
+
+/** Feature chips — deterministic per property ID + type */
+const RESIDENTIAL_FEATURES = ["Balcony","Parking","Generator","24/7 Security","Elevator","Swimming Pool","Gym","AC","Furnished","CCTV","Water Tank","Garden","Compound Gate","Fiber Internet"];
+const COMMERCIAL_FEATURES  = ["Generator","24/7 Security","Loading Bay","CCTV","Fiber Internet","Parking","AC","Elevator","Reception","Server Room","Storage Room","Conference Room"];
+const LAND_FEATURES        = ["Fenced","Road Access","Title Deed","Water Connection","Electricity Grid","Corner Plot","Survey Complete","Investment Zone"];
+
+function getFeatures(id: string, propType: string): string[] {
+  const pool = ["apartment","house","villa"].includes(propType) ? RESIDENTIAL_FEATURES
+    : ["office","commercial","production","hall"].includes(propType) ? COMMERCIAL_FEATURES
+    : LAND_FEATURES;
+  const h = hashId(id);
+  // pick 4–6 features
+  const count = 4 + (h % 3);
+  const selected: string[] = [];
+  for (let i = 0; i < count; i++) {
+    selected.push(pool[(h * (i + 7) + i * 13) % pool.length]);
+  }
+  // deduplicate without Set spread (TS downlevelIteration)
+  return selected.filter((v, i, a) => a.indexOf(v) === i);
+}
+
+/** Property detail rows — deterministic */
+function getPropertyDetails(id: string, propType: string): { label: string; value: string }[] {
+  const h = hashId(id);
+  const isResidential = ["apartment","house","villa"].includes(propType);
+  const isCommercial  = ["office","commercial","production","hall"].includes(propType);
+
+  const floor = isResidential || isCommercial
+    ? (h % 12 === 0 ? "Ground floor" : `Floor ${1 + (h % 11)}`) : null;
+  const furnishing = isResidential
+    ? (["Fully furnished","Semi-furnished","Unfurnished"] as const)[h % 3] : null;
+  const parking = !["plot","land"].includes(propType)
+    ? (h % 2 === 0 ? "Included" : "Available nearby") : null;
+  const yearBuilt = 2010 + (h % 14);
+  const condition = (["New","Excellent","Good","Fair"] as const)[h % 4];
+
+  const rows: { label: string; value: string }[] = [];
+  if (floor)      rows.push({ label: "Floor",        value: floor });
+  if (furnishing) rows.push({ label: "Furnishing",   value: furnishing });
+  if (parking)    rows.push({ label: "Parking",      value: parking });
+  rows.push(       { label: "Year built",   value: String(yearBuilt) });
+  rows.push(       { label: "Condition",    value: condition });
+  if (isResidential) rows.push({ label: "Pets allowed", value: h % 3 === 0 ? "Yes" : "No" });
+  return rows;
+}
+
+// ── Currency flag map ──────────────────────────────────────────────────────────
+const CURRENCY_META: Record<string, { flag: string; label: string }> = {
+  ETB: { flag: "🇪🇹", label: "ETB" },
+  USD: { flag: "🇺🇸", label: "USD" },
+  EUR: { flag: "🇪🇺", label: "EUR" },
+};
+
 // ── Placeholder images — Lorem Picsum (deterministic, 100 % reliable) ─────────
 // picsum.photos/seed/{n}/800/500 always resolves, never rate-limits, never 404s.
 // We use three independent hash offsets so each property gets three distinct photos.
@@ -539,6 +679,71 @@ function VerifiedBadge({ small = false }: { small?: boolean }) {
 }
 
 // ── Property detail panel ─────────────────────────────────────────────────────
+// ── Currency dropdown component ────────────────────────────────────────────────
+function CurrencyDropdown({ value, onChange }: { value: DisplayCurrency; onChange: (c: DisplayCurrency) => void }) {
+  const [open, setOpen] = useState(false);
+  const meta = CURRENCY_META[value];
+
+  return (
+    <div style={{ position: "relative", marginLeft: "auto", flexShrink: 0 }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          display: "flex", alignItems: "center", gap: 5,
+          padding: "5px 10px", borderRadius: 8,
+          background: "#f1f5f9", border: "1px solid #e2e8f0",
+          cursor: "pointer", fontSize: 12, fontWeight: 700, color: "#1e293b",
+        }}
+      >
+        <span style={{ fontSize: 15 }}>{meta.flag}</span>
+        <span>{meta.label}</span>
+        <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"
+          style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .15s", opacity: 0.5 }}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {open && (
+        <>
+          {/* Backdrop */}
+          <div style={{ position: "fixed", inset: 0, zIndex: 49 }} onClick={() => setOpen(false)} />
+          <div style={{
+            position: "absolute", top: "calc(100% + 4px)", right: 0, zIndex: 50,
+            background: "white", borderRadius: 10, border: "1px solid #e2e8f0",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.12)", overflow: "hidden", minWidth: 130,
+          }}>
+            {SUPPORTED_CURRENCIES.map(cur => {
+              const m = CURRENCY_META[cur];
+              const active = cur === value;
+              return (
+                <button
+                  key={cur}
+                  onClick={() => { onChange(cur); setOpen(false); }}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 8,
+                    width: "100%", padding: "9px 12px",
+                    background: active ? "#f0fdf4" : "white",
+                    border: "none", cursor: "pointer",
+                    borderBottom: cur !== "EUR" ? "1px solid #f1f5f9" : "none",
+                    textAlign: "left",
+                  }}
+                >
+                  <span style={{ fontSize: 16 }}>{m.flag}</span>
+                  <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: "#1e293b" }}>{m.label}</span>
+                  {active && (
+                    <svg width="12" height="12" fill="none" stroke="#16a34a" strokeWidth={2.5} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function PropertyDetailPanel({
   property,
   onClose,
@@ -760,6 +965,75 @@ function PropertyDetailPanel({
               )}
             </div>
           )}
+
+          {/* ── Property details table ── */}
+          {(() => {
+            const rows = getPropertyDetails(property.id, property.property_type);
+            return rows.length > 0 ? (
+              <div style={{ marginBottom: 16 }}>
+                <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.07em" }}>Property Details</p>
+                <div style={{ border: "1px solid #e2e8f0", borderRadius: 12, overflow: "hidden" }}>
+                  {rows.map((row, i) => (
+                    <div key={row.label} style={{
+                      display: "flex", alignItems: "center", justifyContent: "space-between",
+                      padding: "8px 12px",
+                      background: i % 2 === 0 ? "#f8fafc" : "white",
+                      borderBottom: i < rows.length - 1 ? "1px solid #f1f5f9" : "none",
+                    }}>
+                      <span style={{ fontSize: 12, color: "#94a3b8", fontWeight: 500 }}>{row.label}</span>
+                      <span style={{ fontSize: 12, color: "#1e293b", fontWeight: 600 }}>{row.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null;
+          })()}
+
+          {/* ── Feature tags ── */}
+          {(() => {
+            const features = getFeatures(property.id, property.property_type);
+            return (
+              <div style={{ marginBottom: 16 }}>
+                <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.07em" }}>Features & Amenities</p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {features.map(f => (
+                    <span key={f} style={{
+                      fontSize: 11, fontWeight: 600, color: "#475569",
+                      background: "#f1f5f9", border: "1px solid #e2e8f0",
+                      borderRadius: 20, padding: "4px 10px",
+                    }}>✓ {f}</span>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* ── Nearby places ── */}
+          {(() => {
+            const nearby = getNearby(property.neighbourhood || "");
+            return (
+              <div style={{ marginBottom: 16 }}>
+                <p style={{ margin: "0 0 8px", fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.07em" }}>Nearby</p>
+                <div style={{ border: "1px solid #e2e8f0", borderRadius: 12, overflow: "hidden" }}>
+                  {nearby.map((n, i) => (
+                    <div key={n.place} style={{
+                      display: "flex", alignItems: "center", gap: 10,
+                      padding: "9px 12px",
+                      background: i % 2 === 0 ? "#f8fafc" : "white",
+                      borderBottom: i < nearby.length - 1 ? "1px solid #f1f5f9" : "none",
+                    }}>
+                      <span style={{ fontSize: 14, flexShrink: 0 }}>{n.icon}</span>
+                      <span style={{ flex: 1, fontSize: 12, color: "#334155", fontWeight: 500 }}>{n.place}</span>
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 1 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: "#1e293b" }}>{n.walk}</span>
+                        <span style={{ fontSize: 10, color: "#94a3b8" }}>{n.dist}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* ── Market comparison ── */}
           {pctVsMkt !== null && (
@@ -2014,23 +2288,7 @@ export function MapHomePage() {
             )}
 
             {/* ── Currency switcher ── */}
-            <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 2, background: "#f1f5f9", borderRadius: 8, padding: 2 }}>
-              {SUPPORTED_CURRENCIES.map(cur => (
-                <button
-                  key={cur}
-                  onClick={() => setDisplayCurrency(cur)}
-                  style={{
-                    padding: "3px 9px", borderRadius: 6, fontSize: 11, fontWeight: 700,
-                    border: "none", cursor: "pointer", transition: "all .12s",
-                    background: displayCurrency === cur ? "white" : "transparent",
-                    color: displayCurrency === cur ? "#0f172a" : "#94a3b8",
-                    boxShadow: displayCurrency === cur ? "0 1px 3px rgba(0,0,0,0.10)" : "none",
-                  }}
-                >
-                  {cur}
-                </button>
-              ))}
-            </div>
+            <CurrencyDropdown value={displayCurrency} onChange={setDisplayCurrency} />
           </div>
 
           {/* ── Inline detail view — slides in when 'View full listing' is clicked ── */}
