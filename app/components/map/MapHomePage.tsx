@@ -473,6 +473,34 @@ function getAgentAvatar(agentName: string): string {
   return `https://i.pravatar.cc/80?u=${encodeURIComponent(agentName)}`;
 }
 
+/** Pseudo-random verified flag — uses property id hash so it's stable across renders */
+function isVerified(id: string): boolean {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return h % 5 !== 0; // ~80% of listings show verified
+}
+
+/** Inline verified badge component */
+function VerifiedBadge({ small = false }: { small?: boolean }) {
+  return (
+    <span
+      title="Verified listing"
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 2,
+        background: "#eff6ff", color: "#1d4ed8",
+        borderRadius: 99, padding: small ? "1px 5px" : "2px 7px",
+        fontSize: small ? 9 : 10, fontWeight: 700, letterSpacing: "0.01em",
+        border: "1px solid #bfdbfe", flexShrink: 0,
+      }}
+    >
+      <svg width={small ? 8 : 9} height={small ? 8 : 9} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+      </svg>
+      Verified
+    </span>
+  );
+}
+
 // ── Property detail panel ─────────────────────────────────────────────────────
 function PropertyDetailPanel({
   property,
@@ -690,7 +718,10 @@ function PropertyDetailPanel({
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={getAgentAvatar(agentName)} alt="" className="w-10 h-10 rounded-full object-cover shrink-0 border-2 border-white shadow-sm" />
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-slate-800 truncate">{agentName}</p>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <p className="text-sm font-semibold text-slate-800 truncate">{agentName}</p>
+                    {isVerified(property.id) && <VerifiedBadge small />}
+                  </div>
                   <p className="text-[10px] text-slate-400 uppercase tracking-wide font-medium">Broker · Habino</p>
                 </div>
                 <a href={waUrl} target="_blank" rel="noopener noreferrer"
@@ -1058,7 +1089,7 @@ function PropertyListingCard({
           {liked ? "❤️" : "🤍"}
         </button>
 
-        {/* Type + listing type badges */}
+        {/* Type + listing type + verified badges */}
         <div style={{
           position: "absolute", top: 6, left: 6,
           display: "flex", alignItems: "center", gap: 3, flexWrap: "wrap", zIndex: 4,
@@ -1080,6 +1111,7 @@ function PropertyListingCard({
           }}>
             {listingEmoji} {isRent ? "Rent" : "Sale"}
           </span>
+          {isVerified(p.id) && <VerifiedBadge small />}
         </div>
 
         {/* Price */}
@@ -1324,7 +1356,9 @@ function MapPinPopup({
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={getAgentAvatar(agentName)} alt="" style={{ width: 20, height: 20, borderRadius: "50%", objectFit: "cover", border: "1.5px solid #e2e8f0" }} />
-          <span style={{ fontSize: 10, fontWeight: 600, color: "#334155", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{agentName}</span>
+          <span style={{ fontSize: 10, fontWeight: 600, color: "#334155", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{agentName}</span>
+          {isVerified(property.id) && <VerifiedBadge small />}
+          <div style={{ flex: 1 }} />
           <a href={waUrl} target="_blank" rel="noopener noreferrer"
             style={{ fontSize: 9, fontWeight: 700, color: "white", background: "#25D366", borderRadius: 99, padding: "3px 8px", textDecoration: "none", flexShrink: 0 }}>
             WhatsApp

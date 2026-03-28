@@ -1,81 +1,70 @@
 import Link from "next/link";
 
+export const metadata = { title: "About — Habino" };
+
 export default function AboutPage() {
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-white border-b border-slate-100 px-4 h-14 flex items-center gap-3">
-        <Link href="/explore" className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 transition-colors">
-          <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
+    <div className="min-h-screen" style={{ background: "#f8fafc" }}>
+      <div className="bg-white border-b border-slate-100 px-4 h-14 flex items-center gap-3 sticky top-0 z-10">
+        <Link href="/explore" className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 transition-colors flex items-center justify-center">
+          <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
         </Link>
-        <span className="font-bold text-slate-900 text-sm">About Habino</span>
+        <span className="font-semibold text-slate-800 text-sm">About Habino</span>
       </div>
 
-      {/* Hero */}
-      <div className="px-6 pt-10 pb-8 text-center" style={{ background: "linear-gradient(135deg, #f0fdf4 0%, #e8f5ed 100%)" }}>
-        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-4 shadow"
-          style={{ background: "linear-gradient(135deg, #00A884, #0F1F3D)" }}>
-          <span className="text-white text-2xl font-bold">H</span>
+      <div className="max-w-lg mx-auto px-4 py-8">
+        {/* Brand */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 mb-4">
+          <div className="w-10 h-10 rounded-xl mb-4 flex items-center justify-center text-white text-lg font-bold"
+            style={{ background: "linear-gradient(135deg, var(--color-primary), var(--color-secondary))" }}>H</div>
+          <h1 className="text-xl font-bold text-slate-900 mb-2">Habino</h1>
+          <p className="text-sm text-slate-500 leading-relaxed">
+            Addis Ababa&apos;s AI-powered real estate platform — making it simple to find, rent, buy, and list property.
+          </p>
         </div>
-        <h1 className="text-2xl font-extrabold text-slate-900 mb-2">Habino</h1>
-        <p className="text-slate-500 text-sm max-w-xs mx-auto">
-          Addis Ababa&apos;s AI-powered real estate platform — built to make finding, renting, and buying property simple.
-        </p>
-      </div>
-
-      <div className="max-w-xl mx-auto px-6 py-8 space-y-8">
 
         {/* Mission */}
-        <section>
-          <h2 className="text-base font-bold text-slate-900 mb-3">Our Mission</h2>
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 mb-4">
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Our mission</p>
           <p className="text-sm text-slate-600 leading-relaxed">
-            We believe finding a home should be easy — not stressful. Habino combines AI-powered search,
-            real-time listings, and direct agent connections to give every person in Addis Ababa access
-            to the best property options on the market.
+            We believe finding a home should be straightforward — not stressful. Habino combines AI-powered search,
+            real-time listings, and direct agent connections so every person in Addis Ababa can access
+            the best property options on the market.
           </p>
-        </section>
+        </div>
 
         {/* What we do */}
-        <section>
-          <h2 className="text-base font-bold text-slate-900 mb-3">What We Do</h2>
-          <div className="space-y-3">
-            {[
-              { icon: "🔍", title: "AI Property Search", desc: "Describe what you need in plain language — Habino finds matching properties instantly." },
-              { icon: "🗺️", title: "Interactive Map", desc: "Browse listings on a live map of Addis Ababa, with neighbourhood insights and POI data." },
-              { icon: "💬", title: "Direct Agent Contact", desc: "Connect with verified agents via WhatsApp — no middlemen, no delays." },
-              { icon: "📝", title: "Smart Listings", desc: "List your property in minutes with AI-assisted descriptions and pricing guidance." },
-              { icon: "📄", title: "Digital Contracts", desc: "Generate professional rental contracts with a guided AI wizard." },
-            ].map(item => (
-              <div key={item.title} className="flex gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
-                <span className="text-xl shrink-0">{item.icon}</span>
-                <div>
-                  <p className="text-sm font-semibold text-slate-800">{item.title}</p>
-                  <p className="text-xs text-slate-500 mt-0.5">{item.desc}</p>
-                </div>
-              </div>
-            ))}
+        <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden divide-y divide-slate-100 mb-4">
+          <div className="px-5 py-3">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">What we do</p>
           </div>
-        </section>
+          {[
+            { label: "AI property search", desc: "Describe what you need — we find it instantly." },
+            { label: "Interactive map", desc: "Browse listings live on a map of Addis Ababa." },
+            { label: "Direct agent contact", desc: "Connect via WhatsApp — no middlemen." },
+            { label: "Smart listings", desc: "List your property in minutes with AI assistance." },
+            { label: "Digital contracts", desc: "Generate rental contracts with a guided wizard." },
+          ].map((item) => (
+            <div key={item.label} className="px-5 py-3.5 flex justify-between items-start gap-4">
+              <span className="text-sm font-medium text-slate-800">{item.label}</span>
+              <span className="text-sm text-slate-400 text-right">{item.desc}</span>
+            </div>
+          ))}
+        </div>
 
-        {/* Company */}
-        <section>
-          <h2 className="text-base font-bold text-slate-900 mb-3">Company</h2>
-          <div className="p-4 rounded-xl border border-slate-100 bg-slate-50 text-sm text-slate-600 space-y-1">
-            <p><span className="font-semibold text-slate-800">Habino Real Estate Platform</span></p>
-            <p>Bole, Addis Ababa, Ethiopia</p>
-            <p>contact@habino.com</p>
+        {/* Contact */}
+        <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden divide-y divide-slate-100">
+          <div className="px-5 py-3">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Contact</p>
           </div>
-        </section>
-
-        {/* Back CTA */}
-        <div className="pt-2 text-center">
-          <Link href="/explore"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
-            style={{ backgroundColor: "var(--color-primary)" }}>
-            Start exploring
-          </Link>
+          <div className="px-5 py-3.5 flex justify-between">
+            <span className="text-sm text-slate-400">Email</span>
+            <a href="mailto:contact@habino.com" className="text-sm font-medium text-slate-700 hover:underline">contact@habino.com</a>
+          </div>
+          <div className="px-5 py-3.5 flex justify-between">
+            <span className="text-sm text-slate-400">Location</span>
+            <span className="text-sm font-medium text-slate-700">Bole, Addis Ababa</span>
+          </div>
         </div>
       </div>
     </div>

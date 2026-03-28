@@ -394,18 +394,38 @@ export default function LeafletMap({
           );
         }
 
+        // Unselected pin: small emoji bubble
+        const emoji  = TYPE_EMOJIS[p.property_type] || "🏗️";
+        const sz     = highlighted ? 34 : 28;
+        const emojiSz = highlighted ? 17 : 14;
+        const opacity = dimmed ? 0.28 : grayedOut ? 0.45 : 1;
+        const scale   = dimmed ? 0.78 : grayedOut ? 0.88 : highlighted ? 1.12 : 1;
+        const shadow  = highlighted
+          ? `0 0 0 2px white, 0 0 0 3.5px ${color}, 0 4px 12px ${color}66`
+          : "0 2px 8px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.10)";
+
+        const emojiIcon = L.divIcon({
+          className: "",
+          html: `<div style="
+            width:${sz}px; height:${sz}px; border-radius:50%;
+            background:white;
+            box-shadow:${shadow};
+            border:1.5px solid rgba(0,0,0,0.07);
+            display:flex; align-items:center; justify-content:center;
+            font-size:${emojiSz}px; line-height:1;
+            transform:scale(${scale}); opacity:${opacity};
+            transition:transform .15s, opacity .15s;
+            cursor:pointer; user-select:none;
+          ">${emoji}</div>`,
+          iconSize:   [sz, sz],
+          iconAnchor: [sz / 2, sz / 2],
+        });
+
         return (
-          <CircleMarker
+          <Marker
             key={p.id}
-            center={[p.lat, p.lng]}
-            renderer={PIN_RENDERER as unknown as L.Renderer}
-            radius={highlighted ? 9 : 6}
-            pathOptions={{
-              color:       "white",
-              weight:      1.5,
-              fillColor:   grayedOut ? "#94a3b8" : color,
-              fillOpacity: dimmed ? 0.25 : grayedOut ? 0.35 : 0.85,
-            }}
+            position={[p.lat, p.lng]}
+            icon={emojiIcon}
             eventHandlers={{
               click: (e: L.LeafletMouseEvent) => {
                 e.originalEvent.stopPropagation();

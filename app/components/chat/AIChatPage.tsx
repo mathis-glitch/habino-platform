@@ -462,24 +462,29 @@ interface UserLocation { city: string; country: string; currency: string }
 
 function makeSuggestions(_loc: UserLocation | null) {
   return [
-    // ── Find ──────────────────────────────────────────────────────────────
-    { icon: "🏠", text: "Apartments for rent in Bole",          group: "Find" },
-    { icon: "🛏️", text: "2-bedroom apartment in Kazanchis",     group: "Find" },
-    { icon: "🏡", text: "Family home for rent in Megenagna",     group: "Find" },
-    { icon: "🏘️", text: "Houses for sale in Ayat",              group: "Find" },
-    { icon: "🌇", text: "Luxury villa in Bole",                  group: "Find" },
-    { icon: "🏢", text: "Office space in Kazanchis",             group: "Find" },
-    { icon: "🏪", text: "Shop or retail unit in Merkato",        group: "Find" },
-    { icon: "💰", text: "Cheapest rentals in Addis Ababa",       group: "Find" },
-    // ── List & Edit ───────────────────────────────────────────────────────
-    { icon: "📝", text: "List my apartment for rent",            group: "List & Edit" },
-    { icon: "🏡", text: "List my house for sale",                group: "List & Edit" },
-    { icon: "🏢", text: "List my commercial property",           group: "List & Edit" },
-    { icon: "✏️", text: "Edit my listing description",           group: "List & Edit" },
-    { icon: "💲", text: "Update my listing price",               group: "List & Edit" },
-    { icon: "📸", text: "Add photos to my listing",              group: "List & Edit" },
-    { icon: "📄", text: "Draft a rental contract",               group: "List & Edit" },
-    { icon: "👤", text: "Set up my agent profile",               group: "List & Edit" },
+    // ── Suchen ────────────────────────────────────────────────────────────
+    { icon: "🏠", text: "Apartments for rent in Bole",          group: "Suchen" },
+    { icon: "🛏️", text: "2-bedroom apartment in Kazanchis",     group: "Suchen" },
+    { icon: "🏡", text: "Family home in Megenagna",              group: "Suchen" },
+    { icon: "🏘️", text: "Houses for sale in Ayat",              group: "Suchen" },
+    { icon: "🌇", text: "Luxury villa in Bole",                  group: "Suchen" },
+    { icon: "💰", text: "Cheapest rentals in Addis Ababa",       group: "Suchen" },
+    // ── Inserieren ────────────────────────────────────────────────────────
+    { icon: "📝", text: "List my apartment for rent",            group: "Inserieren" },
+    { icon: "🏡", text: "List my house for sale",                group: "Inserieren" },
+    { icon: "🏢", text: "List my commercial property",           group: "Inserieren" },
+    { icon: "✏️", text: "Edit my listing",                       group: "Inserieren" },
+    { icon: "💲", text: "Update my listing price",               group: "Inserieren" },
+    // ── Vermieten ─────────────────────────────────────────────────────────
+    { icon: "📄", text: "Draft a rental contract",               group: "Vermieten" },
+    { icon: "🤝", text: "Find a tenant for my apartment",        group: "Vermieten" },
+    { icon: "💵", text: "What's a fair rent for my area?",       group: "Vermieten" },
+    { icon: "📋", text: "What documents do I need to rent out?", group: "Vermieten" },
+    // ── Market ────────────────────────────────────────────────────────────
+    { icon: "📊", text: "Average rents in Bole this year",       group: "Market" },
+    { icon: "📈", text: "Property price trends in Addis",        group: "Market" },
+    { icon: "🏙️", text: "Best areas to invest in Addis Ababa",  group: "Market" },
+    { icon: "💹", text: "Rental yield in Kazanchis",             group: "Market" },
   ];
 }
 
@@ -946,24 +951,40 @@ export function AIChatPage({
           );
         })()}
 
-        {/* ── Sidebar suggestion chips — shown when no messages yet ── */}
-        {sidebarMode && !hasMessages && (
-          <div className="shrink-0 px-4 pb-4">
-            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide mb-2.5">Try asking:</p>
-            <div className="flex flex-col gap-1.5">
-              {suggestions.slice(0, 8).map((s) => (
-                <button
-                  key={s.text}
-                  onClick={() => sendMessage(s.text)}
-                  className="flex items-center gap-2.5 text-left px-3 py-2 rounded-xl border border-slate-100 bg-white hover:bg-slate-50 hover:border-slate-200 transition-all text-xs text-slate-600 font-medium shadow-sm"
-                >
-                  <span className="text-sm shrink-0">{s.icon}</span>
-                  <span>{s.text}</span>
-                </button>
-              ))}
+        {/* ── Sidebar suggestion chips — grouped by category ── */}
+        {sidebarMode && !hasMessages && (() => {
+          const groups = ["Suchen", "Inserieren", "Vermieten", "Market"] as const;
+          const groupIcons: Record<string, string> = {
+            Suchen: "🔍", Inserieren: "📝", Vermieten: "🏠", Market: "📊",
+          };
+          return (
+            <div className="overflow-y-auto flex-1 px-4 pb-4">
+              {groups.map((group) => {
+                const items = suggestions.filter(s => s.group === group);
+                return (
+                  <div key={group} className="mb-4">
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <span className="text-[11px]">{groupIcons[group]}</span>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">{group}</span>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      {items.map((s) => (
+                        <button
+                          key={s.text}
+                          onClick={() => sendMessage(s.text)}
+                          className="flex items-center gap-2.5 text-left px-3 py-2 rounded-xl border border-slate-100 bg-white hover:bg-slate-50 hover:border-slate-200 transition-all text-xs text-slate-600 font-medium"
+                        >
+                          <span className="text-sm shrink-0">{s.icon}</span>
+                          <span>{s.text}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Hero state — full page mode only */}
         {!hasMessages && !sidebarMode && (
@@ -990,7 +1011,7 @@ export function AIChatPage({
               ))}
             </div>
             <div className="grid grid-cols-2 gap-2.5 max-w-lg w-full">
-              {suggestions.map((s) => (
+              {suggestions.slice(0, 8).map((s) => (
                 <button key={s.text} onClick={() => sendMessage(s.text)}
                   className="flex items-center gap-3 text-left px-4 py-3 rounded-2xl border border-slate-200 bg-white/60 hover:bg-white hover:shadow-sm hover:border-slate-300 transition-all text-sm text-slate-600 font-medium">
                   <span className="text-base">{s.icon}</span>{s.text}
