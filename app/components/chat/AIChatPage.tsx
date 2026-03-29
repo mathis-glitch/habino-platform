@@ -7,6 +7,7 @@ import Image from "next/image";
 import { Property } from "@/lib/types";
 import { formatPrice, getHeroImage } from "@/lib/utils";
 import { useSavedListings } from "@/app/hooks/useSavedListings";
+import RightPanel from "./RightPanel";
 
 interface ListingCreated {
   id: string;
@@ -306,11 +307,18 @@ function FollowUpChips({ msg, onSend }: { msg: ChatMessage; onSend: (text: strin
   }
   if (!chips.length) return null;
   return (
-    <div className="flex flex-wrap gap-2 mt-2">
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginTop: 8 }}>
       {chips.map((chip) => (
         <button key={chip} onClick={() => onSend(chip)}
-          className="px-3 py-1.5 rounded-xl border border-slate-100/80 bg-white text-xs text-slate-600 font-medium hover:border-slate-300 hover:bg-slate-50 transition-all"
-          style={{ boxShadow: "var(--shadow-xs)" }}>
+          style={{
+            padding: "6px 13px", borderRadius: 999,
+            border: "1px solid #E8E2DA", background: "#fff",
+            fontSize: 12.5, color: "#4A4540", fontWeight: 500, cursor: "pointer",
+            transition: "all 0.15s",
+          }}
+          onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = "#52B788"; el.style.color = "#1B4332"; el.style.background = "#EBF5EF"; }}
+          onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = "#E8E2DA"; el.style.color = "#4A4540"; el.style.background = "#fff"; }}
+        >
           {chip}
         </button>
       ))}
@@ -751,36 +759,39 @@ export function AIChatPage({
   const hasMessages = messages.length > 0;
 
   return (
-    <main className="flex flex-col w-full" style={{ height: "100%", background: sidebarMode ? undefined : "#f8fafc" }}>
+    <main className="flex w-full" style={{ height: "100%" }}>
+    {/* ── Chat column (always) ── */}
+    <div className="flex flex-col flex-1 min-w-0" style={{ height: "100%", background: sidebarMode ? undefined : "#FAFAF8" }}>
 
       {/* ── Fullscreen top bar ── */}
       {!sidebarMode && (
-        <div className="shrink-0 flex items-center justify-between px-6 py-3.5 bg-white border-b border-slate-100/80"
-          style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-[10px] flex items-center justify-center text-white text-sm font-black shadow-sm"
-              style={{ background: "linear-gradient(135deg, var(--color-primary), #4ade80)", boxShadow: "0 4px 12px rgba(46,125,70,0.3)" }}>
-              ✦
-            </div>
-            <div>
-              <p className="text-sm font-bold text-slate-900 leading-none">Habino AI</p>
-              <p className="text-[11px] text-slate-400 mt-0.5">Property assistant</p>
-            </div>
+        <div className="shrink-0 flex items-center justify-between px-6"
+          style={{ height: 52, background: "rgba(255,255,255,0.94)", borderBottom: "1px solid #E8E2DA", backdropFilter: "blur(12px)", zIndex: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 600, color: "#1A1714" }}>Ask AI</div>
+            <span style={{ color: "#C8C0B8", fontSize: 13 }}>·</span>
+            <span style={{ fontSize: 13, color: "#7A736C" }}>Addis Ababa Market</span>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-100">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[11px] font-semibold text-emerald-700">AI Online</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#7A736C" }}>
+              <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#22C55E", display: "inline-block" }} />
+              Data live · Updated 4 min ago
             </div>
             {hasMessages && (
               <button
                 onClick={() => window.location.reload()}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 transition-colors"
+                style={{
+                  display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8,
+                  fontSize: 12.5, fontWeight: 500, cursor: "pointer",
+                  border: "1px solid #E8E2DA", background: "#fff", color: "#4A4540", transition: "all 0.15s",
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#F4F0EB"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "#fff"; }}
               >
                 <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
                 </svg>
-                <span className="text-[11px] font-semibold text-slate-600">New chat</span>
+                New chat
               </button>
             )}
           </div>
@@ -1018,29 +1029,38 @@ export function AIChatPage({
 
         {/* Message thread — full page mode only */}
         {hasMessages && !sidebarMode && (
-          <div className="mx-auto px-4 py-8 flex flex-col gap-6 w-full" style={{ maxWidth: 780 }}>
+          <div className="mx-auto px-6 py-8 flex flex-col gap-7 w-full" style={{ maxWidth: 720 }}>
             {messages.map((msg, i) => (
-              <div key={i} className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
+              <div key={i} style={{ display: "flex", gap: 14, flexDirection: msg.role === "user" ? "row-reverse" : "row" }}>
                 {msg.role === "assistant" && (
-                  <div className="w-8 h-8 rounded-xl shrink-0 flex items-center justify-center text-white text-xs font-bold shadow-sm"
-                    style={{ background: "linear-gradient(135deg, var(--color-primary), var(--color-secondary))" }}>
-                    ✨
+                  <div style={{
+                    width: 32, height: 32, borderRadius: 10, flexShrink: 0, marginTop: 2,
+                    background: "linear-gradient(135deg, var(--color-primary) 0%, #52b788 100%)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    color: "#fff", fontSize: 14, fontWeight: 700,
+                    boxShadow: "0 2px 8px rgba(27,67,50,0.2)",
+                  }}>
+                    ⌂
                   </div>
                 )}
-                <div className="flex flex-col gap-3 max-w-[85%]">
+                <div style={{ flex: 1, maxWidth: "88%", display: "flex", flexDirection: "column", gap: 12, alignItems: msg.role === "user" ? "flex-end" : "flex-start" }}>
                   {msg.content && (
-                    <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
-                      msg.role === "user"
-                        ? "text-white rounded-tr-sm"
-                        : "bg-white border border-slate-100/80 text-slate-700 rounded-tl-sm"
-                    }`} style={msg.role === "user"
-                      ? { backgroundColor: "var(--color-primary)", boxShadow: "0 2px 8px rgba(46,125,70,0.20)" }
-                      : { boxShadow: "var(--shadow-sm)" }}>
+                    <div style={msg.role === "user" ? {
+                      padding: "13px 17px", borderRadius: 16, borderBottomRightRadius: 4,
+                      backgroundColor: "var(--color-primary)", color: "#fff",
+                      fontSize: 14, lineHeight: 1.65, whiteSpace: "pre-wrap",
+                      boxShadow: "0 2px 12px rgba(27,67,50,0.22)",
+                    } : {
+                      padding: "13px 17px", borderRadius: 16, borderBottomLeftRadius: 4,
+                      background: "#fff", border: "1px solid #E8E2DA", color: "#1A1714",
+                      fontSize: 14, lineHeight: 1.65, whiteSpace: "pre-wrap",
+                      boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
+                    }}>
                       {msg.role === "assistant" ? renderText(msg.content) : msg.content}
                     </div>
                   )}
                   {msg.properties && msg.properties.length > 0 && (
-                    <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", maxWidth: "680px" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(195px, 1fr))", gap: 10, maxWidth: 680, width: "100%" }}>
                       {msg.properties.map((p) => <ChatPropertyCard key={p.id} property={p} lang={msg.lang ?? "en"} />)}
                     </div>
                   )}
@@ -1058,12 +1078,18 @@ export function AIChatPage({
             ))}
 
             {loading && (
-              <div className="flex gap-3">
-                <div className="w-8 h-8 rounded-xl shrink-0 flex items-center justify-center text-white text-xs font-bold shadow-sm"
-                  style={{ background: "linear-gradient(135deg, var(--color-primary), var(--color-secondary))" }}>
-                  ✨
-                </div>
-                <div className="bg-white border border-slate-100/80 rounded-2xl rounded-tl-sm px-5 py-3.5 flex items-center gap-2" style={{ boxShadow: "var(--shadow-sm)" }}>
+              <div style={{ display: "flex", gap: 14 }}>
+                <div style={{
+                  width: 32, height: 32, borderRadius: 10, flexShrink: 0,
+                  background: "linear-gradient(135deg, var(--color-primary) 0%, #52b788 100%)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  color: "#fff", fontSize: 14, fontWeight: 700,
+                }}>⌂</div>
+                <div style={{
+                  background: "#fff", border: "1px solid #E8E2DA", borderRadius: 16, borderBottomLeftRadius: 4,
+                  padding: "13px 17px", display: "flex", alignItems: "center", gap: 5,
+                  boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
+                }}>
                   <span className="w-2 h-2 rounded-full bg-slate-300 animate-bounce" style={{ animationDelay: "0ms", animationDuration: "1s" }} />
                   <span className="w-2 h-2 rounded-full bg-slate-300 animate-bounce" style={{ animationDelay: "200ms", animationDuration: "1s" }} />
                   <span className="w-2 h-2 rounded-full bg-slate-300 animate-bounce" style={{ animationDelay: "400ms", animationDuration: "1s" }} />
@@ -1077,10 +1103,11 @@ export function AIChatPage({
       </div>{/* end scrollable */}
 
       {/* ── Fullscreen bottom input bar ── */}
+
       {!sidebarMode && (
-        <div className="shrink-0 bg-white border-t border-slate-100/80 px-6 py-4"
-          style={{ boxShadow: "0 -1px 12px rgba(0,0,0,0.04)" }}>
-          <div className="mx-auto w-full" style={{ maxWidth: 780 }}>
+        <div className="shrink-0 px-6 py-4"
+          style={{ background: "#fff", borderTop: "1px solid #E8E2DA", boxShadow: "0 -1px 12px rgba(0,0,0,0.04)" }}>
+          <div className="mx-auto w-full" style={{ maxWidth: 720 }}>
             {/* Wizard progress bar */}
             {wizardState.step && (() => {
               const isProfile  = wizardState.step.startsWith("profile_");
@@ -1121,50 +1148,80 @@ export function AIChatPage({
               );
             })()}
 
-            {/* Input box */}
-            <div className="w-full transition-all duration-200"
-              style={{ background: "white", border: "1.5px solid #e2e8f0", borderRadius: 16,
-                boxShadow: "0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)", boxSizing: "border-box" }}>
-              <textarea
-                ref={inputRef}
-                value={input}
-                onChange={(e) => { setInput(e.target.value); autoResize(e.target); }}
-                onKeyDown={handleKeyDown}
-                onFocus={e => { const p = e.currentTarget.parentElement; if (p) { p.style.borderColor = "var(--color-primary)"; p.style.boxShadow = "0 0 0 3px color-mix(in srgb, var(--color-primary) 12%, transparent), 0 2px 12px rgba(0,0,0,0.08)"; }}}
-                onBlur={e => { const p = e.currentTarget.parentElement; if (p) { p.style.borderColor = "#e2e8f0"; p.style.boxShadow = "0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)"; }}}
-                placeholder="Ask about properties, contracts, prices…"
-                rows={2}
-                className="flex-1 min-w-0 bg-transparent text-sm text-slate-800 placeholder-slate-400 focus:outline-none leading-relaxed w-full"
-                style={{ minHeight: 54, maxHeight: 140, resize: "none", width: "100%", padding: "14px 16px 10px", boxSizing: "border-box", display: "block", fontFamily: "inherit" }}
-              />
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 10px 10px 14px", borderTop: "1px solid #f1f5f9" }}>
-                <span className="text-[11px] text-slate-300">Press Enter to send · Shift+Enter for new line</span>
+            {/* Composer */}
+            <div style={{
+              background: "#fff", border: "1.5px solid #E8E2DA", borderRadius: 20,
+              boxShadow: "0 4px 20px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04)",
+              transition: "border-color 0.15s, box-shadow 0.15s", overflow: "hidden",
+            }}
+              onFocusCapture={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = "var(--color-primary)"; el.style.boxShadow = "0 0 0 3px rgba(27,67,50,0.1), 0 4px 20px rgba(0,0,0,0.06)"; }}
+              onBlurCapture={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = "#E8E2DA"; el.style.boxShadow = "0 4px 20px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04)"; }}
+            >
+              <div style={{ display: "flex", alignItems: "flex-end", padding: "14px 14px 10px 18px", gap: 10 }}>
+                <textarea
+                  ref={inputRef}
+                  value={input}
+                  onChange={(e) => { setInput(e.target.value); autoResize(e.target); }}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Ask about properties, prices, neighbourhoods, contracts…"
+                  rows={1}
+                  style={{
+                    flex: 1, border: "none", outline: "none", resize: "none",
+                    background: "transparent", fontFamily: "inherit",
+                    fontSize: 14, color: "#1A1714", lineHeight: 1.6,
+                    minHeight: 24, maxHeight: 120,
+                    padding: 0,
+                  }}
+                />
                 <button
                   onClick={() => sendMessage()}
                   disabled={!input.trim() || loading}
-                  style={{ height: 34, paddingLeft: 16, paddingRight: 16, borderRadius: 10, border: "none", cursor: "pointer",
-                    backgroundColor: "var(--color-primary)", color: "white", fontSize: 12, fontWeight: 700,
-                    display: "flex", alignItems: "center", gap: 6,
-                    opacity: (!input.trim() || loading) ? 0.35 : 1, transition: "opacity .15s",
-                    boxShadow: "0 2px 8px color-mix(in srgb, var(--color-primary) 35%, transparent)" }}>
-                  <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                  style={{
+                    flexShrink: 0, width: 36, height: 36, borderRadius: 10,
+                    background: "var(--color-primary)", border: "none", cursor: "pointer",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    color: "#fff", transition: "all 0.15s",
+                    opacity: (!input.trim() || loading) ? 0.35 : 1,
+                    boxShadow: "0 2px 8px rgba(27,67,50,0.3)",
+                  }}
+                >
+                  <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7" />
                   </svg>
-                  Send
                 </button>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 12px 10px 16px", borderTop: "1px solid #F0EBE4" }}>
+                <div style={{ display: "flex", gap: 2 }}>
+                  {["📎", "🎤", "🗺️"].map((ic) => (
+                    <button key={ic} style={{ width: 30, height: 30, borderRadius: 6, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, color: "#A89F98", transition: "all 0.15s" }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#F0EBE4"; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}>
+                      {ic}
+                    </button>
+                  ))}
+                </div>
+                <span style={{ fontSize: 11, color: "#C8C0B8" }}>Enter to send · Shift+Enter for new line</span>
               </div>
             </div>
 
-            {/* Suggestion chips — shown only on hero state */}
+            {/* Suggestion chips */}
             {!hasMessages && (
-              <div className="flex flex-wrap gap-2 mt-3">
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginTop: 10 }}>
                 {suggestions.slice(0, 5).map((s) => (
                   <button
                     key={s.text}
                     onClick={() => sendMessage(s.text)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 transition-all text-xs text-slate-500 font-medium"
+                    style={{
+                      display: "flex", alignItems: "center", gap: 6,
+                      padding: "6px 12px", borderRadius: 999,
+                      border: "1px solid #E8E2DA", background: "#fff",
+                      fontSize: 12, color: "#7A736C", fontWeight: 500, cursor: "pointer",
+                      transition: "all 0.15s", whiteSpace: "nowrap",
+                    }}
+                    onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = "#52B788"; el.style.color = "#1B4332"; el.style.background = "#EBF5EF"; }}
+                    onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = "#E8E2DA"; el.style.color = "#7A736C"; el.style.background = "#fff"; }}
                   >
-                    <span className="text-xs">{s.icon}</span>
+                    <span style={{ fontSize: 13 }}>{s.icon}</span>
                     <span>{s.text}</span>
                   </button>
                 ))}
@@ -1173,6 +1230,10 @@ export function AIChatPage({
           </div>
         </div>
       )}
+    </div>{/* end chat column */}
+
+    {/* ── Right intelligence panel (desktop fullscreen only) ── */}
+    {!sidebarMode && <RightPanel />}
     </main>
   );
 }

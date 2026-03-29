@@ -6,76 +6,36 @@ import { useTenant } from "@/app/tenant-provider";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState } from "react";
 
-// ── Icons ─────────────────────────────────────────────────────────────────────
-function IconSaved({ active }: { active: boolean }) {
-  return (
-    <svg width="16" height="16" fill={active ? "currentColor" : "none"} stroke="currentColor"
-      strokeWidth={active ? 2 : 1.8} viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round"
-        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-    </svg>
-  );
-}
-function IconListings({ active }: { active: boolean }) {
-  return (
-    <svg width="16" height="16" fill="none" stroke="currentColor"
-      strokeWidth={active ? 2.2 : 1.8} viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round"
-        d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-    </svg>
-  );
-}
-function IconSettings({ active }: { active: boolean }) {
-  return (
-    <svg width="16" height="16" fill="none" stroke="currentColor"
-      strokeWidth={active ? 2.2 : 1.8} viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round"
-        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-    </svg>
-  );
-}
-function IconProfile({ active }: { active: boolean }) {
-  return (
-    <svg width="16" height="16" fill="none" stroke="currentColor"
-      strokeWidth={active ? 2.2 : 1.8} viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round"
-        d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  );
-}
-function IconPlus() {
-  return (
-    <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
-    </svg>
-  );
-}
-
-// ── Static history items (future: load from DB) ───────────────────────────────
-const HISTORY_ITEMS = [
-  { icon: "🔍", text: "3-room apartments under €2,000" },
-  { icon: "📄", text: "Create rental contract" },
-  { icon: "📊", text: "Market prices Schwabing" },
-  { icon: "🏠", text: "Create new listing" },
-  { icon: "💰", text: "Price analysis Pasing" },
+const HISTORY = [
+  { text: "2-bed in Bole under 45k/mo",       time: "Today, 09:14" },
+  { text: "Compare Old Airport vs CMC",         time: "Yesterday" },
+  { text: "Is Kazanchis a good investment?",    time: "Mar 24" },
+  { text: "Rental contract — Lideta flat",      time: "Mar 20" },
+  { text: "Best schools near Sarbet",           time: "Mar 18" },
 ];
 
-// ── Sidebar component ─────────────────────────────────────────────────────────
-export default function Sidebar() {
-  const { tenant } = useTenant();
-  const pathname   = usePathname();
-  const router     = useRouter();
-  const [userName, setUserName] = useState<string>("");
-  const [userEmail, setUserEmail] = useState<string>("");
+function NavIcon({ d, filled }: { d: string; filled?: boolean }) {
+  return (
+    <svg width="15" height="15" fill={filled ? "currentColor" : "none"} stroke="currentColor"
+      strokeWidth={filled ? 0 : 1.8} viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d={d} />
+    </svg>
+  );
+}
 
-  // Load user info
+export default function Sidebar() {
+  const { tenant }            = useTenant();
+  const pathname              = usePathname();
+  const router                = useRouter();
+  const [userName, setName]   = useState("");
+  const [userEmail, setEmail] = useState("");
+
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data }) => {
       if (data?.user) {
-        setUserEmail(data.user.email ?? "");
-        setUserName(
+        setEmail(data.user.email ?? "");
+        setName(
           data.user.user_metadata?.full_name ||
           data.user.user_metadata?.name ||
           data.user.email?.split("@")[0] ||
@@ -85,23 +45,25 @@ export default function Sidebar() {
     });
   }, []);
 
-  const initial = userName ? userName[0].toUpperCase() : "U";
+  const initial    = userName ? userName[0].toUpperCase() : "U";
   const isExplore  = pathname === "/explore" || pathname === "/";
   const isSaved    = pathname.startsWith("/saved");
   const isListings = pathname.startsWith("/listings");
-  const isSettings = pathname.startsWith("/settings");
   const isProfile  = pathname.startsWith("/profile");
+  const isSettings = pathname.startsWith("/settings");
 
-  // Bottom nav items
-  const bottomNav = [
-    { href: "/saved",    label: "Saved",     active: isSaved,    icon: <IconSaved    active={isSaved}    /> },
-    { href: "/listings", label: "Listings",  active: isListings, icon: <IconListings active={isListings} /> },
-    { href: "/profile",  label: "Profile",   active: isProfile,  icon: <IconProfile  active={isProfile}  /> },
-    { href: "/settings", label: "Settings",  active: isSettings, icon: <IconSettings active={isSettings} /> },
-  ];
+  function navCls(active: boolean) {
+    return {
+      display: "flex", alignItems: "center", gap: 10,
+      padding: "8px 10px", borderRadius: 8,
+      color: active ? "#fff" : "rgba(255,255,255,0.42)",
+      background: active ? "rgba(82,183,136,0.13)" : "transparent",
+      fontSize: 13, fontWeight: 500, cursor: "pointer",
+      transition: "all 0.15s", textDecoration: "none",
+    } as React.CSSProperties;
+  }
 
-  async function handleNewChat() {
-    // Navigate to explore — page reload clears chat state
+  function handleNewChat() {
     router.push("/explore");
     router.refresh();
   }
@@ -110,146 +72,191 @@ export default function Sidebar() {
     <aside
       className="hidden md:flex flex-col flex-shrink-0 h-full overflow-hidden"
       style={{
-        width: "260px",
-        background: "#111827",
-        borderRight: "1px solid rgba(255,255,255,0.06)",
+        width: 228,
+        background: "#0E1117",
+        borderRight: "1px solid rgba(255,255,255,0.05)",
       }}
     >
       {/* ── Logo ── */}
-      <div className="flex items-center gap-2.5 px-4 py-5"
-        style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-        <div
-          className="w-8 h-8 rounded-[10px] flex items-center justify-center text-white text-sm font-black flex-shrink-0"
-          style={{
-            background: "linear-gradient(135deg, var(--color-primary), #4ade80)",
-            boxShadow: "0 4px 12px rgba(46,125,70,0.4)",
-          }}
-        >
-          {tenant?.logo_url ? (
+      <div style={{
+        padding: "18px 16px 14px",
+        borderBottom: "1px solid rgba(255,255,255,0.06)",
+        display: "flex", alignItems: "center", gap: 10,
+      }}>
+        <div style={{
+          width: 30, height: 30, borderRadius: 9, flexShrink: 0,
+          background: "linear-gradient(135deg, var(--color-primary) 0%, #52b788 100%)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 15, color: "#fff",
+          boxShadow: "0 2px 8px rgba(82,183,136,0.3)",
+        }}>
+          {tenant?.logo_url
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={tenant.logo_url} alt={tenant.name} className="w-6 h-6 object-contain" />
-          ) : "h"}
+            ? <img src={tenant.logo_url} alt="" style={{ width: 18, height: 18, objectFit: "contain" }} />
+            : "⌂"}
         </div>
-        <span className="text-white font-extrabold text-[17px] tracking-tight">
-          {tenant?.name || "habino"}
+        <span style={{ fontSize: 15, fontWeight: 700, color: "rgba(255,255,255,0.88)", letterSpacing: "-0.3px" }}>
+          {tenant?.name || "Habino"}
         </span>
+        <span style={{
+          marginLeft: "auto", fontSize: 9, fontWeight: 700, letterSpacing: "0.5px",
+          color: "#52b788", background: "rgba(82,183,136,0.12)",
+          border: "1px solid rgba(82,183,136,0.2)", borderRadius: 999,
+          padding: "2px 7px", textTransform: "uppercase",
+        }}>AI</span>
       </div>
 
-      {/* ── New Chat button ── */}
-      <div className="px-3 pt-3 pb-1">
+      {/* ── New chat ── */}
+      <div style={{ padding: "12px 10px 4px" }}>
         <button
           onClick={handleNewChat}
-          className="w-full flex items-center gap-2 px-3.5 py-2.5 rounded-[10px] text-sm font-semibold transition-all"
           style={{
-            background: "rgba(255,255,255,0.06)",
-            border: "1px solid rgba(255,255,255,0.08)",
-            color: "rgba(255,255,255,0.65)",
+            width: "100%", display: "flex", alignItems: "center", gap: 8,
+            padding: "9px 14px", borderRadius: 10,
+            background: "rgba(82,183,136,0.10)", border: "1px solid rgba(82,183,136,0.18)",
+            color: "#52b788", fontSize: 12.5, fontWeight: 600, cursor: "pointer",
+            transition: "all 0.15s",
           }}
-          onMouseEnter={e => {
-            (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.10)";
-            (e.currentTarget as HTMLElement).style.color = "#fff";
-          }}
-          onMouseLeave={e => {
-            (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.06)";
-            (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.65)";
-          }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(82,183,136,0.18)"; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "rgba(82,183,136,0.10)"; }}
         >
-          <IconPlus />
-          New Chat
+          <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
+          </svg>
+          New conversation
         </button>
       </div>
 
-      {/* ── Chat history ── */}
-      <div className="px-2 mt-1">
-        <p className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-widest"
-          style={{ color: "rgba(255,255,255,0.25)" }}>
+      {/* ── Discover section ── */}
+      <div style={{ padding: "14px 10px 2px" }}>
+        <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: "0.8px", textTransform: "uppercase", color: "rgba(255,255,255,0.2)", padding: "0 8px", marginBottom: 4 }}>
+          Discover
+        </div>
+        <Link href="/explore" style={navCls(isExplore)}
+          onMouseEnter={e => { if (!isExplore) (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.06)"; }}
+          onMouseLeave={e => { if (!isExplore) (e.currentTarget as HTMLElement).style.background = "transparent"; }}>
+          <span style={{ width: 16, textAlign: "center", fontSize: 14 }}>💬</span>
+          Ask AI
+        </Link>
+        <Link href="/listings" style={navCls(isListings)}
+          onMouseEnter={e => { if (!isListings) (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.06)"; }}
+          onMouseLeave={e => { if (!isListings) (e.currentTarget as HTMLElement).style.background = "transparent"; }}>
+          <span style={{ width: 16, textAlign: "center", fontSize: 14 }}>🔍</span>
+          Browse Listings
+          <span style={{
+            marginLeft: "auto", background: "var(--color-primary)", color: "#fff",
+            fontSize: 10, fontWeight: 700, borderRadius: 999, padding: "1px 6px",
+          }}>48</span>
+        </Link>
+        <a style={navCls(false)}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.06)"; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}>
+          <span style={{ width: 16, textAlign: "center", fontSize: 14 }}>📊</span>
+          Market Intel
+        </a>
+      </div>
+
+      {/* ── Divider ── */}
+      <div style={{ height: 1, background: "rgba(255,255,255,0.05)", margin: "8px 16px" }} />
+
+      {/* ── Workspace section ── */}
+      <div style={{ padding: "2px 10px" }}>
+        <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: "0.8px", textTransform: "uppercase", color: "rgba(255,255,255,0.2)", padding: "0 8px", marginBottom: 4 }}>
+          Workspace
+        </div>
+        <Link href="/saved" style={navCls(isSaved)}
+          onMouseEnter={e => { if (!isSaved) (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.06)"; }}
+          onMouseLeave={e => { if (!isSaved) (e.currentTarget as HTMLElement).style.background = "transparent"; }}>
+          <span style={{ width: 16, textAlign: "center", fontSize: 14 }}>❤️</span>
+          Saved Homes
+          <span style={{
+            marginLeft: "auto", background: "var(--color-primary)", color: "#fff",
+            fontSize: 10, fontWeight: 700, borderRadius: 999, padding: "1px 6px",
+          }}>12</span>
+        </Link>
+        <a style={navCls(false)}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.06)"; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}>
+          <span style={{ width: 16, textAlign: "center", fontSize: 14 }}>🔔</span>
+          Alerts
+          <span style={{
+            marginLeft: "auto", background: "#B45309", color: "#fff",
+            fontSize: 10, fontWeight: 700, borderRadius: 999, padding: "1px 6px",
+          }}>3</span>
+        </a>
+        <a style={navCls(false)}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.06)"; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}>
+          <span style={{ width: 16, textAlign: "center", fontSize: 14 }}>📄</span>
+          Contracts
+        </a>
+        <Link href="/profile" style={navCls(isProfile)}
+          onMouseEnter={e => { if (!isProfile) (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.06)"; }}
+          onMouseLeave={e => { if (!isProfile) (e.currentTarget as HTMLElement).style.background = "transparent"; }}>
+          <span style={{ width: 16, textAlign: "center", fontSize: 14 }}>👤</span>
+          Profile
+        </Link>
+        <Link href="/settings" style={navCls(isSettings)}
+          onMouseEnter={e => { if (!isSettings) (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.06)"; }}
+          onMouseLeave={e => { if (!isSettings) (e.currentTarget as HTMLElement).style.background = "transparent"; }}>
+          <span style={{ width: 16, textAlign: "center", fontSize: 14 }}>⚙️</span>
+          Settings
+        </Link>
+      </div>
+
+      {/* ── Divider ── */}
+      <div style={{ height: 1, background: "rgba(255,255,255,0.05)", margin: "8px 16px" }} />
+
+      {/* ── Recent chats ── */}
+      <div style={{ padding: "2px 10px 4px" }}>
+        <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: "0.8px", textTransform: "uppercase", color: "rgba(255,255,255,0.2)", padding: "0 8px", marginBottom: 4 }}>
           Recent
-        </p>
-        {HISTORY_ITEMS.map((item, i) => (
+        </div>
+      </div>
+      <div style={{ flex: 1, overflowY: "auto", padding: "0 10px" }}>
+        {HISTORY.map((item, i) => (
           <button
             key={i}
             onClick={handleNewChat}
-            className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg mb-0.5 text-left transition-all"
             style={{
-              background: i === 0 && isExplore ? "rgba(46,125,70,0.18)" : "transparent",
-              color: i === 0 && isExplore ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.45)",
+              width: "100%", display: "block", textAlign: "left",
+              padding: "7px 10px", borderRadius: 8, border: "none",
+              background: "transparent", cursor: "pointer", transition: "all 0.15s",
             }}
-            onMouseEnter={e => {
-              if (!(i === 0 && isExplore))
-                (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.06)";
-            }}
-            onMouseLeave={e => {
-              if (!(i === 0 && isExplore))
-                (e.currentTarget as HTMLElement).style.background = "transparent";
-            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.06)"; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
           >
-            <span className="text-sm opacity-70 flex-shrink-0">{item.icon}</span>
-            <span className="text-[13px] font-medium truncate">{item.text}</span>
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              {item.text}
+            </div>
+            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.22)", marginTop: 1 }}>
+              {item.time}
+            </div>
           </button>
         ))}
       </div>
 
-      {/* ── Spacer ── */}
-      <div className="flex-1" />
-
-      {/* ── Bottom navigation ── */}
-      <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", padding: "8px" }}>
-        {bottomNav.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className="flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg mb-0.5 transition-all"
-            style={{
-              color: item.active ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.4)",
-              background: item.active ? "rgba(255,255,255,0.06)" : "transparent",
-            }}
-            onMouseEnter={e => {
-              if (!item.active) {
-                (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.06)";
-                (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.75)";
-              }
-            }}
-            onMouseLeave={e => {
-              if (!item.active) {
-                (e.currentTarget as HTMLElement).style.background = "transparent";
-                (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.4)";
-              }
-            }}
-          >
-            {item.icon}
-            <span className="text-[13px] font-medium">{item.label}</span>
-          </Link>
-        ))}
-
-        {/* User card */}
-        <Link
-          href="/profile"
-          className="flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg mt-1 transition-all"
-          style={{
-            borderTop: "1px solid rgba(255,255,255,0.06)",
-            paddingTop: "12px",
-            marginTop: "8px",
-            color: "rgba(255,255,255,0.7)",
-          }}
-          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.06)"; }}
-          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
-        >
-          <div
-            className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
-            style={{ background: "linear-gradient(135deg, var(--color-primary), #4ade80)" }}
-          >
-            {initial}
+      {/* ── User card ── */}
+      <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", padding: "12px 14px", display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+        <div style={{
+          width: 30, height: 30, borderRadius: 999, flexShrink: 0,
+          background: "linear-gradient(135deg, #3B82F6, #8B5CF6)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 12, fontWeight: 700, color: "#fff",
+        }}>
+          {initial}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 12.5, fontWeight: 600, color: "rgba(255,255,255,0.88)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {userName || "Account"}
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-[13px] font-semibold text-white truncate">{userName || "Account"}</div>
-            <div className="text-[11px] truncate" style={{ color: "rgba(255,255,255,0.35)" }}>
-              {userEmail || "Profile & settings"}
-            </div>
+          <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.28)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {userEmail || "Pro plan"}
           </div>
-          <svg width="14" height="14" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth={2} viewBox="0 0 24 24">
-            <path d="M9 5l7 7-7 7" />
-          </svg>
-        </Link>
+        </div>
+        <svg width="12" height="12" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth={2} viewBox="0 0 24 24">
+          <path d="M9 5l7 7-7 7" />
+        </svg>
       </div>
     </aside>
   );
