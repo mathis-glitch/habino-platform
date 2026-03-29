@@ -290,6 +290,8 @@ export default function RightPanel() {
       background: T.panel,
       display: "flex", flexDirection: "column",
       overflowY: "auto",
+      minHeight: 0,
+      overscrollBehavior: "contain",
     }}>
       {/* Trust strip */}
       <Section>

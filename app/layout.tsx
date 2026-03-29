@@ -102,9 +102,9 @@ export default async function RootLayout({
           {/* Desktop: sidebar + main content. Mobile: full-width + bottom nav */}
           <div className="flex h-[100dvh] overflow-hidden">
             <Sidebar />
+            {/* Right side: stacks content + mobile bottom padding */}
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-              {/* Mobile: extra bottom padding for BottomNav */}
-              <div className="flex-1 min-h-0 overflow-hidden md:pb-0 pb-16">
+              <div className="flex-1 flex flex-col min-h-0 overflow-hidden md:pb-0 pb-16">
                 {children}
               </div>
             </div>

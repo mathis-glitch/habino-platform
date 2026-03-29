@@ -70,9 +70,10 @@ export default function Sidebar() {
 
   return (
     <aside
-      className="hidden md:flex flex-col flex-shrink-0 h-full overflow-hidden"
+      className="hidden md:flex flex-col flex-shrink-0 overflow-hidden"
       style={{
         width: 228,
+        height: "100%",
         background: "#0E1117",
         borderRight: "1px solid rgba(255,255,255,0.05)",
       }}
@@ -213,7 +214,7 @@ export default function Sidebar() {
           Recent
         </div>
       </div>
-      <div style={{ flex: 1, overflowY: "auto", padding: "0 10px" }}>
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 10px", overscrollBehavior: "contain" }}>
         {HISTORY.map((item, i) => (
           <button
             key={i}
