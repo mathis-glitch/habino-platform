@@ -6,7 +6,7 @@ export default function ImprintPage() {
   return (
     <div className="min-h-screen" style={{ background: "#f8fafc" }}>
       <div className="bg-white border-b border-slate-100 px-4 h-14 flex items-center gap-3 sticky top-0 z-10">
-        <Link href="/explore" className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 transition-colors flex items-center justify-center">
+        <Link href="/settings" className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 transition-colors flex items-center justify-center">
           <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
         </Link>
         <span className="font-semibold text-slate-800 text-sm">Imprint</span>
@@ -15,7 +15,7 @@ export default function ImprintPage() {
       <div className="max-w-lg mx-auto px-4 py-8">
         <h1 className="text-lg font-bold text-slate-900 mb-6">Legal Notice</h1>
 
-        <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden divide-y divide-slate-100">
+        <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden divide-y divide-slate-100" style={{ boxShadow: "var(--shadow-sm)" }}>
           {[
             { label: "Company", value: "Habino Real Estate Platform" },
             { label: "Address", value: "Bole Sub-City, Addis Ababa, Ethiopia" },

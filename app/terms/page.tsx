@@ -19,20 +19,20 @@ export default function TermsPage() {
   return (
     <div className="min-h-screen" style={{ background: "#f8fafc" }}>
       <div className="bg-white border-b border-slate-100 px-4 h-14 flex items-center gap-3 sticky top-0 z-10">
-        <Link href="/explore" className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 transition-colors flex items-center justify-center">
+        <Link href="/settings" className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 transition-colors flex items-center justify-center">
           <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
         </Link>
         <span className="font-semibold text-slate-800 text-sm">Terms of Use</span>
       </div>
 
       <div className="max-w-lg mx-auto px-4 py-8">
-        <h1 className="text-lg font-bold text-slate-900 mb-1">Terms of Use</h1>
-        <p className="text-xs text-slate-400 mb-6">Last updated January 2025 · Habino Real Estate Platform</p>
+        <h1 className="text-[20px] font-bold text-slate-900 mb-1">Terms of Use</h1>
+        <p className="text-[12px] text-slate-400 mb-6">Last updated January 2025 · Habino Real Estate Platform</p>
 
-        <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden divide-y divide-slate-100">
+        <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden divide-y divide-slate-100" style={{ boxShadow: "var(--shadow-sm)" }}>
           {sections.map((s) => (
             <div key={s.title} className="px-5 py-4">
-              <p className="text-sm font-semibold text-slate-800 mb-1">{s.title}</p>
+              <p className="text-[14px] font-semibold text-slate-900 mb-1.5">{s.title}</p>
               <p className="text-sm text-slate-500 leading-relaxed">{s.body}</p>
             </div>
           ))}

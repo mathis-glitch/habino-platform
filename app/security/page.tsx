@@ -17,23 +17,23 @@ export default function SecurityPage() {
   return (
     <div className="min-h-screen" style={{ background: "#f8fafc" }}>
       <div className="bg-white border-b border-slate-100 px-4 h-14 flex items-center gap-3 sticky top-0 z-10">
-        <Link href="/explore" className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 transition-colors flex items-center justify-center">
+        <Link href="/settings" className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 transition-colors flex items-center justify-center">
           <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
         </Link>
         <span className="font-semibold text-slate-800 text-sm">Data Security</span>
       </div>
 
       <div className="max-w-lg mx-auto px-4 py-8">
-        <h1 className="text-lg font-bold text-slate-900 mb-1">Data Security</h1>
-        <p className="text-sm text-slate-500 mb-6">How we protect your data and keep the platform secure.</p>
+        <h1 className="text-[20px] font-bold text-slate-900 mb-1">Data Security</h1>
+        <p className="text-[14px] text-slate-500 mb-6">How we protect your data and keep the platform secure.</p>
 
-        <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden divide-y divide-slate-100">
+        <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden divide-y divide-slate-100" style={{ boxShadow: "var(--shadow-sm)" }}>
           {measures.map((m) => (
             <div key={m.title} className="px-5 py-4 flex gap-3">
               <div className="w-1.5 h-1.5 rounded-full mt-2 shrink-0" style={{ backgroundColor: "var(--color-primary)" }} />
               <div>
-                <p className="text-sm font-semibold text-slate-800 mb-0.5">{m.title}</p>
-                <p className="text-sm text-slate-500 leading-relaxed">{m.body}</p>
+                <p className="text-[14px] font-semibold text-slate-900 mb-1">{m.title}</p>
+                <p className="text-[14px] text-slate-500 leading-relaxed">{m.body}</p>
               </div>
             </div>
           ))}

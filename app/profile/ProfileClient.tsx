@@ -32,13 +32,35 @@ const LANG_LABELS: Record<string, string> = {
   "sw-KE": "Kiswahili", "pt-BR": "Português (BR)",
 };
 
-function ProfileField({ label, value, empty }: { label: string; value?: string; empty?: string }) {
+function Field({ label, value, empty, colSpan }: {
+  label: string; value?: string; empty?: string; colSpan?: boolean;
+}) {
   return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wide">{label}</span>
-      <span className={`text-sm ${value ? "text-slate-800 font-medium" : "text-slate-300 italic"}`}>
+    <div className={colSpan ? "col-span-2" : ""}>
+      <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-[0.06em] mb-1">{label}</p>
+      <p className={`text-[15px] font-medium leading-snug ${value ? "text-slate-900" : "text-slate-300 italic"}`}>
         {value || empty || "—"}
-      </span>
+      </p>
+    </div>
+  );
+}
+
+function SectionCard({ title, editHref, children }: {
+  title: string; editHref?: string; children: React.ReactNode;
+}) {
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden" style={{ boxShadow: "var(--shadow-sm)" }}>
+      <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-slate-100">
+        <span className="text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: "var(--color-primary)" }}>
+          {title}
+        </span>
+        {editHref && (
+          <Link href={editHref} className="text-[13px] font-medium transition-colors" style={{ color: "var(--color-primary)" }}>
+            Edit
+          </Link>
+        )}
+      </div>
+      <div className="px-6 py-5">{children}</div>
     </div>
   );
 }
@@ -57,7 +79,7 @@ export function ProfileClient() {
 
   if (loading) {
     return (
-      <main className="min-h-screen flex items-center justify-center">
+      <main className="min-h-screen flex items-center justify-center bg-slate-50">
         <LoadingSpinner className="h-8 w-8" />
       </main>
     );
@@ -71,166 +93,178 @@ export function ProfileClient() {
   return (
     <main className="min-h-screen bg-slate-50">
 
-      {/* ── Gradient dark header ─────────────────────────────────── */}
-      <div className="px-5 pt-7 pb-16" style={{ background: "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)" }}>
-        <div className="flex items-center justify-between">
-          <h1 className="font-bold text-xl text-white">Profile</h1>
+      {/* ── Dark gradient header ─────────────────────────── */}
+      <div className="px-5 pt-7 pb-20" style={{ background: "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)" }}>
+        <div className="flex items-center justify-between max-w-2xl mx-auto">
+          <h1 className="text-[22px] font-bold text-white">My Profile</h1>
           <Link
             href="/?wizard=profile"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold text-white bg-white/10 hover:bg-white/20 transition-colors"
+            className="flex items-center gap-1.5 h-9 px-4 rounded-xl text-[13px] font-semibold text-white bg-white/10 hover:bg-white/20 border border-white/10 transition-colors"
           >
-            <span>✨</span>
-            {hasProfile ? "Edit" : "Set up"}
+            ✨ {hasProfile ? "Edit with AI" : "Set up"}
           </Link>
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 -mt-10 pb-8">
+      <div className="max-w-2xl mx-auto px-4 -mt-10 pb-24 flex flex-col gap-4">
 
-        {/* ── Avatar card ─────────────────────────────────────────── */}
-        <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200 text-center mb-4">
-          <div className="flex justify-center mb-3">
-            <div className="relative inline-block">
+        {/* ── Identity card ─────────────────────────────── */}
+        <div className="bg-white rounded-2xl border border-slate-200 px-6 py-5" style={{ boxShadow: "var(--shadow-sm)" }}>
+          <div className="flex items-center gap-5">
+            {/* Avatar */}
+            <div className="relative shrink-0">
               <div
-                className="w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-bold"
-                style={{ background: "var(--color-primary)" }}
+                className="w-[72px] h-[72px] rounded-full flex items-center justify-center text-white text-2xl font-bold border-2"
+                style={{ background: "linear-gradient(135deg, var(--color-primary), #235f35)", borderColor: "var(--color-primary-light)" }}
               >
                 {initials}
               </div>
               {hasProfile && (
-                <div className="absolute -bottom-0.5 -right-0.5 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center border-2 border-white">
-                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                  </svg>
+                <div
+                  className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full border-2 border-white flex items-center justify-center"
+                  style={{ backgroundColor: "var(--color-primary)" }}
+                >
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
                 </div>
               )}
             </div>
-          </div>
-          <h2 className="font-bold text-xl text-slate-900">{profile.full_name ?? "No name"}</h2>
-          {profile.email && <p className="text-sm text-slate-500 mt-0.5">{profile.email}</p>}
-          {profile.bio && <p className="text-sm text-slate-500 mt-1 max-w-xs mx-auto">{profile.bio}</p>}
-          {hasProfile && (
-            <div className="flex items-center justify-center gap-2 mt-3">
-              <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200">
-                <svg className="w-3 h-3 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                </svg>
-                <span className="text-xs font-semibold text-emerald-700">Verified</span>
+            {/* Name + badges */}
+            <div className="flex-1 min-w-0">
+              <h2 className="text-[18px] font-bold text-slate-900 leading-tight truncate">
+                {profile.full_name || "No name set"}
+              </h2>
+              {profile.email && <p className="text-[14px] text-slate-500 mt-0.5 truncate">{profile.email}</p>}
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
+                <span
+                  className="inline-flex items-center px-2.5 py-0.5 rounded-full border text-[12px] font-semibold"
+                  style={{ backgroundColor: "var(--color-primary-light)", borderColor: "#bbddc9", color: "var(--color-primary)" }}
+                >
+                  Tenant
+                </span>
+                {profile.city && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-slate-100 text-[12px] font-medium text-slate-500">
+                    {profile.city}
+                  </span>
+                )}
               </div>
             </div>
-          )}
-          <Link
-            href="/?wizard=profile"
-            className="mt-4 w-full h-11 rounded-lg text-white text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-[0.98]"
-            style={{ backgroundColor: "var(--color-primary)" }}
-          >
-            <span>✨</span>
-            {hasProfile ? "Edit with AI" : "Set up with AI"}
-          </Link>
+          </div>
         </div>
 
         {!hasProfile ? (
-          /* ── Empty state ─────────────────────────────────────── */
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-8 flex flex-col items-center text-center gap-4">
-            <div className="w-16 h-16 rounded-xl bg-slate-100 flex items-center justify-center text-3xl">🤖</div>
+          /* ── Empty state ──────────────────────────────── */
+          <div className="bg-white rounded-2xl border border-slate-200 p-8 flex flex-col items-center text-center gap-4" style={{ boxShadow: "var(--shadow-sm)" }}>
+            <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center text-2xl">🤖</div>
             <div>
-              <h2 className="font-semibold text-slate-800 text-lg">No profile yet</h2>
-              <p className="text-slate-400 text-sm mt-1 max-w-xs">
+              <h3 className="text-[17px] font-semibold text-slate-800">No profile yet</h3>
+              <p className="text-[14px] text-slate-400 mt-1.5 max-w-xs leading-relaxed">
                 Let the AI guide you through a quick interview — takes about a minute.
-                Your info will be used to pre-fill contracts and personalise your experience.
               </p>
             </div>
             <Link
               href="/?wizard=profile"
-              className="mt-2 flex items-center gap-2 px-6 py-3 rounded-xl text-white font-semibold hover:opacity-90 active:scale-95 transition-all"
+              className="flex items-center gap-2 h-11 px-6 rounded-xl text-white text-[14px] font-semibold hover:opacity-90 transition-opacity"
               style={{ backgroundColor: "var(--color-primary)" }}
             >
-              <span>✨</span>
-              Set up my profile with AI
+              ✨ Set up my profile with AI
             </Link>
-            <p className="text-xs text-slate-300">Voice input supported · Takes ~1 minute</p>
+            <p className="text-[12px] text-slate-300">Voice input supported · Takes ~1 minute</p>
           </div>
         ) : (
-          /* ── Profile cards ───────────────────────────────────── */
-          <div className="flex flex-col gap-4">
-
-            {/* Personal info */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-              <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-4">Personal Information</h2>
-              <div className="grid grid-cols-2 gap-4">
-                <ProfileField label="Full Name" value={profile.full_name} />
-                <ProfileField label="Email" value={profile.email} empty="Not set" />
+          <>
+            {/* ── Personal Information ──────────────────── */}
+            <SectionCard title="Personal Information" editHref="/?wizard=profile">
+              <div className="grid grid-cols-2 gap-x-6 gap-y-5">
+                <Field label="Full Name" value={profile.full_name} />
+                <Field label="Email" value={profile.email} empty="Not set" />
+                <Field label="Phone" value={profile.phone} empty="Not set" />
+                <Field label="WhatsApp" value={profile.whatsapp} empty="Not set" />
+                {profile.bio && <Field label="Bio" value={profile.bio} colSpan />}
               </div>
-              {profile.bio && (
-                <div className="mt-4">
-                  <ProfileField label="Bio" value={profile.bio} />
-                </div>
-              )}
-            </div>
+            </SectionCard>
 
-            {/* Contact */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-              <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-4">Contact Details</h2>
-              <div className="grid grid-cols-2 gap-4">
-                <ProfileField label="Phone" value={profile.phone} empty="Not set" />
-                <ProfileField label="WhatsApp" value={profile.whatsapp} empty="Not set" />
-                {profile.address && (
-                  <div className="col-span-2">
-                    <ProfileField label="Address" value={profile.address} />
-                  </div>
-                )}
-                <ProfileField
-                  label="City"
-                  value={profile.city}
-                  empty="Not set"
-                />
-                <ProfileField
+            {/* ── Contact & Address ─────────────────────── */}
+            <SectionCard title="Contact & Address" editHref="/?wizard=profile">
+              <div className="grid grid-cols-2 gap-x-6 gap-y-5">
+                {profile.address && <Field label="Address" value={profile.address} colSpan />}
+                <Field label="City" value={profile.city} empty="Not set" />
+                <Field
                   label="Country"
                   value={profile.country_code ? COUNTRY_LABELS[profile.country_code] ?? profile.country_code : undefined}
                   empty="Not set"
                 />
               </div>
-            </div>
+            </SectionCard>
 
-            {/* Identity */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-              <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Identity</h2>
-              <p className="text-xs text-slate-300 mb-4">Used to pre-fill rental contracts</p>
-              <ProfileField
-                label="ID / Passport Number"
-                value={profile.id_number ? `••••${profile.id_number.slice(-4)}` : undefined}
-                empty="Not set"
-              />
-            </div>
-
-            {/* Preferences */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-              <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-4">Preferences</h2>
-              <ProfileField
-                label="Preferred Language"
-                value={profile.preferred_lang ? LANG_LABELS[profile.preferred_lang] ?? profile.preferred_lang : undefined}
-                empty="English (US)"
-              />
-            </div>
-
-            {/* Edit CTA */}
-            <div className="bg-slate-50 border border-slate-200 border-dashed rounded-xl p-6 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
-              <div className="text-2xl shrink-0">✨</div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-slate-700">Want to update anything?</p>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Chat with the AI — just say "update my profile" or use voice input in your preferred language.
-                </p>
+            {/* ── Identity ──────────────────────────────── */}
+            <SectionCard title="Identity">
+              <p className="text-[12px] text-slate-400 mb-4 -mt-1">Used to pre-fill rental contracts</p>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-5">
+                <Field
+                  label="ID / Passport"
+                  value={profile.id_number ? `••••${profile.id_number.slice(-4)}` : undefined}
+                  empty="Not set"
+                />
+                <Field
+                  label="Preferred Language"
+                  value={profile.preferred_lang ? LANG_LABELS[profile.preferred_lang] ?? profile.preferred_lang : undefined}
+                  empty="English (US)"
+                />
               </div>
-              <Link
-                href="/?wizard=profile"
-                className="shrink-0 px-5 py-2.5 rounded-xl text-white text-sm font-semibold hover:opacity-90 transition-all"
-                style={{ backgroundColor: "var(--color-primary)" }}
-              >
-                Update with AI
-              </Link>
+            </SectionCard>
+
+            {/* ── Security ──────────────────────────────── */}
+            <SectionCard title="Security">
+              <div className="divide-y divide-slate-100">
+                <div className="flex items-center justify-between py-3.5 first:pt-0">
+                  <div>
+                    <p className="text-[14px] font-medium text-slate-900">Password</p>
+                    <p className="text-[13px] text-slate-400 mt-0.5">••••••••••••</p>
+                  </div>
+                  <Link href="/?wizard=profile" className="text-[13px] font-medium transition-colors" style={{ color: "var(--color-primary)" }}>
+                    Change
+                  </Link>
+                </div>
+                <div className="flex items-center justify-between py-3.5">
+                  <div>
+                    <p className="text-[14px] font-medium text-slate-900">Two-Factor Authentication</p>
+                    <p className="text-[13px] text-slate-400 mt-0.5">Add an extra layer of security</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[12px] text-slate-400">Off</span>
+                    <div className="w-11 h-6 bg-slate-200 rounded-full relative cursor-pointer transition-colors hover:bg-slate-300">
+                      <div className="absolute top-[3px] left-[3px] w-[18px] h-[18px] bg-white rounded-full shadow-sm" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </SectionCard>
+
+            {/* ── Danger Zone ───────────────────────────── */}
+            <div className="rounded-2xl border border-red-200 bg-red-50 px-6 py-2" style={{ boxShadow: "var(--shadow-sm)" }}>
+              <p className="text-[11px] font-bold text-red-600 uppercase tracking-[0.08em] pt-4 pb-3">Danger Zone</p>
+              <div className="divide-y divide-red-100">
+                <div className="flex items-center justify-between gap-4 py-4">
+                  <div>
+                    <p className="text-[14px] font-semibold text-slate-800">Download My Data</p>
+                    <p className="text-[13px] text-slate-500 mt-0.5">Export all your account data as a ZIP file.</p>
+                  </div>
+                  <button className="shrink-0 h-9 px-4 rounded-xl text-[13px] font-semibold border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors">
+                    Download
+                  </button>
+                </div>
+                <div className="flex items-center justify-between gap-4 py-4">
+                  <div>
+                    <p className="text-[14px] font-semibold text-red-700">Delete Account</p>
+                    <p className="text-[13px] text-slate-500 mt-0.5">Permanently removes your profile, contracts, and listings.</p>
+                  </div>
+                  <button className="shrink-0 h-9 px-4 rounded-xl text-[13px] font-semibold border border-red-200 bg-white text-red-600 hover:bg-red-100 transition-colors">
+                    Delete
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
+          </>
         )}
       </div>
     </main>
