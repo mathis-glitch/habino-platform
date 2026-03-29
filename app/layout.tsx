@@ -7,6 +7,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { tenantCssVars } from "@/lib/tenant";
 import { Tenant } from "@/lib/types";
 import BottomNav from "@/components/layout/BottomNav";
+import Sidebar from "@/app/components/layout/Sidebar";
 import InstallPrompt from "@/components/pwa/InstallPrompt";
 import OnboardingOverlay from "@/components/onboarding/OnboardingOverlay";
 
@@ -98,9 +99,15 @@ export default async function RootLayout({
       </head>
       <body className={`${inter.className} pb-safe`}>
         <TenantProvider tenant={tenant}>
-          {/* Main content — extra bottom padding on mobile for BottomNav */}
-          <div className="md:pb-0 pb-16">
-            {children}
+          {/* Desktop: sidebar + main content. Mobile: full-width + bottom nav */}
+          <div className="flex h-[100dvh] overflow-hidden">
+            <Sidebar />
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+              {/* Mobile: extra bottom padding for BottomNav */}
+              <div className="flex-1 min-h-0 overflow-hidden md:pb-0 pb-16">
+                {children}
+              </div>
+            </div>
           </div>
           <BottomNav />
           <InstallPrompt />

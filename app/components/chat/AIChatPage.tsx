@@ -751,7 +751,41 @@ export function AIChatPage({
   const hasMessages = messages.length > 0;
 
   return (
-    <main className="flex flex-col min-h-0 w-full" style={{ height: sidebarMode ? "100%" : "calc(100dvh - 56px - 58px)" }}>
+    <main className="flex flex-col w-full" style={{ height: "100%", background: sidebarMode ? undefined : "#f8fafc" }}>
+
+      {/* ── Fullscreen top bar ── */}
+      {!sidebarMode && (
+        <div className="shrink-0 flex items-center justify-between px-6 py-3.5 bg-white border-b border-slate-100/80"
+          style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-[10px] flex items-center justify-center text-white text-sm font-black shadow-sm"
+              style={{ background: "linear-gradient(135deg, var(--color-primary), #4ade80)", boxShadow: "0 4px 12px rgba(46,125,70,0.3)" }}>
+              ✦
+            </div>
+            <div>
+              <p className="text-sm font-bold text-slate-900 leading-none">Habino AI</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">Property assistant</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-100">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[11px] font-semibold text-emerald-700">AI Online</span>
+            </div>
+            {hasMessages && (
+              <button
+                onClick={() => window.location.reload()}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 transition-colors"
+              >
+                <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
+                </svg>
+                <span className="text-[11px] font-semibold text-slate-600">New chat</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── Sidebar welcome header — always visible ── */}
       {sidebarMode && (
@@ -776,8 +810,9 @@ export function AIChatPage({
         </div>
       )}
 
-      {/* ── Input bar ── */}
-      <div className="shrink-0 bg-white w-full px-4 pt-3 pb-4" style={{ boxSizing: "border-box" }}>
+      {/* ── Sidebar input bar (top, original design) ── */}
+      {sidebarMode && (
+        <div className="shrink-0 bg-white w-full px-4 pt-3 pb-4" style={{ boxSizing: "border-box" }}>
           {/* Wizard progress bar */}
           {wizardState.step && (() => {
             const isProfile  = wizardState.step.startsWith("profile_");
@@ -817,88 +852,35 @@ export function AIChatPage({
               </div>
             );
           })()}
-
-          {/* ── Premium input field ── */}
-          <div
-            className="w-full transition-all duration-200"
-            style={{
-              background: "white",
-              border: "1.5px solid #e2e8f0",
-              borderRadius: 16,
-              boxShadow: "0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)",
-              boxSizing: "border-box",
-            }}
-            onFocus={() => {}}
-          >
-            <textarea
-              ref={inputRef}
-              value={input}
+          <div className="w-full transition-all duration-200"
+            style={{ background: "white", border: "1.5px solid #e2e8f0", borderRadius: 16,
+              boxShadow: "0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)", boxSizing: "border-box" }}>
+            <textarea ref={inputRef} value={input}
               onChange={(e) => { setInput(e.target.value); autoResize(e.target); }}
               onKeyDown={handleKeyDown}
-              onFocus={e => {
-                const parent = e.currentTarget.parentElement;
-                if (parent) {
-                  parent.style.borderColor = "var(--color-primary)";
-                  parent.style.boxShadow = "0 0 0 3px color-mix(in srgb, var(--color-primary) 12%, transparent), 0 2px 12px rgba(0,0,0,0.08)";
-                }
-              }}
-              onBlur={e => {
-                const parent = e.currentTarget.parentElement;
-                if (parent) {
-                  parent.style.borderColor = "#e2e8f0";
-                  parent.style.boxShadow = "0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)";
-                }
-              }}
-              placeholder={sidebarMode ? "e.g. 2-bed apartment in Bole under 40k…" : "What are you looking for? e.g. 3-bed apartment in Bole…"}
-              rows={sidebarMode ? 3 : 2}
+              onFocus={e => { const p = e.currentTarget.parentElement; if (p) { p.style.borderColor = "var(--color-primary)"; p.style.boxShadow = "0 0 0 3px color-mix(in srgb, var(--color-primary) 12%, transparent), 0 2px 12px rgba(0,0,0,0.08)"; }}}
+              onBlur={e => { const p = e.currentTarget.parentElement; if (p) { p.style.borderColor = "#e2e8f0"; p.style.boxShadow = "0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)"; }}}
+              placeholder="e.g. 2-bed apartment in Bole under 40k…"
+              rows={3}
               className="flex-1 min-w-0 bg-transparent text-sm text-slate-800 placeholder-slate-400 focus:outline-none leading-relaxed w-full"
-              style={{
-                minHeight: sidebarMode ? 72 : 40,
-                maxHeight: 160,
-                resize: "none",
-                width: "100%",
-                padding: "14px 16px 10px",
-                boxSizing: "border-box",
-                display: "block",
-                fontFamily: "inherit",
-              }}
+              style={{ minHeight: 72, maxHeight: 160, resize: "none", width: "100%", padding: "14px 16px 10px", boxSizing: "border-box", display: "block", fontFamily: "inherit" }}
             />
-            <div style={{
-              display: "flex", alignItems: "center", justifyContent: "space-between",
-              padding: "8px 10px 10px 12px",
-              borderTop: "1px solid #f1f5f9",
-            }}>
-              <span style={{ fontSize: 11, color: "#cbd5e1", fontWeight: 500 }}>
-                {sidebarMode ? "Enter ↵ to ask" : "Enter to ask · 🎤 Voice"}
-              </span>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <button
-                  onClick={() => sendMessage()}
-                  disabled={!input.trim() || loading}
-                  style={{
-                    height: 34, paddingLeft: 14, paddingRight: 14,
-                    borderRadius: 10, border: "none", cursor: "pointer",
-                    backgroundColor: "var(--color-primary)", color: "white",
-                    fontSize: 12, fontWeight: 700, letterSpacing: "0.01em",
-                    display: "flex", alignItems: "center", gap: 6,
-                    opacity: (!input.trim() || loading) ? 0.35 : 1,
-                    transition: "opacity .15s, transform .1s",
-                    boxShadow: "0 2px 8px color-mix(in srgb, var(--color-primary) 35%, transparent)",
-                  }}
-                  onMouseEnter={e => { if (input.trim() && !loading) (e.currentTarget as HTMLElement).style.opacity = "0.88"; }}
-                  onMouseLeave={e => { if (input.trim() && !loading) (e.currentTarget as HTMLElement).style.opacity = "1"; }}
-                >
-                  <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7" />
-                  </svg>
-                  Ask
-                </button>
-              </div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", padding: "8px 10px 10px 12px", borderTop: "1px solid #f1f5f9" }}>
+              <button onClick={() => sendMessage()} disabled={!input.trim() || loading}
+                style={{ height: 34, paddingLeft: 14, paddingRight: 14, borderRadius: 10, border: "none", cursor: "pointer",
+                  backgroundColor: "var(--color-primary)", color: "white", fontSize: 12, fontWeight: 700,
+                  display: "flex", alignItems: "center", gap: 6,
+                  opacity: (!input.trim() || loading) ? 0.35 : 1, transition: "opacity .15s",
+                  boxShadow: "0 2px 8px color-mix(in srgb, var(--color-primary) 35%, transparent)" }}>
+                <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+                Ask
+              </button>
             </div>
           </div>
         </div>
-
-      {/* ── Spacer between input and messages ── */}
+      )}
       {sidebarMode && <div className="shrink-0 h-3" />}
 
       {/* ── Scrollable content area ── */}
@@ -991,43 +973,52 @@ export function AIChatPage({
 
         {/* Hero state — full page mode only */}
         {!hasMessages && !sidebarMode && (
-          <div className="flex flex-col items-center justify-center px-4 min-h-full py-12">
-            <div className="text-center max-w-xl mb-10">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 text-slate-500 text-xs font-semibold mb-5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse" />
-                AI-powered property search
-              </div>
-              <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 leading-tight tracking-tight mb-4">
-                Your property.<br /><span style={{ color: "var(--color-primary)" }}>Found by AI.</span>
+          <div className="flex flex-col items-center justify-center px-8 h-full" style={{ minHeight: "calc(100% - 40px)" }}>
+            <div className="w-full max-w-[780px] mx-auto flex flex-col items-center">
+              {/* Logo mark */}
+              <div style={{
+                width: 72, height: 72, borderRadius: 22,
+                background: "linear-gradient(135deg, var(--color-primary) 0%, #4ade80 100%)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 32, color: "#fff", marginBottom: 24,
+                boxShadow: "0 8px 32px rgba(46,125,70,0.28), 0 2px 8px rgba(0,0,0,0.08)"
+              }}>✦</div>
+
+              {/* Heading */}
+              <h1 style={{ fontSize: 30, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.03em", marginBottom: 8, textAlign: "center" }}>
+                How can I help you?
               </h1>
-              <p className="text-slate-500 text-base md:text-lg">
-                Describe what you&apos;re looking for — I&apos;ll find matching properties and book viewings.
+              <p style={{ color: "#64748b", fontSize: 15, marginBottom: 36, textAlign: "center" }}>
+                Search properties, draft contracts, manage listings — all in one place.
               </p>
-            </div>
-            <div className="flex flex-wrap justify-center gap-3 mb-4">
-              {quickActions.map((a) => (
-                <button key={a.text} onClick={() => sendMessage(a.text)}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white shadow-sm hover:opacity-90 active:scale-95 transition-all"
-                  style={{ backgroundColor: "var(--color-primary)" }}>
-                  <span>{a.icon}</span>{a.label}
-                </button>
-              ))}
-            </div>
-            <div className="grid grid-cols-2 gap-2.5 max-w-lg w-full">
-              {suggestions.slice(0, 8).map((s) => (
-                <button key={s.text} onClick={() => sendMessage(s.text)}
-                  className="flex items-center gap-3 text-left px-4 py-3 rounded-2xl border border-slate-100/80 bg-white/80 hover:bg-white hover:border-slate-200 transition-all text-sm text-slate-600 font-medium"
-                  style={{ boxShadow: "var(--shadow-xs)" }}>
-                  <span className="text-base">{s.icon}</span>{s.text}
-                </button>
-              ))}
+
+              {/* 2×2 Action cards */}
+              <div className="grid grid-cols-2 gap-4 w-full mb-8" style={{ maxWidth: 640 }}>
+                {[
+                  { icon: "🔍", title: "Search Properties", desc: "Find apartments, villas & more", text: "Find me a 2-bedroom apartment in Bole" },
+                  { icon: "🏠", title: "List a Property", desc: "Add your property in minutes", text: "List my property" },
+                  { icon: "📄", title: "Draft a Contract", desc: "Rental agreements in seconds", text: "Draft a rental contract" },
+                  { icon: "📊", title: "Market Analysis", desc: "Current prices & trends", text: "What are current rental prices in Addis Ababa?" },
+                ].map((card) => (
+                  <button
+                    key={card.text}
+                    onClick={() => sendMessage(card.text)}
+                    className="flex flex-col items-start text-left p-5 rounded-2xl bg-white border border-slate-100 hover:border-slate-200 hover:shadow-md transition-all duration-200 group"
+                    style={{ boxShadow: "0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.03)" }}
+                  >
+                    <span className="text-2xl mb-3">{card.icon}</span>
+                    <p className="text-sm font-semibold text-slate-800 mb-1">{card.title}</p>
+                    <p className="text-xs text-slate-400">{card.desc}</p>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         )}
 
         {/* Message thread — full page mode only */}
         {hasMessages && !sidebarMode && (
-          <div className="max-w-2xl mx-auto px-4 py-8 flex flex-col gap-6">
+          <div className="mx-auto px-4 py-8 flex flex-col gap-6 w-full" style={{ maxWidth: 780 }}>
             {messages.map((msg, i) => (
               <div key={i} className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
                 {msg.role === "assistant" && (
@@ -1049,7 +1040,7 @@ export function AIChatPage({
                     </div>
                   )}
                   {msg.properties && msg.properties.length > 0 && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" style={{ maxWidth: "520px" }}>
+                    <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", maxWidth: "680px" }}>
                       {msg.properties.map((p) => <ChatPropertyCard key={p.id} property={p} lang={msg.lang ?? "en"} />)}
                     </div>
                   )}
@@ -1084,6 +1075,104 @@ export function AIChatPage({
         )}
 
       </div>{/* end scrollable */}
+
+      {/* ── Fullscreen bottom input bar ── */}
+      {!sidebarMode && (
+        <div className="shrink-0 bg-white border-t border-slate-100/80 px-6 py-4"
+          style={{ boxShadow: "0 -1px 12px rgba(0,0,0,0.04)" }}>
+          <div className="mx-auto w-full" style={{ maxWidth: 780 }}>
+            {/* Wizard progress bar */}
+            {wizardState.step && (() => {
+              const isProfile  = wizardState.step.startsWith("profile_");
+              const isContract = wizardState.step.startsWith("contract_");
+              const steps = isProfile
+                ? ["profile_name","profile_contact","profile_location","profile_identity","profile_confirm"]
+                : isContract
+                ? ["contract_landlord","contract_property","contract_tenant","contract_terms","contract_jurisdiction","contract_confirm"]
+                : ["listing_type","property_type","title","price","city","extras","confirm"];
+              const idx   = steps.indexOf(wizardState.step);
+              const total = steps.length;
+              const wizardName = isProfile ? "Profile setup" : isContract ? "Contract wizard" : "Listing wizard";
+              const labels: Record<string, string> = {
+                listing_type: "Sale or Rent", property_type: "Property type",
+                title: "Title", price: "Price", city: "City",
+                extras: "Details", confirm: "Review & publish",
+                edit_field: "Editing", edit_value: "Editing",
+                profile_name: "Your name", profile_contact: "Contact details",
+                profile_location: "Location", profile_identity: "Identity & language",
+                profile_confirm: "Review & save",
+                contract_landlord: "Landlord", contract_property: "Property",
+                contract_tenant: "Tenant", contract_terms: "Terms",
+                contract_jurisdiction: "Jurisdiction", contract_confirm: "Review & generate",
+              };
+              return (
+                <div className="mb-3">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">
+                      {wizardName} · {labels[wizardState.step] || wizardState.step}
+                    </span>
+                    <span className="text-[11px] text-slate-300">Step {Math.max(idx + 1, 1)} of {total}</span>
+                  </div>
+                  <div className="h-1 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-full rounded-full transition-all duration-500"
+                      style={{ width: `${((Math.max(idx + 1, 1)) / total) * 100}%`, backgroundColor: "var(--color-primary)" }} />
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Input box */}
+            <div className="w-full transition-all duration-200"
+              style={{ background: "white", border: "1.5px solid #e2e8f0", borderRadius: 16,
+                boxShadow: "0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)", boxSizing: "border-box" }}>
+              <textarea
+                ref={inputRef}
+                value={input}
+                onChange={(e) => { setInput(e.target.value); autoResize(e.target); }}
+                onKeyDown={handleKeyDown}
+                onFocus={e => { const p = e.currentTarget.parentElement; if (p) { p.style.borderColor = "var(--color-primary)"; p.style.boxShadow = "0 0 0 3px color-mix(in srgb, var(--color-primary) 12%, transparent), 0 2px 12px rgba(0,0,0,0.08)"; }}}
+                onBlur={e => { const p = e.currentTarget.parentElement; if (p) { p.style.borderColor = "#e2e8f0"; p.style.boxShadow = "0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)"; }}}
+                placeholder="Ask about properties, contracts, prices…"
+                rows={2}
+                className="flex-1 min-w-0 bg-transparent text-sm text-slate-800 placeholder-slate-400 focus:outline-none leading-relaxed w-full"
+                style={{ minHeight: 54, maxHeight: 140, resize: "none", width: "100%", padding: "14px 16px 10px", boxSizing: "border-box", display: "block", fontFamily: "inherit" }}
+              />
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 10px 10px 14px", borderTop: "1px solid #f1f5f9" }}>
+                <span className="text-[11px] text-slate-300">Press Enter to send · Shift+Enter for new line</span>
+                <button
+                  onClick={() => sendMessage()}
+                  disabled={!input.trim() || loading}
+                  style={{ height: 34, paddingLeft: 16, paddingRight: 16, borderRadius: 10, border: "none", cursor: "pointer",
+                    backgroundColor: "var(--color-primary)", color: "white", fontSize: 12, fontWeight: 700,
+                    display: "flex", alignItems: "center", gap: 6,
+                    opacity: (!input.trim() || loading) ? 0.35 : 1, transition: "opacity .15s",
+                    boxShadow: "0 2px 8px color-mix(in srgb, var(--color-primary) 35%, transparent)" }}>
+                  <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5l7 7-7 7" />
+                  </svg>
+                  Send
+                </button>
+              </div>
+            </div>
+
+            {/* Suggestion chips — shown only on hero state */}
+            {!hasMessages && (
+              <div className="flex flex-wrap gap-2 mt-3">
+                {suggestions.slice(0, 5).map((s) => (
+                  <button
+                    key={s.text}
+                    onClick={() => sendMessage(s.text)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 transition-all text-xs text-slate-500 font-medium"
+                  >
+                    <span className="text-xs">{s.icon}</span>
+                    <span>{s.text}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </main>
   );
 }

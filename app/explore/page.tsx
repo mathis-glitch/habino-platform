@@ -1,11 +1,11 @@
 import dynamic from "next/dynamic";
 
-// Map homepage must be client-side only (Leaflet is not SSR-safe)
-const MapHomePage = dynamic(
-  () => import("../components/map/MapHomePage").then((m) => ({ default: m.MapHomePage })),
+// AIChatPage must be client-side (uses browser APIs)
+const AIChatPage = dynamic(
+  () => import("../components/chat/AIChatPage").then((m) => ({ default: m.AIChatPage })),
   { ssr: false }
 );
 
 export default function ExplorePage() {
-  return <MapHomePage />;
+  return <AIChatPage />;
 }
