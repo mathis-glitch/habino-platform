@@ -362,8 +362,7 @@ function SavedCard({
       className={`relative bg-white rounded-2xl border overflow-hidden transition-all duration-150 cursor-pointer group ${
         selected ? "border-primary ring-2 ring-primary/20" : "border-slate-100/80 hover:border-slate-200 hover:-translate-y-0.5"
       }`}
-      style={{ boxShadow: selected ? "0 0 0 3px rgba(46,125,70,0.12)" : "var(--shadow-sm)" }}
-      style={{ "--tw-ring-color": "var(--color-primary)" } as React.CSSProperties}
+      style={{ boxShadow: selected ? "0 0 0 3px rgba(46,125,70,0.12)" : "var(--shadow-sm)", "--tw-ring-color": "var(--color-primary)" } as React.CSSProperties}
       onClick={onOpen}>
 
       {/* Checkbox */}

@@ -232,9 +232,10 @@ export default function MyListingsPage() {
   const counts: Record<StatusFilter, number> = {
     all:     listings.length,
     active:  listings.filter(l => l.status === "active").length,
-    pending: listings.filter(l => l.status === "pending").length,
+    // pending and closed don't exist in PropertyStatus — count as 0
+    pending: listings.filter(l => (l.status as string) === "pending").length,
     draft:   listings.filter(l => l.status === "draft").length,
-    closed:  listings.filter(l => l.status === "closed").length,
+    closed:  listings.filter(l => (l.status as string) === "closed").length,
   };
 
   const FILTER_TABS: { key: StatusFilter; label: string }[] = [
