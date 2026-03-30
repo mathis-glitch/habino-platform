@@ -759,9 +759,9 @@ export function AIChatPage({
   const hasMessages = messages.length > 0;
 
   return (
-    <main className="flex flex-1 min-h-0 overflow-hidden w-full">
+    <main style={{ display: "flex", width: "100%", height: "100%", overflow: "hidden" }}>
     {/* ── Chat column ── */}
-    <div className="flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden" style={{ background: sidebarMode ? undefined : "#FAFAF8" }}>
+    <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0, height: "100%", overflow: "hidden", background: sidebarMode ? undefined : "#FAFAF8" }}>
 
       {/* ── Fullscreen top bar ── */}
       {!sidebarMode && (
@@ -895,7 +895,7 @@ export function AIChatPage({
       {sidebarMode && <div className="shrink-0 h-3" />}
 
       {/* ── Scrollable content area ── */}
-      <div className="flex-1 overflow-y-auto min-h-0" style={{ overscrollBehavior: "contain" }}>
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", overscrollBehavior: "contain" }}>
 
         {/* ── Sidebar: only last exchange (user question + AI answer) ── */}
         {sidebarMode && (hasMessages || loading) && (() => {

@@ -100,13 +100,12 @@ export default async function RootLayout({
       <body className={`${inter.className} pb-safe`}>
         <TenantProvider tenant={tenant}>
           {/* Desktop: sidebar + main content. Mobile: full-width + bottom nav */}
-          <div className="flex h-[100dvh] overflow-hidden">
+          <div style={{ display: "flex", height: "100dvh", overflow: "hidden" }}>
             <Sidebar />
-            {/* Right side: stacks content + mobile bottom padding */}
-            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-              <div className="flex-1 flex flex-col min-h-0 overflow-hidden md:pb-0 pb-16">
-                {children}
-              </div>
+            {/* Single right-side wrapper — gives children a bounded height via flex */}
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}
+              className="md:pb-0 pb-16">
+              {children}
             </div>
           </div>
           <BottomNav />

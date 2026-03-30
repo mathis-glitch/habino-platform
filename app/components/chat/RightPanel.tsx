@@ -286,11 +286,11 @@ export default function RightPanel() {
   return (
     <aside style={{
       width: 300, flexShrink: 0,
+      height: "100%",
       borderLeft: `1px solid ${T.border}`,
       background: T.panel,
       display: "flex", flexDirection: "column",
       overflowY: "auto",
-      minHeight: 0,
       overscrollBehavior: "contain",
     }}>
       {/* Trust strip */}
