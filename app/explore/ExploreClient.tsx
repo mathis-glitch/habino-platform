@@ -106,7 +106,7 @@ function PropCard({ p, saved, onSave }: { p: Property; saved: boolean; onSave: (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={hero} alt={p.title}
-            onError={() => setImgErr(true)}
+            onError={(e) => { console.error("[Habino] img failed:", hero, e); setImgErr(true); }}
             style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
           />
         ) : (
@@ -325,7 +325,18 @@ export default function ExploreClient() {
     try {
       const res  = await fetch(`/api/properties?${params}`);
       const data = await res.json();
-      if (res.ok) { setProperties(data.data ?? []); setTotal(data.total ?? 0); }
+      if (res.ok) {
+        const props = data.data ?? [];
+        // Debug: log first property images to console
+        if (props.length > 0) {
+          console.log("[Habino] First property images:", props[0].images);
+          console.log("[Habino] First hero URL:", props[0].images?.[0]?.url);
+        }
+        setProperties(props);
+        setTotal(data.total ?? 0);
+      } else {
+        console.error("[Habino] API error:", data);
+      }
     } finally {
       setLoading(false);
     }
