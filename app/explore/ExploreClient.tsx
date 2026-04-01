@@ -1,8 +1,15 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import dynamic from "next/dynamic";
 import type { Property } from "@/lib/types";
 import { useSavedListings } from "@/app/hooks/useSavedListings";
+
+const MapView = dynamic(() => import("./MapView"), { ssr: false, loading: () => (
+  <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", background: "#F7F7F7" }}>
+    <div style={{ fontSize: 14, color: "#AFAFAF" }}>Loading map…</div>
+  </div>
+) });
 
 // ── Design tokens (1:1 from mockup) ──────────────────────────────────────────
 const T = {
@@ -300,6 +307,7 @@ export default function ExploreClient() {
   const [search, setSearch]         = useState("");
   const [activeChip, setActiveChip] = useState("");
   const [total, setTotal]           = useState(0);
+  const [view, setView]             = useState<"list" | "map">("list");
   const { toggle, isSaved }         = useSavedListings();
 
   // Derive listing_type / neighbourhood from chip
@@ -331,7 +339,7 @@ export default function ExploreClient() {
 
   return (
     <div style={{
-      flex: 1,
+      flex: 1, display: "flex", flexDirection: "column",
       background: T.bg, fontFamily: T.font,
     }}>
       <style>{`
@@ -361,20 +369,23 @@ export default function ExploreClient() {
         <div style={{
           display: "flex", background: T.bgSoft, borderRadius: 14, padding: 3, gap: 2,
         }}>
-          {["Listing", "Map"].map((label) => (
-            <button key={label} style={{
-              padding: "8px 22px", borderRadius: 11,
-              fontSize: 14, fontWeight: 600, cursor: "pointer",
-              color: label === "Listing" ? T.text1 : T.text2,
-              border: "none",
-              background: label === "Listing" ? T.bg : "transparent",
-              boxShadow: label === "Listing" ? T.shadowSm : "none",
-              transition: "all .18s",
-              fontFamily: T.font,
-            }}>
-              {label}
-            </button>
-          ))}
+          {(["Listing", "Map"] as const).map((label) => {
+            const isActive = label === "Listing" ? view === "list" : view === "map";
+            return (
+              <button key={label} onClick={() => setView(label === "Listing" ? "list" : "map")} style={{
+                padding: "8px 22px", borderRadius: 11,
+                fontSize: 14, fontWeight: 600, cursor: "pointer",
+                color: isActive ? T.text1 : T.text2,
+                border: "none",
+                background: isActive ? T.bg : "transparent",
+                boxShadow: isActive ? T.shadowSm : "none",
+                transition: "all .18s",
+                fontFamily: T.font,
+              }}>
+                {label}
+              </button>
+            );
+          })}
         </div>
         <div style={{ fontSize: 12, fontWeight: 600, color: T.text2, display: "flex", alignItems: "center", gap: 4 }}>
           <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -409,58 +420,70 @@ export default function ExploreClient() {
         ))}
       </div>
 
-      {/* ── Section header ── */}
-      <div style={{
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "0 20px 14px",
-      }}>
-        <div style={{ fontSize: 19, fontWeight: 700, color: T.text1, letterSpacing: -0.3 }}>
-          Top picks for you
+      {/* ── Map view ── */}
+      {view === "map" && (
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 480 }}>
+          <MapView properties={properties} />
         </div>
-        <div style={{ fontSize: 13, fontWeight: 600, color: T.primary, cursor: "pointer" }}>
-          See all
-        </div>
-      </div>
+      )}
 
-      {/* ── Property list ── */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 28, padding: "0 20px", paddingBottom: 120 }}>
-        {loading
-          ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} />)
-          : properties.length === 0
-          ? (
-            <div style={{ padding: "48px 0", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
-              <div style={{
-                width: 72, height: 72, borderRadius: 24,
-                background: T.bgSoft, border: `1.5px dashed ${T.borderMd}`,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 28, marginBottom: 20,
-              }}>🏠</div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: T.text1, letterSpacing: -0.3, marginBottom: 8 }}>
-                No properties found
-              </div>
-              <div style={{ fontSize: 14, color: T.text2, lineHeight: 1.6, maxWidth: 240, marginBottom: 24 }}>
-                Try adjusting your filters or search for a different area.
-              </div>
-              <button onClick={() => { setActiveChip(""); setSearch(""); }} style={{
-                padding: "14px 32px", borderRadius: 14,
-                background: T.text1, color: "#fff",
-                fontSize: 15, fontWeight: 700, border: "none", cursor: "pointer",
-                fontFamily: T.font,
-              }}>
-                Clear filters
-              </button>
+      {/* ── List view ── */}
+      {view === "list" && (
+        <>
+          {/* Section header */}
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "0 20px 14px",
+          }}>
+            <div style={{ fontSize: 19, fontWeight: 700, color: T.text1, letterSpacing: -0.3 }}>
+              Top picks for you
             </div>
-          )
-          : properties.map((p) => (
-            <PropCard
-              key={p.id}
-              p={p}
-              saved={isSaved(p.id)}
-              onSave={() => toggle(p.id)}
-            />
-          ))
-        }
-      </div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: T.primary, cursor: "pointer" }}>
+              See all
+            </div>
+          </div>
+
+          {/* Property list */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 28, padding: "0 20px", paddingBottom: 120 }}>
+            {loading
+              ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} />)
+              : properties.length === 0
+              ? (
+                <div style={{ padding: "48px 0", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
+                  <div style={{
+                    width: 72, height: 72, borderRadius: 24,
+                    background: T.bgSoft, border: `1.5px dashed ${T.borderMd}`,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 28, marginBottom: 20,
+                  }}>🏠</div>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: T.text1, letterSpacing: -0.3, marginBottom: 8 }}>
+                    No properties found
+                  </div>
+                  <div style={{ fontSize: 14, color: T.text2, lineHeight: 1.6, maxWidth: 240, marginBottom: 24 }}>
+                    Try adjusting your filters or search for a different area.
+                  </div>
+                  <button onClick={() => { setActiveChip(""); setSearch(""); }} style={{
+                    padding: "14px 32px", borderRadius: 14,
+                    background: T.text1, color: "#fff",
+                    fontSize: 15, fontWeight: 700, border: "none", cursor: "pointer",
+                    fontFamily: T.font,
+                  }}>
+                    Clear filters
+                  </button>
+                </div>
+              )
+              : properties.map((p) => (
+                <PropCard
+                  key={p.id}
+                  p={p}
+                  saved={isSaved(p.id)}
+                  onSave={() => toggle(p.id)}
+                />
+              ))
+            }
+          </div>
+        </>
+      )}
     </div>
   );
 }
