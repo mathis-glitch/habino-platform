@@ -79,20 +79,13 @@ export async function middleware(request: NextRequest) {
 
   // ── 3. Route protection ────────────────────────────────────────────────────
   // Protected routes require authentication — redirect to landing page if not signed in
-  const protectedPaths = ["/map", "/profile", "/saved", "/properties", "/market", "/markt", "/home"];
+  const protectedPaths = ["/profile", "/saved", "/properties", "/market", "/markt", "/home", "/messages"];
   const isProtected = protectedPaths.some((p) => pathname === p || pathname.startsWith(p + "/"));
 
   if (isProtected && !user) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/";
     return NextResponse.redirect(loginUrl);
-  }
-
-  // If authenticated user visits "/" (landing/login page), redirect to /map
-  if (pathname === "/" && user) {
-    const mapUrl = request.nextUrl.clone();
-    mapUrl.pathname = "/map";
-    return NextResponse.redirect(mapUrl);
   }
 
   // ── 4. Inject tenant info into request headers ─────────────

@@ -6,7 +6,7 @@ import {
 } from "recharts";
 
 // ── Shared tooltip ────────────────────────────────────────────────────────────
-function ChartTooltip({ active, payload, label, prefix = "$", suffix = "/m²" }: {
+function ChartTooltip({ active, payload, label, prefix = "ETB ", suffix = "/m²" }: {
   active?: boolean;
   payload?: Array<{ name: string; value: number; color: string }>;
   label?: string;
@@ -26,49 +26,49 @@ function ChartTooltip({ active, payload, label, prefix = "$", suffix = "/m²" }:
   );
 }
 
-// ── Price trend (buy vs rent on same chart, dual axis) ────────────────────────
+// ── Price trend — Addis Abeba, 12 months (ETB/m²) ────────────────────────────
 const trendData: Record<string, Array<{ month: string; buy: number; rent: number }>> = {
   residential: [
-    { month: "Apr", buy: 4200, rent: 14.2 },
-    { month: "May", buy: 4280, rent: 14.5 },
-    { month: "Jun", buy: 4350, rent: 14.8 },
-    { month: "Jul", buy: 4290, rent: 14.6 },
-    { month: "Aug", buy: 4420, rent: 15.1 },
-    { month: "Sep", buy: 4500, rent: 15.4 },
-    { month: "Oct", buy: 4480, rent: 15.3 },
-    { month: "Nov", buy: 4550, rent: 15.6 },
-    { month: "Dec", buy: 4610, rent: 15.8 },
-    { month: "Jan", buy: 4580, rent: 15.7 },
-    { month: "Feb", buy: 4650, rent: 16.0 },
-    { month: "Mar", buy: 4720, rent: 16.3 },
+    { month: "Apr", buy: 38000, rent: 120 },
+    { month: "May", buy: 38500, rent: 122 },
+    { month: "Jun", buy: 39200, rent: 125 },
+    { month: "Jul", buy: 39000, rent: 124 },
+    { month: "Aug", buy: 40100, rent: 128 },
+    { month: "Sep", buy: 40800, rent: 130 },
+    { month: "Oct", buy: 40500, rent: 129 },
+    { month: "Nov", buy: 41200, rent: 132 },
+    { month: "Dec", buy: 41900, rent: 135 },
+    { month: "Jan", buy: 41600, rent: 134 },
+    { month: "Feb", buy: 42400, rent: 137 },
+    { month: "Mar", buy: 43100, rent: 140 },
   ],
   commercial: [
-    { month: "Apr", buy: 5800, rent: 22.0 },
-    { month: "May", buy: 5850, rent: 22.5 },
-    { month: "Jun", buy: 5920, rent: 22.8 },
-    { month: "Jul", buy: 5900, rent: 22.6 },
-    { month: "Aug", buy: 6000, rent: 23.2 },
-    { month: "Sep", buy: 6080, rent: 23.5 },
-    { month: "Oct", buy: 6050, rent: 23.4 },
-    { month: "Nov", buy: 6120, rent: 23.8 },
-    { month: "Dec", buy: 6200, rent: 24.1 },
-    { month: "Jan", buy: 6180, rent: 24.0 },
-    { month: "Feb", buy: 6250, rent: 24.4 },
-    { month: "Mar", buy: 6320, rent: 24.8 },
+    { month: "Apr", buy: 55000, rent: 210 },
+    { month: "May", buy: 55800, rent: 214 },
+    { month: "Jun", buy: 56500, rent: 218 },
+    { month: "Jul", buy: 56200, rent: 216 },
+    { month: "Aug", buy: 57400, rent: 222 },
+    { month: "Sep", buy: 58100, rent: 225 },
+    { month: "Oct", buy: 57900, rent: 224 },
+    { month: "Nov", buy: 58700, rent: 228 },
+    { month: "Dec", buy: 59400, rent: 232 },
+    { month: "Jan", buy: 59100, rent: 230 },
+    { month: "Feb", buy: 60000, rent: 235 },
+    { month: "Mar", buy: 60800, rent: 239 },
   ],
   land: [
-    { month: "Apr", buy: 1200, rent: 0 },
-    { month: "May", buy: 1220, rent: 0 },
-    { month: "Jun", buy: 1250, rent: 0 },
-    { month: "Jul", buy: 1240, rent: 0 },
-    { month: "Aug", buy: 1280, rent: 0 },
-    { month: "Sep", buy: 1310, rent: 0 },
-    { month: "Oct", buy: 1300, rent: 0 },
-    { month: "Nov", buy: 1330, rent: 0 },
-    { month: "Dec", buy: 1350, rent: 0 },
-    { month: "Jan", buy: 1340, rent: 0 },
-    { month: "Feb", buy: 1360, rent: 0 },
-    { month: "Mar", buy: 1390, rent: 0 },
+    { month: "Apr", buy: 18000, rent: 0 },
+    { month: "May", buy: 18300, rent: 0 },
+    { month: "Jun", buy: 18800, rent: 0 },
+    { month: "Jul", buy: 18600, rent: 0 },
+    { month: "Aug", buy: 19200, rent: 0 },
+    { month: "Sep", buy: 19600, rent: 0 },
+    { month: "Oct", buy: 19400, rent: 0 },
+    { month: "Nov", buy: 19900, rent: 0 },
+    { month: "Dec", buy: 20300, rent: 0 },
+    { month: "Jan", buy: 20100, rent: 0 },
+    { month: "Feb", buy: 20600, rent: 0 },
+    { month: "Mar", buy: 21000, rent: 0 },
   ],
 };
 
@@ -82,45 +82,51 @@ export function PriceTrendChart({ usageType }: { usageType: string }) {
         <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
         <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
         <YAxis yAxisId="buy" orientation="left" tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false}
-          tickFormatter={(v) => `$${(v / 1000).toFixed(1)}k`} />
+          tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
         {showRent && <YAxis yAxisId="rent" orientation="right" tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false}
-          tickFormatter={(v) => `$${v}`} />}
-        <Tooltip content={<ChartTooltip prefix="$" suffix="/m²" />} />
+          tickFormatter={(v) => `${v}`} />}
+        <Tooltip content={<ChartTooltip prefix="ETB " suffix="/m²" />} />
         <Legend wrapperStyle={{ fontSize: 11 }} />
-        <Line yAxisId="buy" type="monotone" dataKey="buy" name="Sale $/m²"
-          stroke="var(--color-primary, #00A884)" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
-        {showRent && <Line yAxisId="rent" type="monotone" dataKey="rent" name="Rent $/m²"
+        <Line yAxisId="buy" type="monotone" dataKey="buy" name="Sale ETB/m²"
+          stroke="var(--color-primary, #7C6EF2)" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+        {showRent && <Line yAxisId="rent" type="monotone" dataKey="rent" name="Rent ETB/m²"
           stroke="#6366f1" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />}
       </LineChart>
     </ResponsiveContainer>
   );
 }
 
-// ── District bar chart ────────────────────────────────────────────────────────
+// ── District bar chart — Addis Abeba (ETB/m²) ────────────────────────────────
 const districtData: Record<string, Array<{ name: string; buy: number; rent: number }>> = {
   residential: [
-    { name: "City Centre",  buy: 6200, rent: 18.5 },
-    { name: "West End",     buy: 5800, rent: 17.2 },
-    { name: "North",        buy: 5100, rent: 15.8 },
-    { name: "East Side",    buy: 4400, rent: 14.2 },
-    { name: "South",        buy: 3800, rent: 12.6 },
-    { name: "Suburbs",      buy: 3200, rent: 11.0 },
+    { name: "Bole",        buy: 52000, rent: 165 },
+    { name: "Kazanchis",   buy: 48000, rent: 155 },
+    { name: "Sarbet",      buy: 44000, rent: 145 },
+    { name: "CMC",         buy: 40000, rent: 135 },
+    { name: "Megenagna",   buy: 38000, rent: 130 },
+    { name: "Piassa",      buy: 35000, rent: 120 },
+    { name: "Arada",       buy: 33000, rent: 115 },
+    { name: "Yeka",        buy: 30000, rent: 108 },
   ],
   commercial: [
-    { name: "City Centre",  buy: 8500, rent: 32.0 },
-    { name: "West End",     buy: 7200, rent: 26.5 },
-    { name: "North",        buy: 6100, rent: 22.0 },
-    { name: "East Side",    buy: 5200, rent: 19.5 },
-    { name: "South",        buy: 4800, rent: 17.0 },
-    { name: "Suburbs",      buy: 3900, rent: 14.5 },
+    { name: "Bole",        buy: 72000, rent: 260 },
+    { name: "Kazanchis",   buy: 68000, rent: 248 },
+    { name: "Sarbet",      buy: 60000, rent: 225 },
+    { name: "CMC",         buy: 54000, rent: 200 },
+    { name: "Megenagna",   buy: 50000, rent: 185 },
+    { name: "Piassa",      buy: 46000, rent: 172 },
+    { name: "Arada",       buy: 42000, rent: 158 },
+    { name: "Yeka",        buy: 38000, rent: 145 },
   ],
   land: [
-    { name: "City Centre",  buy: 3200, rent: 0 },
-    { name: "West End",     buy: 2400, rent: 0 },
-    { name: "North",        buy: 1800, rent: 0 },
-    { name: "East Side",    buy: 1400, rent: 0 },
-    { name: "South",        buy: 1100, rent: 0 },
-    { name: "Suburbs",      buy: 800,  rent: 0 },
+    { name: "Bole",        buy: 38000, rent: 0 },
+    { name: "Kazanchis",   buy: 32000, rent: 0 },
+    { name: "Sarbet",      buy: 28000, rent: 0 },
+    { name: "CMC",         buy: 24000, rent: 0 },
+    { name: "Megenagna",   buy: 22000, rent: 0 },
+    { name: "Piassa",      buy: 19000, rent: 0 },
+    { name: "Arada",       buy: 17000, rent: 0 },
+    { name: "Yeka",        buy: 15000, rent: 0 },
   ],
 };
 
@@ -134,11 +140,11 @@ export function DistrictChart({ usageType }: { usageType: string }) {
         <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
         <XAxis dataKey="name" tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
         <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false}
-          tickFormatter={(v) => `$${(v / 1000).toFixed(1)}k`} />
-        <Tooltip content={<ChartTooltip prefix="$" suffix="/m²" />} />
+          tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+        <Tooltip content={<ChartTooltip prefix="ETB " suffix="/m²" />} />
         <Legend wrapperStyle={{ fontSize: 11 }} />
-        <Bar dataKey="buy" name="Sale $/m²" fill="var(--color-primary, #00A884)" radius={[4, 4, 0, 0]} maxBarSize={28} />
-        {showRent && <Bar dataKey="rent" name="Rent $/m²" fill="#6366f1" radius={[4, 4, 0, 0]} maxBarSize={28} />}
+        <Bar dataKey="buy" name="Sale ETB/m²" fill="var(--color-primary, #7C6EF2)" radius={[4, 4, 0, 0]} maxBarSize={28} />
+        {showRent && <Bar dataKey="rent" name="Rent ETB/m²" fill="#6366f1" radius={[4, 4, 0, 0]} maxBarSize={28} />}
       </BarChart>
     </ResponsiveContainer>
   );

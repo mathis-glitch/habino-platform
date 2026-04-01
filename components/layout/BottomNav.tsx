@@ -32,6 +32,18 @@ const TABS = [
     ),
   },
   {
+    href: "/messages",
+    label: "Messages",
+    icon: (active: boolean) => (
+      <svg width="20" height="20" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? 2 : 1.8} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+        <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+        <circle cx="9" cy="10" r="0.5" fill="currentColor" />
+        <circle cx="12" cy="10" r="0.5" fill="currentColor" />
+        <circle cx="15" cy="10" r="0.5" fill="currentColor" />
+      </svg>
+    ),
+  },
+  {
     href: "/profile",
     label: "Profile",
     icon: (active: boolean) => (
@@ -42,7 +54,7 @@ const TABS = [
   },
 ];
 
-export default function BottomNav() {
+export default function BottomNav({ unreadMessages = 0 }: { unreadMessages?: number }) {
   const pathname = usePathname();
 
   return (
@@ -59,14 +71,23 @@ export default function BottomNav() {
       <div className="flex items-stretch h-[56px]">
         {TABS.map((tab) => {
           const active = tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);
+          const showBadge = tab.href === "/messages" && unreadMessages > 0;
           return (
             <Link
               key={tab.href}
               href={tab.href}
-              className="flex-1 flex flex-col items-center justify-center gap-0.5 transition-opacity active:opacity-60"
+              className="flex-1 flex flex-col items-center justify-center gap-0.5 transition-opacity active:opacity-60 relative"
             >
-              <span style={{ color: active ? "var(--color-primary)" : "var(--text-3)" }}>
+              <span style={{ color: active ? "var(--color-primary)" : "var(--text-3)" }} className="relative">
                 {tab.icon(active)}
+                {showBadge && (
+                  <span
+                    className="absolute -top-1 -right-1 min-w-[14px] h-[14px] rounded-full flex items-center justify-center text-[9px] font-bold text-white"
+                    style={{ background: "#FF453A", padding: "0 3px" }}
+                  >
+                    {unreadMessages > 9 ? "9+" : unreadMessages}
+                  </span>
+                )}
               </span>
               <span style={{
                 fontSize: 10, fontWeight: 600, letterSpacing: "0.02em",

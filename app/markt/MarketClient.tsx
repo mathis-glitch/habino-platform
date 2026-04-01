@@ -3,16 +3,20 @@
 import { useState } from "react";
 import { PriceTrendChart, DistrictChart } from "./MarktCharts";
 
-// ── Deutsche Städte & Stadtteile ──────────────────────────────────────────────
-const CITIES = ["Berlin", "München", "Hamburg", "Frankfurt", "Köln"];
-
-const DISTRICTS: Record<string, string[]> = {
-  "Berlin":    ["All Districts", "Mitte", "Prenzlauer Berg", "Friedrichshain", "Kreuzberg", "Charlottenburg", "Neukölln", "Schöneberg", "Spandau"],
-  "München":   ["All Districts", "Maxvorstadt", "Schwabing", "Bogenhausen", "Haidhausen", "Sendling", "Giesing", "Pasing", "Nymphenburg"],
-  "Hamburg":   ["All Districts", "Altona", "Eimsbüttel", "Winterhude", "Harvestehude", "Eppendorf", "Wandsbek", "Bergedorf", "Blankenese"],
-  "Frankfurt": ["All Districts", "Sachsenhausen", "Bornheim", "Westend", "Nordend", "Bockenheim", "Gallusviertel", "Dornbusch", "Höchst"],
-  "Köln":      ["All Districts", "Ehrenfeld", "Nippes", "Sülz", "Lindenthal", "Rodenkirchen", "Deutz", "Chorweiler", "Porz"],
-};
+// ── Addis Abeba Districts ──────────────────────────────────────────────────────
+const DISTRICTS = [
+  "All Districts",
+  "Bole",
+  "Kazanchis",
+  "Sarbet",
+  "CMC",
+  "Megenagna",
+  "Piassa",
+  "Arada",
+  "Lideta",
+  "Yeka",
+  "Nifas Silk-Lafto",
+];
 
 const USAGE_TYPES = [
   { key: "residential", label: "Residential" },
@@ -20,85 +24,88 @@ const USAGE_TYPES = [
   { key: "land",        label: "Land"         },
 ];
 
-// Preise in EUR/m²
+// Prices in ETB/m² — indicative estimates for Addis Abeba
 const STATS: Record<string, Record<string, { buy: string; rent: string | null; yield: string; trend: string; up: boolean }>> = {
   residential: {
-    "All Districts":  { buy: "€ 5.200",  rent: "€ 18",  yield: "4.2%", trend: "+3.8%", up: true  },
-    "Mitte":            { buy: "€ 7.800",  rent: "€ 26",  yield: "4.0%", trend: "+4.5%", up: true  },
-    "Prenzlauer Berg":  { buy: "€ 6.900",  rent: "€ 24",  yield: "4.2%", trend: "+3.9%", up: true  },
-    "Friedrichshain":   { buy: "€ 6.400",  rent: "€ 22",  yield: "4.1%", trend: "+4.1%", up: true  },
-    "Kreuzberg":        { buy: "€ 6.200",  rent: "€ 21",  yield: "4.1%", trend: "+3.5%", up: true  },
-    "Charlottenburg":   { buy: "€ 7.100",  rent: "€ 25",  yield: "4.2%", trend: "+2.8%", up: true  },
-    "Neukölln":         { buy: "€ 4.800",  rent: "€ 16",  yield: "4.0%", trend: "−0.5%", up: false },
-    "Schöneberg":       { buy: "€ 6.500",  rent: "€ 22",  yield: "4.1%", trend: "+2.1%", up: true  },
-    "Spandau":          { buy: "€ 3.600",  rent: "€ 12",  yield: "4.0%", trend: "−1.2%", up: false },
-    "Maxvorstadt":      { buy: "€ 10.500", rent: "€ 32",  yield: "3.7%", trend: "+5.1%", up: true  },
-    "Schwabing":        { buy: "€ 9.800",  rent: "€ 30",  yield: "3.7%", trend: "+4.8%", up: true  },
-    "Bogenhausen":      { buy: "€ 11.200", rent: "€ 34",  yield: "3.6%", trend: "+5.5%", up: true  },
-    "Haidhausen":       { buy: "€ 8.900",  rent: "€ 28",  yield: "3.8%", trend: "+4.2%", up: true  },
-    "Altona":           { buy: "€ 7.200",  rent: "€ 23",  yield: "3.8%", trend: "+3.6%", up: true  },
-    "Eimsbüttel":       { buy: "€ 7.500",  rent: "€ 24",  yield: "3.8%", trend: "+3.8%", up: true  },
-    "Winterhude":       { buy: "€ 7.800",  rent: "€ 25",  yield: "3.8%", trend: "+4.0%", up: true  },
-    "Sachsenhausen":    { buy: "€ 6.800",  rent: "€ 22",  yield: "3.9%", trend: "+3.2%", up: true  },
-    "Ehrenfeld":        { buy: "€ 5.100",  rent: "€ 17",  yield: "4.0%", trend: "+2.9%", up: true  },
+    "All Districts":    { buy: "ETB 43,000",  rent: "ETB 140",  yield: "3.9%", trend: "+5.8%", up: true  },
+    "Bole":             { buy: "ETB 52,000",  rent: "ETB 165",  yield: "3.8%", trend: "+7.2%", up: true  },
+    "Kazanchis":        { buy: "ETB 48,000",  rent: "ETB 155",  yield: "3.9%", trend: "+6.5%", up: true  },
+    "Sarbet":           { buy: "ETB 44,000",  rent: "ETB 145",  yield: "4.0%", trend: "+5.9%", up: true  },
+    "CMC":              { buy: "ETB 40,000",  rent: "ETB 135",  yield: "4.1%", trend: "+5.2%", up: true  },
+    "Megenagna":        { buy: "ETB 38,000",  rent: "ETB 130",  yield: "4.1%", trend: "+5.0%", up: true  },
+    "Piassa":           { buy: "ETB 35,000",  rent: "ETB 120",  yield: "4.1%", trend: "+3.8%", up: true  },
+    "Arada":            { buy: "ETB 33,000",  rent: "ETB 115",  yield: "4.2%", trend: "+3.5%", up: true  },
+    "Lideta":           { buy: "ETB 31,000",  rent: "ETB 108",  yield: "4.2%", trend: "+3.1%", up: true  },
+    "Yeka":             { buy: "ETB 30,000",  rent: "ETB 108",  yield: "4.3%", trend: "+2.9%", up: true  },
+    "Nifas Silk-Lafto": { buy: "ETB 28,000",  rent: "ETB 100",  yield: "4.3%", trend: "+2.5%", up: true  },
   },
   commercial: {
-    "All Districts":  { buy: "€ 6.800",  rent: "€ 28",  yield: "5.0%", trend: "+3.2%", up: true  },
-    "Mitte":            { buy: "€ 9.500",  rent: "€ 38",  yield: "4.8%", trend: "+4.1%", up: true  },
-    "Prenzlauer Berg":  { buy: "€ 7.200",  rent: "€ 30",  yield: "5.0%", trend: "+3.5%", up: true  },
-    "Charlottenburg":   { buy: "€ 8.400",  rent: "€ 35",  yield: "5.0%", trend: "+2.5%", up: true  },
-    "Maxvorstadt":      { buy: "€ 12.000", rent: "€ 46",  yield: "4.6%", trend: "+5.0%", up: true  },
-    "Altona":           { buy: "€ 8.500",  rent: "€ 34",  yield: "4.8%", trend: "+3.4%", up: true  },
-    "Sachsenhausen":    { buy: "€ 7.900",  rent: "€ 32",  yield: "4.9%", trend: "+2.9%", up: true  },
-    "Ehrenfeld":        { buy: "€ 5.800",  rent: "€ 24",  yield: "5.0%", trend: "+2.6%", up: true  },
+    "All Districts":    { buy: "ETB 60,000",  rent: "ETB 235",  yield: "4.7%", trend: "+6.1%", up: true  },
+    "Bole":             { buy: "ETB 72,000",  rent: "ETB 260",  yield: "4.3%", trend: "+7.8%", up: true  },
+    "Kazanchis":        { buy: "ETB 68,000",  rent: "ETB 248",  yield: "4.4%", trend: "+7.1%", up: true  },
+    "Sarbet":           { buy: "ETB 60,000",  rent: "ETB 225",  yield: "4.5%", trend: "+6.0%", up: true  },
+    "CMC":              { buy: "ETB 54,000",  rent: "ETB 200",  yield: "4.4%", trend: "+5.4%", up: true  },
+    "Megenagna":        { buy: "ETB 50,000",  rent: "ETB 185",  yield: "4.4%", trend: "+5.0%", up: true  },
+    "Piassa":           { buy: "ETB 46,000",  rent: "ETB 172",  yield: "4.5%", trend: "+4.2%", up: true  },
+    "Arada":            { buy: "ETB 42,000",  rent: "ETB 158",  yield: "4.5%", trend: "+3.8%", up: true  },
+    "Yeka":             { buy: "ETB 38,000",  rent: "ETB 145",  yield: "4.6%", trend: "+3.2%", up: true  },
   },
   land: {
-    "All Districts":  { buy: "€ 980",   rent: null, yield: "—", trend: "+5.5%", up: true  },
-    "Mitte":            { buy: "€ 2.800",  rent: null, yield: "—", trend: "+6.8%", up: true  },
-    "Prenzlauer Berg":  { buy: "€ 2.200",  rent: null, yield: "—", trend: "+6.2%", up: true  },
-    "Charlottenburg":   { buy: "€ 2.500",  rent: null, yield: "—", trend: "+5.9%", up: true  },
-    "Neukölln":         { buy: "€ 1.400",  rent: null, yield: "—", trend: "+0.8%", up: true  },
-    "Spandau":          { buy: "€ 680",    rent: null, yield: "—", trend: "−0.4%", up: false },
-    "Maxvorstadt":      { buy: "€ 4.200",  rent: null, yield: "—", trend: "+7.5%", up: true  },
-    "Altona":           { buy: "€ 1.900",  rent: null, yield: "—", trend: "+5.1%", up: true  },
+    "All Districts":    { buy: "ETB 21,000",  rent: null, yield: "—", trend: "+8.2%", up: true  },
+    "Bole":             { buy: "ETB 38,000",  rent: null, yield: "—", trend: "+10.5%", up: true },
+    "Kazanchis":        { buy: "ETB 32,000",  rent: null, yield: "—", trend: "+9.8%",  up: true },
+    "Sarbet":           { buy: "ETB 28,000",  rent: null, yield: "—", trend: "+8.9%",  up: true },
+    "CMC":              { buy: "ETB 24,000",  rent: null, yield: "—", trend: "+7.5%",  up: true },
+    "Megenagna":        { buy: "ETB 22,000",  rent: null, yield: "—", trend: "+7.0%",  up: true },
+    "Piassa":           { buy: "ETB 19,000",  rent: null, yield: "—", trend: "+5.8%",  up: true },
+    "Arada":            { buy: "ETB 17,000",  rent: null, yield: "—", trend: "+5.2%",  up: true },
+    "Yeka":             { buy: "ETB 15,000",  rent: null, yield: "—", trend: "+4.5%",  up: true },
+    "Nifas Silk-Lafto": { buy: "ETB 13,500",  rent: null, yield: "—", trend: "+4.0%",  up: true },
   },
 };
 
 const MICRO_FACTORS: Record<string, { score: number; label: string }[]> = {
-  "Mitte": [
-    { score: 97, label: "Public Transport" },
+  "Bole": [
+    { score: 90, label: "Transport Links" },
     { score: 95, label: "Infrastructure" },
-    { score: 58, label: "Green Space" },
-    { score: 90, label: "Schools" },
+    { score: 60, label: "Green Space" },
+    { score: 88, label: "Schools" },
+    { score: 65, label: "Noise Level" },
+  ],
+  "Kazanchis": [
+    { score: 88, label: "Transport Links" },
+    { score: 92, label: "Infrastructure" },
+    { score: 55, label: "Green Space" },
+    { score: 85, label: "Schools" },
     { score: 62, label: "Noise Level" },
   ],
-  "Prenzlauer Berg": [
-    { score: 92, label: "Public Transport" },
-    { score: 90, label: "Infrastructure" },
-    { score: 75, label: "Green Space" },
-    { score: 88, label: "Schools" },
-    { score: 72, label: "Noise Level" },
+  "CMC": [
+    { score: 72, label: "Transport Links" },
+    { score: 78, label: "Infrastructure" },
+    { score: 80, label: "Green Space" },
+    { score: 82, label: "Schools" },
+    { score: 78, label: "Noise Level" },
   ],
-  "Charlottenburg": [
-    { score: 94, label: "Public Transport" },
-    { score: 92, label: "Infrastructure" },
-    { score: 70, label: "Green Space" },
-    { score: 86, label: "Schools" },
-    { score: 68, label: "Noise Level" },
-  ],
-  "Spandau": [
-    { score: 72, label: "Public Transport" },
-    { score: 68, label: "Infrastructure" },
-    { score: 88, label: "Green Space" },
+  "Piassa": [
+    { score: 85, label: "Transport Links" },
+    { score: 75, label: "Infrastructure" },
+    { score: 50, label: "Green Space" },
     { score: 80, label: "Schools" },
-    { score: 90, label: "Noise Level" },
+    { score: 58, label: "Noise Level" },
+  ],
+  "Yeka": [
+    { score: 68, label: "Transport Links" },
+    { score: 70, label: "Infrastructure" },
+    { score: 85, label: "Green Space" },
+    { score: 78, label: "Schools" },
+    { score: 82, label: "Noise Level" },
   ],
   "All Districts": [
-    { score: 82, label: "Public Transport" },
+    { score: 78, label: "Transport Links" },
     { score: 80, label: "Infrastructure" },
-    { score: 72, label: "Green Space" },
-    { score: 80, label: "Schools" },
-    { score: 70, label: "Noise Level" },
+    { score: 65, label: "Green Space" },
+    { score: 82, label: "Schools" },
+    { score: 68, label: "Noise Level" },
   ],
 };
 
@@ -132,13 +139,11 @@ const selectStyle: React.CSSProperties = {
 };
 
 export default function MarketClient() {
-  const [city,     setCity]     = useState("Berlin");
   const [district, setDistrict] = useState("All Districts");
   const [usage,    setUsage]    = useState("residential");
 
-  const stats     = getStats(usage, district);
-  const micro     = getMicro(district);
-  const districts = DISTRICTS[city] || DISTRICTS["Berlin"];
+  const stats = getStats(usage, district);
+  const micro = getMicro(district);
 
   return (
     <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 20px 80px", display: "flex", flexDirection: "column", gap: 24 }}>
@@ -157,20 +162,17 @@ export default function MarketClient() {
               Indicative data · Live GIS integration coming soon
             </div>
             <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--text-1)", letterSpacing: "-0.02em", margin: 0 }}>
-              Market Report
+              Addis Abeba Market Report
             </h1>
             <p style={{ fontSize: 13, color: "var(--text-2)", marginTop: 4 }}>
-              Real estate market data by city, district & usage type
+              Real estate market data by district &amp; usage type · Prices in ETB
             </p>
           </div>
 
-          {/* City + District selectors */}
+          {/* District selector */}
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <select value={city} onChange={(e) => { setCity(e.target.value); setDistrict("All Districts"); }} style={selectStyle}>
-              {CITIES.map((c) => <option key={c}>{c}</option>)}
-            </select>
             <select value={district} onChange={(e) => setDistrict(e.target.value)} style={selectStyle}>
-              {districts.map((d) => <option key={d}>{d}</option>)}
+              {DISTRICTS.map((d) => <option key={d}>{d}</option>)}
             </select>
           </div>
         </div>
@@ -203,7 +205,7 @@ export default function MarketClient() {
             { label: "Avg. Sale Price/m²", value: stats.buy,   up: undefined },
             ...(stats.rent ? [{ label: "Avg. Rent/m²/mo",   value: stats.rent,  up: undefined }] : []),
             { label: "Gross Yield",         value: stats.yield, up: undefined },
-            { label: "Price Trend (MoM)",   value: stats.trend, up: stats.up },
+            { label: "Price Trend (YoY)",   value: stats.trend, up: stats.up },
           ].map(({ label, value, up }) => (
             <div key={label} style={{
               background: "var(--surface2)", border: "1px solid var(--border)",
@@ -228,12 +230,12 @@ export default function MarketClient() {
         {[
           {
             title: "Price Trend — 12 months",
-            subtitle: `${city} · ${district}`,
+            subtitle: `Addis Abeba · ${district}`,
             chart: <PriceTrendChart usageType={usage} />,
           },
           {
             title: "Price by District",
-            subtitle: `${city} · ${USAGE_TYPES.find(u => u.key === usage)?.label}`,
+            subtitle: `Addis Abeba · ${USAGE_TYPES.find(u => u.key === usage)?.label}`,
             chart: <DistrictChart usageType={usage} />,
           },
         ].map(({ title, subtitle, chart }) => (
@@ -248,16 +250,16 @@ export default function MarketClient() {
         ))}
       </div>
 
-      {/* Mikrolage + Stadtteil-Tabelle */}
+      {/* Micro-location + District table */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
 
-        {/* Mikrolage */}
+        {/* Micro-Location Score */}
         <div style={{
           background: "var(--surface2)", border: "1px solid var(--border)",
           borderRadius: 12, padding: 24,
         }}>
           <h2 style={{ fontSize: 14, fontWeight: 600, color: "var(--text-1)", margin: 0 }}>Micro-Location Score</h2>
-          <p style={{ fontSize: 12, color: "var(--text-3)", marginTop: 3, marginBottom: 20 }}>{district} · {city}</p>
+          <p style={{ fontSize: 12, color: "var(--text-3)", marginTop: 3, marginBottom: 20 }}>{district} · Addis Abeba</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {micro.map(({ score, label }) => (
               <div key={label} style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -273,7 +275,7 @@ export default function MarketClient() {
           <p style={{ fontSize: 11, color: "var(--text-3)", marginTop: 16 }}>* Scores 0–100 based on OpenStreetMap data</p>
         </div>
 
-        {/* Stadtteil-Tabelle */}
+        {/* District table */}
         <div style={{
           background: "var(--surface2)", border: "1px solid var(--border)",
           borderRadius: 12, overflow: "hidden",
@@ -281,7 +283,7 @@ export default function MarketClient() {
           <div style={{ padding: "18px 20px 16px", borderBottom: "1px solid var(--border)" }}>
             <h2 style={{ fontSize: 14, fontWeight: 600, color: "var(--text-1)", margin: 0 }}>District Overview</h2>
             <p style={{ fontSize: 12, color: "var(--text-3)", marginTop: 3 }}>
-              {city} · {USAGE_TYPES.find(u => u.key === usage)?.label}
+              Addis Abeba · {USAGE_TYPES.find(u => u.key === usage)?.label} · ETB/m²
             </p>
           </div>
           <div style={{ overflowX: "auto" }}>
@@ -295,7 +297,7 @@ export default function MarketClient() {
                 </tr>
               </thead>
               <tbody>
-                {(DISTRICTS[city] || []).filter(d => d !== "All Districts").map((d) => {
+                {DISTRICTS.filter(d => d !== "All Districts").map((d) => {
                   const s = getStats(usage, d);
                   if (!s) return null;
                   const isActive = district === d;
@@ -328,23 +330,23 @@ export default function MarketClient() {
         </div>
       </div>
 
-      {/* Markt-Insights */}
+      {/* Market Insights */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
         {[
           {
             tag: "Market Dynamics", tagColor: { bg: "rgba(124,110,242,0.1)", text: "var(--color-primary)", border: "rgba(124,110,242,0.2)" },
-            title: "High Demand",
-            body: "Demand for residential properties in Berlin-Mitte and Prenzlauer Berg exceeds supply by ~28%. Properties in prime locations stay on the market for an average of 14 days.",
+            title: "Strong Demand",
+            body: "Demand for residential and commercial properties in Bole, Kazanchis, and Sarbet far exceeds supply. Prime listings in these districts sell within 3–4 weeks on average.",
           },
           {
             tag: "Price Outlook", tagColor: { bg: "rgba(48,209,88,0.1)", text: "var(--ok)", border: "rgba(48,209,88,0.2)" },
-            title: "Steady Growth",
-            body: "Purchase prices in major German cities rose 3–6% p.a. in 2025–26, driven by population growth, housing shortage, and limited new construction activity.",
+            title: "Rapid Appreciation",
+            body: "Property prices in Addis Abeba have grown 6–10% year-over-year in 2025–26, driven by rapid urbanisation, infrastructure investment, and a growing middle class.",
           },
           {
             tag: "Rental Market", tagColor: { bg: "rgba(255,159,10,0.1)", text: "var(--warn)", border: "rgba(255,159,10,0.2)" },
-            title: "Rising Rents",
-            body: "Rental demand remains high across all major cities. Gross yields of 3.6–4.2% for residential and up to 5.0% for commercial are typical for German A-cities.",
+            title: "Expat & Corporate Demand",
+            body: "Bole and Kazanchis command the highest rental premiums, fuelled by expat and NGO demand. Gross rental yields of 3.8–4.6% make Addis Abeba attractive for buy-to-let investors.",
           },
         ].map(({ tag, tagColor, title, body }) => (
           <div key={title} style={{

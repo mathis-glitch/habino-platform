@@ -233,6 +233,56 @@ export interface GenerateContractPayload {
   notes?: string;
 }
 
+// ── Appointments ─────────────────────────────────────────────
+export type AppointmentStatus = "pending" | "confirmed" | "cancelled" | "completed";
+
+export interface Appointment {
+  id: string;
+  property_id: string;
+  tenant_id: string;
+  requester_id: string;
+  agent_id: string | null;
+  status: AppointmentStatus;
+  requested_at: string;
+  confirmed_at: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  // joined
+  property?: Property;
+}
+
+// ── Messaging ─────────────────────────────────────────────────
+export type MessageType = "text" | "image" | "system";
+
+export interface Message {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  body: string;
+  message_type: MessageType;
+  attachment_url: string | null;
+  read_at: string | null;
+  created_at: string;
+}
+
+export interface Conversation {
+  id: string;
+  tenant_id: string;
+  property_id: string | null;
+  participant_a: string; // requester
+  participant_b: string; // agent / owner
+  last_message: string | null;
+  last_message_at: string | null;
+  unread_a: number;
+  unread_b: number;
+  created_at: string;
+  updated_at: string;
+  // joined
+  property?: Pick<Property, "id" | "title" | "city" | "neighbourhood" | "price" | "currency" | "images">;
+  messages?: Message[];
+}
+
 // ── API helpers ───────────────────────────────────────────────
 export interface ApiError {
   error: string;
