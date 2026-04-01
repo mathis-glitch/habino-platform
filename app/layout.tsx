@@ -7,9 +7,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { tenantCssVars } from "@/lib/tenant";
 import { Tenant } from "@/lib/types";
 import BottomNav from "@/components/layout/BottomNav";
-import Sidebar from "@/app/components/layout/Sidebar";
 import InstallPrompt from "@/components/pwa/InstallPrompt";
-import OnboardingOverlay from "@/components/onboarding/OnboardingOverlay";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -22,95 +20,99 @@ export async function generateMetadata(): Promise<Metadata> {
       title: "Habino — AI Property Assistant",
       description: "Find your space. Anytime. Anywhere. — AI-powered property platform.",
       manifest: "/manifest.json",
-      appleWebApp: {
-        capable: true,
-        statusBarStyle: "default",
-        title: "Habino",
-      },
-      other: {
-        "mobile-web-app-capable": "yes",
-      },
+      appleWebApp: { capable: true, statusBarStyle: "default", title: "Habino" },
+      other: { "mobile-web-app-capable": "yes" },
     };
   }
 
   const supabase = createServiceClient();
   const { data: tenant } = await supabase
-    .from("tenants")
-    .select("name, tagline")
-    .eq("id", tenantId)
-    .single();
+    .from("tenants").select("name, tagline").eq("id", tenantId).single();
 
   return {
     title: tenant?.name || "Habino",
     description: tenant?.tagline || "AI-powered property assistant",
     manifest: "/manifest.json",
-    appleWebApp: {
-      capable: true,
-      statusBarStyle: "default",
-      title: tenant?.name || "Habino",
-    },
-    other: {
-      "mobile-web-app-capable": "yes",
-    },
+    appleWebApp: { capable: true, statusBarStyle: "default", title: tenant?.name || "Habino" },
+    other: { "mobile-web-app-capable": "yes" },
   };
 }
 
-export default async function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const headersList = await headers();
   const tenantId    = headersList.get("x-tenant-id");
 
   let tenant: Tenant | null = null;
-
   if (tenantId) {
     const supabase = createServiceClient();
-    const { data } = await supabase
-      .from("tenants")
-      .select("*")
-      .eq("id", tenantId)
-      .single();
+    const { data } = await supabase.from("tenants").select("*").eq("id", tenantId).single();
     tenant = data;
   }
 
-  // Fix: updated default to new forest green brand colors
   const cssVars = tenant
     ? tenantCssVars(tenant)
-    : "--color-primary: #7C6EF2; --color-secondary: #9B8BF5; --color-primary-dark: #6255D4; --color-primary-light: rgba(124,110,242,0.12)";
+    : "--color-primary:#7C6EF2;--color-secondary:#9B8BF5;--color-primary-dark:#6255D4;--color-primary-light:rgba(124,110,242,0.12)";
 
   return (
     <html lang="en" style={{ cssText: cssVars } as React.CSSProperties}>
       <head>
-        {/* PWA — iOS */}
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Habino" />
-        {/* PWA — Android / General */}
-        <meta name="theme-color" content="#09090E" />
+        <meta name="theme-color" content="#EEE9FF" />
         <meta name="mobile-web-app-capable" content="yes" />
         <link rel="manifest" href="/manifest.json" />
-        {/* Favicon */}
         <link rel="icon" href="/favicon.ico" sizes="32x32" />
         <link rel="icon" href="/icon-192.svg" type="image/svg+xml" />
       </head>
-      <body className={`${inter.className} pb-safe`}>
+      <body className={inter.className} style={{ margin: 0, padding: 0 }}>
         <TenantProvider tenant={tenant}>
-          {/* Desktop: sidebar + main content. Mobile: full-width + bottom nav */}
-          <div style={{ display: "flex", height: "100dvh", overflow: "hidden" }}>
-            <Sidebar />
-            {/* Single right-side wrapper — gives children a bounded height via flex */}
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}
-              className="md:pb-0 pb-16">
-              {children}
+          {/*
+            ── Layout strategy ───────────────────────────────────────────────
+            On real mobile (PWA): fills 100dvh, bottom nav sits at bottom.
+            On desktop (preview / admin): centred phone frame 430px wide
+            with gradient background — exactly like the mockup.
+          */}
+          <div style={{
+            minHeight: "100dvh",
+            background: "linear-gradient(145deg,#EEE9FF 0%,#F0EEF8 40%,#E8F0FF 100%)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "flex-start",
+          }}>
+            {/* Phone shell */}
+            <div style={{
+              width: "100%",
+              maxWidth: 430,
+              minHeight: "100dvh",
+              background: "#FFFFFF",
+              position: "relative",
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+              /* Subtle phone-frame shadow on desktop */
+              boxShadow: "0 0 0 1px rgba(0,0,0,0.06), 0 32px 80px rgba(0,0,0,0.18)",
+            }}>
+              {/* Page content */}
+              <div style={{
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                overflowY: "auto",
+                overflowX: "hidden",
+                paddingBottom: 80, /* space for bottom nav */
+              }}>
+                {children}
+              </div>
+
+              {/* Bottom navigation — always inside the phone shell */}
+              <BottomNav />
             </div>
           </div>
-          <BottomNav />
+
           <InstallPrompt />
-          <OnboardingOverlay />
         </TenantProvider>
       </body>
     </html>

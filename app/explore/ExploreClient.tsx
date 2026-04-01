@@ -331,7 +331,7 @@ export default function ExploreClient() {
 
   return (
     <div style={{
-      flex: 1, overflowY: "auto", overflowX: "hidden",
+      flex: 1,
       background: T.bg, fontFamily: T.font,
     }}>
       <style>{`
