@@ -83,12 +83,31 @@ const AI_SUGGESTIONS = [
   "New development Yeka",
 ];
 
+// Deterministic broker portrait photos (Unsplash faces)
+const BROKER_PHOTOS = [
+  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=64&h=64&fit=crop&crop=faces&auto=format",
+  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=64&h=64&fit=crop&crop=faces&auto=format",
+  "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=64&h=64&fit=crop&crop=faces&auto=format",
+  "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=64&h=64&fit=crop&crop=faces&auto=format",
+  "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=64&h=64&fit=crop&crop=faces&auto=format",
+  "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=64&h=64&fit=crop&crop=faces&auto=format",
+];
+function brokerPhoto(name: string) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) & 0xffff;
+  return BROKER_PHOTOS[hash % BROKER_PHOTOS.length];
+}
+
 // ── Property Card ─────────────────────────────────────────────────────────────
 function PropCard({ p, saved, onSave }: { p: Property; saved: boolean; onSave: () => void }) {
-  const hero = getHero(p.images);
   const { main, suffix } = fmtPrice(p.price, p.currency, p.listing_type);
   const [imgErr, setImgErr] = useState(false);
+  const [imgIdx, setImgIdx] = useState(0);
+  const touchStartX = useRef(0);
   const isRent = p.listing_type === "rent";
+
+  const sortedImages = [...(p.images ?? [])].sort((a, b) => a.sort_order - b.sort_order);
+  const currentImg = sortedImages[imgIdx]?.url ?? null;
 
   const subtitleParts = [
     p.property_type.charAt(0).toUpperCase() + p.property_type.slice(1),
@@ -101,14 +120,28 @@ function PropCard({ p, saved, onSave }: { p: Property; saved: boolean; onSave: (
     p.bedrooms > 0 ? `${p.bedrooms} rooms` : null,
   ].filter(Boolean) as string[];
 
+  function handleTouchStart(e: React.TouchEvent) {
+    touchStartX.current = e.touches[0].clientX;
+  }
+  function handleTouchEnd(e: React.TouchEvent) {
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    if (Math.abs(dx) < 40 || sortedImages.length < 2) return;
+    if (dx < 0) setImgIdx(i => Math.min(i + 1, sortedImages.length - 1));
+    else         setImgIdx(i => Math.max(i - 1, 0));
+  }
+
   return (
     <div style={{ cursor: "pointer" }} onClick={() => window.location.assign(`/properties/${p.id}`)}>
       {/* Image */}
-      <div style={{ position: "relative", height: 230, background: T.bgSoft2, borderRadius: T.r2xl, overflow: "hidden" }}>
-        {hero && !imgErr ? (
+      <div
+        style={{ position: "relative", height: 230, background: T.bgSoft2, borderRadius: T.r2xl, overflow: "hidden" }}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        {currentImg && !imgErr ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={hero} alt={p.title}
+            src={currentImg} alt={p.title}
             onError={() => setImgErr(true)}
             style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
           />
@@ -157,13 +190,14 @@ function PropCard({ p, saved, onSave }: { p: Property; saved: boolean; onSave: (
           </svg>
         </button>
 
-        {/* Photo dots */}
-        {(p.images?.length ?? 0) > 1 && (
+        {/* Image counter + dots */}
+        {sortedImages.length > 1 && (
           <div style={{ position: "absolute", bottom: 12, left: "50%", transform: "translateX(-50%)", display: "flex", gap: 4 }}>
-            {p.images!.slice(0, 4).map((_, i) => (
+            {sortedImages.slice(0, 5).map((_, i) => (
               <div key={i} style={{
-                width: i === 0 ? 14 : 5, height: 5, borderRadius: i === 0 ? 3 : "50%",
-                background: i === 0 ? "#fff" : "rgba(255,255,255,.6)",
+                width: i === imgIdx ? 14 : 5, height: 5, borderRadius: i === imgIdx ? 3 : "50%",
+                background: i === imgIdx ? "#fff" : "rgba(255,255,255,.6)",
+                transition: "all 0.2s",
               }} />
             ))}
           </div>
@@ -205,15 +239,13 @@ function PropCard({ p, saved, onSave }: { p: Property; saved: boolean; onSave: (
             display: "flex", alignItems: "center", justifyContent: "space-between",
             marginTop: 10, paddingTop: 10, borderTop: `1px solid ${T.border}`,
           }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-              <div style={{
-                width: 24, height: 24, borderRadius: 7,
-                background: T.primaryL, color: T.primary,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 10, fontWeight: 700,
-              }}>
-                {p.agent_name.charAt(0).toUpperCase()}
-              </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={brokerPhoto(p.agent_name)}
+                alt={p.agent_name}
+                style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
+              />
               <span style={{ fontSize: 12, color: T.text2, fontWeight: 500 }}>{p.agent_name}</span>
             </div>
             <a

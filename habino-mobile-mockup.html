@@ -1,0 +1,1722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Habino — Mobile App Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#FFFFFF;--bg-soft:#F7F7F7;--bg-soft2:#EDEDED;
+  --border:rgba(0,0,0,0.07);--border-md:rgba(0,0,0,0.12);
+  --text-1:#1A1A2E;--text-2:#717171;--text-3:#AFAFAF;
+  --primary:#7C6EF2;--primary-d:#6459D4;
+  --primary-light:rgba(124,110,242,0.10);--primary-mid:rgba(124,110,242,0.18);
+  --ok:#34C759;--warn:#FF9F0A;--err:#FF453A;
+  --shadow-xs:0 1px 3px rgba(0,0,0,0.07);
+  --shadow-sm:0 2px 10px rgba(0,0,0,0.08),0 0 0 1px rgba(0,0,0,0.04);
+  --shadow-md:0 6px 24px rgba(0,0,0,0.09),0 1px 4px rgba(0,0,0,0.05);
+  --shadow-lg:0 14px 48px rgba(0,0,0,0.12),0 2px 8px rgba(0,0,0,0.07);
+  --shadow-xl:0 28px 80px rgba(0,0,0,0.18);
+  --r-sm:8px;--r-md:12px;--r-lg:16px;--r-xl:20px;--r-2xl:28px;--r-full:9999px;
+  --font:'Inter',-apple-system,sans-serif;
+}
+body{
+  font-family:var(--font);
+  background:linear-gradient(145deg,#EEE9FF 0%,#F0EEF8 40%,#E8F0FF 100%);
+  min-height:100vh;
+  display:flex;align-items:flex-start;justify-content:center;
+  padding:48px 24px 80px;
+  gap:48px;
+}
+/* ── outer layout ── */
+.layout{display:flex;gap:52px;align-items:flex-start;}
+.sidebar{width:280px;padding-top:12px;flex-shrink:0;}
+.annotations{width:260px;padding-top:12px;flex-shrink:0;}
+
+/* ── phone frame ── */
+.phone{
+  width:393px;height:852px;
+  border-radius:54px;
+  background:var(--bg);
+  position:relative;overflow:hidden;flex-shrink:0;
+  box-shadow:
+    0 0 0 11px #1C1C28,
+    0 0 0 13px #2E2E40,
+    var(--shadow-xl);
+}
+.dynamic-island{
+  position:absolute;top:14px;left:50%;transform:translateX(-50%);
+  width:126px;height:37px;
+  background:#000;border-radius:20px;z-index:200;
+}
+.status-bar{
+  position:absolute;top:0;left:0;right:0;height:58px;
+  display:flex;align-items:flex-start;
+  padding:16px 32px 0;justify-content:space-between;
+  z-index:190;pointer-events:none;
+}
+.s-time{font-size:15px;font-weight:600;color:var(--text-1);letter-spacing:-0.3px;}
+.s-icons{display:flex;align-items:center;gap:5px;padding-top:1px;}
+.s-icons svg{color:var(--text-1);}
+
+/* ── screens ── */
+.screen-wrap{position:absolute;inset:0;overflow:hidden;}
+.screen{
+  position:absolute;inset:0;
+  background:var(--bg);
+  display:none;flex-direction:column;
+  animation:fadeIn .2s ease;
+}
+.screen.active{display:flex;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+.scroll-area{
+  flex:1;overflow-y:auto;overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  padding-bottom:90px;
+}
+.scroll-area::-webkit-scrollbar{display:none;}
+
+/* ── bottom nav ── */
+.bottom-nav{
+  position:absolute;bottom:0;left:0;right:0;height:90px;
+  background:rgba(255,255,255,0.94);
+  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  border-top:1px solid var(--border);
+  display:flex;align-items:flex-start;padding:10px 0 0;z-index:150;
+}
+.nav-tab{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;
+  cursor:pointer;padding:2px 4px;
+}
+.nav-ic{width:26px;height:26px;display:flex;align-items:center;justify-content:center;color:var(--text-3);}
+.nav-tab.active .nav-ic{color:var(--primary);}
+.nav-lb{font-size:10px;font-weight:500;color:var(--text-3);letter-spacing:.01em;}
+.nav-tab.active .nav-lb{color:var(--primary);font-weight:600;}
+.nav-badge{
+  position:relative;
+}
+.nav-badge::after{
+  content:'2';position:absolute;top:-6px;right:-8px;
+  width:14px;height:14px;border-radius:50%;
+  background:var(--err);color:white;font-size:9px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  border:1.5px solid white;
+}
+.home-indicator{
+  position:absolute;bottom:8px;left:50%;transform:translateX(-50%);
+  width:130px;height:5px;border-radius:3px;
+  background:var(--text-1);opacity:.18;z-index:200;
+  pointer-events:none;
+}
+
+/* ══════════════════════════════════════════
+   EXPLORE SCREEN
+══════════════════════════════════════════ */
+.exp-top{padding:62px 20px 14px;background:var(--bg);}
+.exp-greeting{font-size:13px;color:var(--text-2);margin-bottom:6px;}
+.exp-title{font-size:24px;font-weight:800;color:var(--text-1);letter-spacing:-.6px;margin-bottom:18px;}
+
+/* AI Search bar */
+.ai-bar{
+  display:flex;align-items:center;gap:12px;
+  background:var(--bg);border-radius:18px;padding:12px 14px;
+  box-shadow:var(--shadow-md);border:1.5px solid transparent;
+  cursor:pointer;transition:all .2s;
+}
+.ai-bar.focused{
+  border-color:var(--primary);
+  box-shadow:0 0 0 4px var(--primary-light),var(--shadow-md);
+}
+.ai-ic-wrap{
+  width:40px;height:40px;border-radius:12px;
+  background:var(--primary-light);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.ai-text{flex:1;}
+.ai-main{font-size:15px;font-weight:600;color:var(--text-1);}
+.ai-sub{font-size:12px;color:var(--text-3);margin-top:2px;}
+.ai-mic{
+  width:34px;height:34px;border-radius:50%;
+  background:var(--bg-soft);display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+
+/* AI Suggestions dropdown */
+.ai-dropdown{
+  background:var(--bg);border-radius:16px;margin-top:8px;
+  box-shadow:var(--shadow-lg);border:1px solid var(--border);overflow:hidden;
+}
+.ai-drop-section{padding:14px 16px 8px;}
+.ai-drop-label{font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;}
+.ai-drop-item{
+  display:flex;align-items:center;gap:12px;
+  padding:9px 0;border-bottom:1px solid var(--border);
+  cursor:pointer;
+}
+.ai-drop-item:last-child{border-bottom:none;}
+.ai-drop-ic{
+  width:36px;height:36px;border-radius:10px;
+  background:var(--bg-soft);display:flex;align-items:center;
+  justify-content:center;flex-shrink:0;font-size:15px;
+}
+.ai-drop-main{font-size:14px;font-weight:500;color:var(--text-1);}
+.ai-drop-sub{font-size:12px;color:var(--text-2);margin-top:1px;}
+.ai-drop-item svg{margin-left:auto;flex-shrink:0;color:var(--text-3);}
+.ai-typing-indicator{
+  display:flex;align-items:center;gap:6px;
+  padding:10px 16px;background:var(--primary-light);
+  font-size:12px;font-weight:500;color:var(--primary);
+}
+.ai-typing-dots{display:flex;gap:3px;align-items:center;}
+.ai-dot{width:5px;height:5px;border-radius:50%;background:var(--primary);animation:bounce .9s ease infinite;}
+.ai-dot:nth-child(2){animation-delay:.2s;}
+.ai-dot:nth-child(3){animation-delay:.4s;}
+@keyframes bounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-4px);}}
+
+/* Toggle */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 14px;}
+.view-toggle{display:flex;background:var(--bg-soft);border-radius:14px;padding:3px;gap:2px;}
+.toggle-btn{
+  padding:8px 22px;border-radius:11px;
+  font-size:14px;font-weight:600;cursor:pointer;
+  color:var(--text-2);border:none;background:transparent;transition:all .18s;
+  font-family:var(--font);
+}
+.toggle-btn.active{background:var(--bg);color:var(--text-1);box-shadow:var(--shadow-sm);}
+.toggle-count{
+  font-size:12px;font-weight:600;color:var(--text-2);
+  display:flex;align-items:center;gap:4px;
+}
+
+/* Filter chips */
+.chip-row{display:flex;gap:8px;padding:0 20px 18px;overflow-x:auto;}
+.chip-row::-webkit-scrollbar{display:none;}
+.chip{
+  display:flex;align-items:center;gap:5px;
+  padding:8px 14px;border-radius:var(--r-full);
+  border:1.5px solid var(--border-md);background:var(--bg);
+  font-size:13px;font-weight:500;color:var(--text-1);
+  white-space:nowrap;cursor:pointer;transition:all .15s;
+  flex-shrink:0;
+}
+.chip.active{background:var(--text-1);color:#fff;border-color:var(--text-1);}
+.chip-dot{width:6px;height:6px;border-radius:50%;background:var(--primary);}
+
+/* Section */
+.sec-head{display:flex;align-items:center;justify-content:space-between;padding:0 20px 14px;}
+.sec-title{font-size:19px;font-weight:700;color:var(--text-1);letter-spacing:-.3px;}
+.sec-link{font-size:13px;font-weight:600;color:var(--primary);cursor:pointer;}
+
+/* Property cards */
+.prop-list{display:flex;flex-direction:column;gap:28px;padding:0 20px;}
+.prop-card{cursor:pointer;transition:transform .15s;}
+.prop-card:active{transform:scale(.98);}
+.prop-img{
+  position:relative;height:230px;
+  background:var(--bg-soft2);border-radius:var(--r-2xl);overflow:hidden;
+}
+.prop-img img{width:100%;height:100%;object-fit:cover;display:block;}
+.prop-img-ph{
+  width:100%;height:100%;
+  display:flex;align-items:center;justify-content:center;
+}
+.prop-badge{
+  position:absolute;top:14px;left:14px;
+  padding:5px 11px;border-radius:var(--r-full);
+  font-size:11px;font-weight:700;backdrop-filter:blur(12px);
+}
+.b-rent{background:rgba(124,110,242,.88);color:#fff;}
+.b-buy{background:rgba(52,199,89,.88);color:#fff;}
+.b-new{background:rgba(255,159,10,.88);color:#fff;}
+.prop-save{
+  position:absolute;top:14px;right:14px;
+  width:34px;height:34px;border-radius:50%;
+  background:rgba(255,255,255,.92);backdrop-filter:blur(12px);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;border:none;box-shadow:var(--shadow-sm);
+}
+.prop-dots{
+  position:absolute;bottom:12px;left:50%;transform:translateX(-50%);
+  display:flex;gap:4px;
+}
+.prop-dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.6);}
+.prop-dot.on{background:#fff;width:14px;border-radius:3px;}
+.prop-info{padding:12px 2px 0;}
+.prop-meta{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;}
+.prop-loc{font-size:15px;font-weight:700;color:var(--text-1);}
+.prop-rating{display:flex;align-items:center;gap:3px;font-size:13px;font-weight:600;color:var(--text-1);}
+.prop-sub{font-size:13px;color:var(--text-2);margin-bottom:4px;}
+.prop-price{font-size:15px;font-weight:700;color:var(--text-1);}
+.prop-price em{font-weight:400;font-style:normal;color:var(--text-2);}
+.prop-tags{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
+.prop-tag{
+  padding:3px 9px;border-radius:6px;
+  font-size:11px;font-weight:500;color:var(--text-2);
+  background:var(--bg-soft);
+}
+
+/* ── Map View ── */
+.map-screen{flex:1;position:relative;background:#E3EAF3;overflow:hidden;}
+.map-bg{width:100%;height:100%;position:relative;}
+/* "roads" */
+.map-road{position:absolute;background:rgba(255,255,255,.65);}
+/* price pins */
+.p-pin{
+  position:absolute;
+  background:var(--text-1);color:#fff;
+  font-size:12px;font-weight:700;
+  padding:6px 11px;border-radius:22px;
+  box-shadow:0 3px 10px rgba(0,0,0,.25);
+  cursor:pointer;white-space:nowrap;
+  transition:all .15s;
+  transform:translate(-50%,-50%);
+}
+.p-pin::after{
+  content:'';position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);
+  width:0;height:0;
+  border-left:5px solid transparent;border-right:5px solid transparent;
+  border-top:5px solid var(--text-1);
+}
+.p-pin.sel{background:var(--primary);box-shadow:0 4px 16px rgba(124,110,242,.4);transform:translate(-50%,-50%) scale(1.1);}
+.p-pin.sel::after{border-top-color:var(--primary);}
+/* map bottom sheet */
+.map-sheet{
+  position:absolute;bottom:90px;left:0;right:0;
+  background:var(--bg);border-radius:24px 24px 0 0;
+  padding:12px;box-shadow:0 -4px 24px rgba(0,0,0,.1);
+}
+.sheet-handle{width:36px;height:4px;border-radius:2px;background:var(--bg-soft2);margin:0 auto 14px;}
+.sheet-title{font-size:16px;font-weight:700;color:var(--text-1);margin-bottom:12px;padding:0 6px;}
+.sheet-cards{display:flex;gap:12px;overflow-x:auto;padding:0 4px 4px;}
+.sheet-cards::-webkit-scrollbar{display:none;}
+.s-card{
+  min-width:210px;border-radius:var(--r-lg);overflow:hidden;
+  border:1px solid var(--border);background:var(--bg);
+  box-shadow:var(--shadow-sm);flex-shrink:0;cursor:pointer;
+}
+.s-card-img{height:120px;background:var(--bg-soft2);overflow:hidden;position:relative;}
+.s-card-img img{width:100%;height:100%;object-fit:cover;}
+.s-card-info{padding:10px 12px;}
+.s-card-loc{font-size:13px;font-weight:600;color:var(--text-1);}
+.s-card-pr{font-size:12px;color:var(--text-2);margin-top:2px;}
+
+/* map header overlay */
+.map-top{
+  position:absolute;top:0;left:0;right:0;
+  padding:62px 16px 14px;z-index:10;
+}
+.map-search-pill{
+  display:flex;align-items:center;gap:10px;
+  background:rgba(255,255,255,.96);backdrop-filter:blur(16px);
+  border-radius:16px;padding:12px 16px;
+  box-shadow:var(--shadow-md);
+  font-size:14px;font-weight:500;color:var(--text-2);
+  cursor:pointer;
+}
+
+/* ══════════════════════════════════════════
+   WISHLIST SCREEN
+══════════════════════════════════════════ */
+.w-head{padding:62px 20px 20px;}
+.w-title{font-size:28px;font-weight:800;color:var(--text-1);letter-spacing:-.6px;}
+.w-sub{font-size:14px;color:var(--text-2);margin-top:6px;}
+.w-tabs{display:flex;gap:8px;padding:0 20px 20px;}
+.w-tab{
+  padding:8px 20px;border-radius:var(--r-full);
+  font-size:14px;font-weight:600;cursor:pointer;transition:all .15s;
+}
+.w-tab.active{background:var(--text-1);color:#fff;}
+.w-tab:not(.active){background:var(--bg-soft);color:var(--text-2);}
+.w-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:0 20px;}
+.w-card{background:var(--bg);border-radius:var(--r-xl);overflow:hidden;cursor:pointer;box-shadow:var(--shadow-xs);}
+.w-card-img{height:150px;background:var(--bg-soft2);position:relative;overflow:hidden;}
+.w-card-img img{width:100%;height:100%;object-fit:cover;}
+.w-heart{
+  position:absolute;top:9px;right:9px;width:30px;height:30px;border-radius:50%;
+  background:rgba(255,255,255,.92);display:flex;align-items:center;justify-content:center;
+}
+.w-card-info{padding:10px 11px 12px;}
+.w-card-loc{font-size:13px;font-weight:600;color:var(--text-1);}
+.w-card-sub{font-size:12px;color:var(--text-2);margin-top:1px;}
+.w-card-pr{font-size:13px;font-weight:700;color:var(--text-1);margin-top:5px;}
+/* empty state */
+.w-empty{
+  padding:48px 32px;display:flex;flex-direction:column;
+  align-items:center;text-align:center;
+}
+.w-empty-ic{
+  width:72px;height:72px;border-radius:24px;
+  background:var(--bg-soft);border:1.5px dashed var(--border-md);
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;margin-bottom:20px;
+}
+.w-empty-title{font-size:20px;font-weight:700;color:var(--text-1);letter-spacing:-.3px;margin-bottom:8px;}
+.w-empty-sub{font-size:14px;color:var(--text-2);line-height:1.6;max-width:240px;margin-bottom:24px;}
+.btn-primary{
+  padding:14px 32px;border-radius:14px;
+  background:var(--text-1);color:#fff;
+  font-size:15px;font-weight:700;font-family:var(--font);
+  border:none;cursor:pointer;letter-spacing:-.2px;
+  transition:all .15s;
+}
+.btn-primary:active{transform:scale(.98);}
+
+/* ══════════════════════════════════════════
+   MARKET SCREEN
+══════════════════════════════════════════ */
+.mkt-head{padding:62px 20px 18px;}
+.mkt-title{font-size:28px;font-weight:800;color:var(--text-1);letter-spacing:-.6px;}
+.mkt-sub{font-size:14px;color:var(--text-2);margin-top:5px;}
+
+/* Categories */
+.cat-row{display:flex;gap:14px;padding:0 20px 20px;overflow-x:auto;}
+.cat-row::-webkit-scrollbar{display:none;}
+.cat-item{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;min-width:68px;}
+.cat-ic{
+  width:58px;height:58px;border-radius:20px;
+  display:flex;align-items:center;justify-content:center;font-size:22px;
+  background:var(--bg-soft);border:2px solid transparent;
+  transition:all .15s;
+}
+.cat-item.active .cat-ic{background:var(--primary-light);border-color:var(--primary-mid);}
+.cat-lb{font-size:11px;font-weight:500;color:var(--text-2);text-align:center;}
+.cat-item.active .cat-lb{color:var(--primary);font-weight:600;}
+
+/* Market banner */
+.mkt-banner{
+  margin:0 20px 20px;border-radius:var(--r-2xl);padding:22px;
+  background:linear-gradient(135deg,#7C6EF2 0%,#A89BF8 100%);
+  color:#fff;position:relative;overflow:hidden;
+}
+.mkt-banner::before{
+  content:'';position:absolute;top:-30px;right:-30px;
+  width:140px;height:140px;border-radius:50%;
+  background:rgba(255,255,255,.07);
+}
+.mkt-banner::after{
+  content:'';position:absolute;bottom:-40px;left:-20px;
+  width:100px;height:100px;border-radius:50%;
+  background:rgba(255,255,255,.05);
+}
+.mkt-banner-tag{
+  display:inline-block;padding:3px 10px;border-radius:6px;
+  background:rgba(255,255,255,.2);font-size:11px;font-weight:600;
+  letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px;
+}
+.mkt-banner-title{font-size:20px;font-weight:800;letter-spacing:-.3px;margin-bottom:4px;}
+.mkt-banner-sub{font-size:13px;opacity:.8;margin-bottom:18px;line-height:1.5;}
+.mkt-banner-stats{display:flex;gap:20px;}
+.mkt-stat{display:flex;flex-direction:column;gap:2px;}
+.mkt-stat-val{font-size:20px;font-weight:800;letter-spacing:-.5px;}
+.mkt-stat-lb{font-size:11px;opacity:.7;}
+
+/* Market horizontal cards */
+.mkt-h-scroll{display:flex;gap:14px;padding:0 20px 24px;overflow-x:auto;}
+.mkt-h-scroll::-webkit-scrollbar{display:none;}
+.mkt-h-card{
+  min-width:240px;border-radius:var(--r-xl);overflow:hidden;
+  background:var(--bg);box-shadow:var(--shadow-sm);flex-shrink:0;
+  border:1px solid var(--border);cursor:pointer;
+}
+.mkt-h-img{height:140px;background:var(--bg-soft2);position:relative;overflow:hidden;}
+.mkt-h-img img{width:100%;height:100%;object-fit:cover;}
+.mkt-h-info{padding:12px 14px;}
+.mkt-h-loc{font-size:14px;font-weight:600;color:var(--text-1);}
+.mkt-h-sub{font-size:12px;color:var(--text-2);margin-top:2px;}
+.mkt-h-pr{font-size:14px;font-weight:700;color:var(--text-1);margin-top:8px;}
+
+/* Market insight rows */
+.insight-row{
+  display:flex;align-items:center;gap:14px;
+  padding:16px 20px;border-bottom:1px solid var(--border);
+  cursor:pointer;
+}
+.insight-ic{
+  width:44px;height:44px;border-radius:14px;
+  display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;
+}
+.insight-text{flex:1;}
+.insight-title{font-size:15px;font-weight:600;color:var(--text-1);}
+.insight-sub{font-size:12px;color:var(--text-2);margin-top:2px;}
+.insight-badge{
+  padding:4px 10px;border-radius:var(--r-full);
+  font-size:12px;font-weight:700;
+}
+
+/* ══════════════════════════════════════════
+   MESSAGES SCREEN
+══════════════════════════════════════════ */
+.msg-head{padding:62px 20px 16px;display:flex;align-items:flex-end;justify-content:space-between;}
+.msg-title{font-size:28px;font-weight:800;color:var(--text-1);letter-spacing:-.6px;}
+.msg-new-btn{
+  width:34px;height:34px;border-radius:50%;background:var(--text-1);
+  display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;
+}
+.msg-tabs{display:flex;gap:8px;padding:0 20px 16px;}
+.msg-tab{
+  padding:8px 18px;border-radius:var(--r-full);
+  font-size:14px;font-weight:600;cursor:pointer;transition:all .15s;
+}
+.msg-tab.active{background:var(--text-1);color:#fff;}
+.msg-tab:not(.active){background:var(--bg-soft);color:var(--text-2);}
+.convo-list{display:flex;flex-direction:column;}
+.convo-item{
+  display:flex;align-items:center;gap:14px;
+  padding:14px 20px;border-bottom:1px solid var(--border);
+  cursor:pointer;transition:background .12s;
+}
+.convo-item:active{background:var(--bg-soft);}
+.avatar{
+  width:52px;height:52px;border-radius:18px;flex-shrink:0;
+  background:var(--bg-soft2);overflow:hidden;position:relative;
+}
+.avatar img{width:100%;height:100%;object-fit:cover;}
+.av-ph{
+  width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+  font-size:18px;font-weight:700;color:#fff;
+}
+.av-online{
+  position:absolute;bottom:2px;right:2px;
+  width:11px;height:11px;border-radius:50%;
+  background:var(--ok);border:2px solid #fff;
+}
+.convo-body{flex:1;min-width:0;}
+.convo-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;}
+.convo-name{font-size:15px;font-weight:600;color:var(--text-1);}
+.convo-time{font-size:12px;color:var(--text-3);}
+.convo-preview{font-size:13px;color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.convo-preview.unread{color:var(--text-1);font-weight:500;}
+.unread-dot{width:9px;height:9px;border-radius:50%;background:var(--primary);flex-shrink:0;}
+
+/* Chat detail */
+.chat-hd{
+  display:flex;align-items:center;gap:12px;
+  padding:62px 16px 14px;
+  border-bottom:1px solid var(--border);
+  background:rgba(255,255,255,.96);
+  backdrop-filter:blur(20px);flex-shrink:0;
+}
+.chat-back{
+  width:36px;height:36px;border-radius:50%;
+  background:var(--bg-soft);display:flex;align-items:center;justify-content:center;
+  cursor:pointer;border:none;
+}
+.chat-av{width:40px;height:40px;border-radius:13px;overflow:hidden;background:var(--bg-soft2);flex-shrink:0;}
+.chat-av img{width:100%;height:100%;object-fit:cover;}
+.chat-hd-info{flex:1;}
+.chat-hd-name{font-size:16px;font-weight:700;color:var(--text-1);}
+.chat-hd-sub{font-size:12px;color:var(--ok);}
+.chat-msgs{
+  flex:1;overflow-y:auto;padding:16px;
+  display:flex;flex-direction:column;gap:10px;
+}
+.chat-msgs::-webkit-scrollbar{display:none;}
+.msg-time-divider{font-size:11px;color:var(--text-3);text-align:center;margin:6px 0;}
+.bubble{max-width:78%;padding:11px 15px;border-radius:20px;font-size:14px;line-height:1.5;}
+.b-in{background:var(--bg-soft);color:var(--text-1);border-bottom-left-radius:4px;align-self:flex-start;}
+.b-out{background:var(--primary);color:#fff;border-bottom-right-radius:4px;align-self:flex-end;}
+.prop-msg-card{
+  max-width:230px;background:var(--bg);border:1px solid var(--border);
+  border-radius:var(--r-lg);overflow:hidden;align-self:flex-start;
+  box-shadow:var(--shadow-sm);cursor:pointer;
+}
+.prop-msg-img{height:110px;background:var(--bg-soft2);overflow:hidden;}
+.prop-msg-img img{width:100%;height:100%;object-fit:cover;}
+.prop-msg-info{padding:10px 12px;}
+.chat-input-bar{
+  padding:12px 16px 32px;border-top:1px solid var(--border);
+  background:rgba(255,255,255,.96);backdrop-filter:blur(20px);
+  display:flex;gap:10px;align-items:flex-end;flex-shrink:0;
+}
+.chat-input{
+  flex:1;background:var(--bg-soft);border-radius:22px;
+  padding:11px 16px;font-size:14px;color:var(--text-1);
+  font-family:var(--font);border:none;outline:none;resize:none;
+  max-height:100px;line-height:1.4;
+}
+.chat-send{
+  width:40px;height:40px;border-radius:50%;
+  background:var(--primary);display:flex;align-items:center;
+  justify-content:center;border:none;cursor:pointer;flex-shrink:0;
+}
+
+/* ══════════════════════════════════════════
+   PROFILE SCREEN
+══════════════════════════════════════════ */
+.prf-top-bar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:62px 20px 20px;
+}
+.prf-top-title{font-size:28px;font-weight:800;color:var(--text-1);letter-spacing:-.6px;}
+.prf-settings-ic{
+  width:36px;height:36px;border-radius:50%;background:var(--bg-soft);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+}
+.prf-hero{
+  display:flex;flex-direction:column;align-items:center;
+  padding:0 20px 24px;text-align:center;
+  border-bottom:1px solid var(--border);
+}
+.prf-av{
+  width:88px;height:88px;border-radius:28px;
+  background:linear-gradient(135deg,#7C6EF2,#C084FC);
+  display:flex;align-items:center;justify-content:center;
+  font-size:32px;font-weight:700;color:#fff;
+  box-shadow:0 8px 28px rgba(124,110,242,.35);margin-bottom:14px;
+}
+.prf-name{font-size:22px;font-weight:800;color:var(--text-1);letter-spacing:-.4px;}
+.prf-email{font-size:13px;color:var(--text-2);margin-top:4px;}
+.prf-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:5px 14px;border-radius:var(--r-full);
+  background:var(--primary-light);color:var(--primary);
+  font-size:12px;font-weight:600;margin-top:10px;
+}
+.prf-stats{
+  display:flex;padding:20px;
+  border-bottom:1px solid var(--border);
+}
+.prf-stat{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;
+  border-right:1px solid var(--border);
+}
+.prf-stat:last-child{border-right:none;}
+.ps-val{font-size:22px;font-weight:800;color:var(--text-1);letter-spacing:-.5px;}
+.ps-lb{font-size:11px;color:var(--text-2);}
+.prf-section{padding:20px 20px 4px;}
+.prf-section-lb{
+  font-size:11px;font-weight:700;color:var(--text-3);
+  text-transform:uppercase;letter-spacing:.09em;margin-bottom:10px;
+}
+.prf-row{
+  display:flex;align-items:center;gap:14px;
+  padding:13px 0;border-bottom:1px solid var(--border);cursor:pointer;
+}
+.prf-row:last-child{border-bottom:none;}
+.prf-row-ic{
+  width:38px;height:38px;border-radius:12px;background:var(--bg-soft);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:17px;
+}
+.prf-row-text{flex:1;}
+.prf-row-title{font-size:15px;font-weight:500;color:var(--text-1);}
+.prf-row-sub{font-size:12px;color:var(--text-2);margin-top:1px;}
+.prf-row-chev{color:var(--text-3);}
+.prf-row-badge{
+  padding:3px 9px;border-radius:var(--r-full);
+  font-size:11px;font-weight:600;
+}
+.prf-signout{
+  display:flex;align-items:center;justify-content:center;
+  padding:18px;margin:12px 20px 0;
+  border-radius:var(--r-lg);border:1.5px solid rgba(255,69,58,.2);
+  color:var(--err);font-size:15px;font-weight:600;cursor:pointer;
+  transition:all .15s;
+}
+.prf-signout:active{background:rgba(255,69,58,.05);}
+
+/* ══════════════════════════════════════════
+   SIDEBAR / ANNOTATIONS
+══════════════════════════════════════════ */
+.sidebar-head{margin-bottom:28px;}
+.sidebar-logo{
+  display:flex;align-items:center;gap:9px;margin-bottom:16px;
+}
+.logo-mark{
+  width:34px;height:34px;border-radius:10px;
+  background:linear-gradient(135deg,#7C6EF2,#9B8BF5);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 12px rgba(124,110,242,.3);
+}
+.logo-name{font-size:18px;font-weight:800;color:#1A1A2E;letter-spacing:-.4px;}
+.logo-name span{color:var(--primary);}
+.sidebar-desc{font-size:14px;color:#717171;line-height:1.65;margin-bottom:28px;}
+.screens-label{font-size:11px;font-weight:700;color:#AFAFAF;text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;}
+.screen-pill{
+  padding:12px 16px;border-radius:13px;
+  background:#fff;border:1.5px solid rgba(0,0,0,.06);
+  cursor:pointer;transition:all .15s;
+  box-shadow:0 1px 4px rgba(0,0,0,.05);
+  margin-bottom:8px;
+}
+.screen-pill:hover{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-light);}
+.screen-pill.active{background:var(--primary-light);border-color:var(--primary-mid);}
+.sp-name{font-size:14px;font-weight:600;color:#1A1A2E;}
+.sp-desc{font-size:12px;color:#717171;margin-top:2px;}
+.screen-pill.active .sp-name{color:var(--primary);}
+.sub-screen-pill{
+  display:flex;align-items:center;gap:8px;
+  padding:9px 12px 9px 32px;border-radius:10px;
+  cursor:pointer;transition:all .15s;margin-bottom:4px;
+  background:transparent;
+}
+.sub-screen-pill:hover{background:var(--bg-soft);}
+.sub-screen-pill.active{background:var(--primary-light);}
+.ssp-dot{width:7px;height:7px;border-radius:50%;background:var(--text-3);flex-shrink:0;}
+.sub-screen-pill.active .ssp-dot{background:var(--primary);}
+.ssp-name{font-size:13px;font-weight:500;color:var(--text-2);}
+.sub-screen-pill.active .ssp-name{color:var(--primary);font-weight:600;}
+
+/* Annotations */
+.ann-title{font-size:18px;font-weight:700;color:#1A1A2E;letter-spacing:-.3px;margin-bottom:6px;}
+.ann-sub{font-size:13px;color:#717171;line-height:1.6;margin-bottom:20px;}
+.note-card{
+  background:#fff;border-radius:14px;padding:14px 16px;
+  margin-bottom:10px;border:1px solid rgba(0,0,0,.06);
+  box-shadow:0 2px 8px rgba(0,0,0,.05);
+}
+.note-tag{
+  display:inline-block;padding:2px 8px;border-radius:6px;
+  font-size:10px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.06em;margin-bottom:8px;
+}
+.nt-ux{background:rgba(124,110,242,.1);color:var(--primary);}
+.nt-visual{background:rgba(52,199,89,.1);color:#28A745;}
+.nt-arch{background:rgba(255,159,10,.1);color:#D97706;}
+.nt-ai{background:rgba(255,69,58,.1);color:var(--err);}
+.note-title{font-size:13px;font-weight:600;color:#1A1A2E;margin-bottom:4px;}
+.note-body{font-size:12px;color:#717171;line-height:1.5;}
+.next-steps{margin-top:20px;}
+.ns-title{font-size:14px;font-weight:700;color:#1A1A2E;margin-bottom:10px;}
+.ns-item{
+  display:flex;align-items:flex-start;gap:10px;
+  padding:10px 0;border-bottom:1px solid rgba(0,0,0,.06);
+}
+.ns-item:last-child{border-bottom:none;}
+.ns-num{
+  width:22px;height:22px;border-radius:7px;
+  background:var(--primary-light);color:var(--primary);
+  font-size:11px;font-weight:700;display:flex;align-items:center;
+  justify-content:center;flex-shrink:0;margin-top:1px;
+}
+.ns-text{font-size:12px;color:#717171;line-height:1.5;}
+
+@media(max-width:1200px){
+  .annotations{display:none;}
+}
+@media(max-width:840px){
+  .layout{flex-direction:column;align-items:center;}
+  .sidebar{width:100%;max-width:393px;order:-1;}
+  .annotations{display:none;}
+}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<!-- ── SIDEBAR ── -->
+<aside class="sidebar">
+  <div class="sidebar-head">
+    <div class="sidebar-logo">
+      <div class="logo-mark">
+        <svg width="16" height="16" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+          <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+      </div>
+      <div class="logo-name"><span>habi</span>no</div>
+    </div>
+    <p class="sidebar-desc">Mobile App UI Mockup — Airbnb-inspired property discovery experience with AI-powered search.</p>
+  </div>
+
+  <div class="screens-label">Screens</div>
+
+  <div class="screen-pill active" onclick="goScreen('explore','listing')">
+    <div class="sp-name">🔍 Explore</div>
+    <div class="sp-desc">Discovery + AI Search</div>
+  </div>
+  <div class="sub-screen-pill active" onclick="goScreen('explore','listing')">
+    <div class="ssp-dot"></div>
+    <div class="ssp-name">Listing View</div>
+  </div>
+  <div class="sub-screen-pill" id="pill-map" onclick="goScreen('explore','map')">
+    <div class="ssp-dot"></div>
+    <div class="ssp-name">Map View</div>
+  </div>
+  <div class="sub-screen-pill" id="pill-ai" onclick="goScreen('explore','ai')">
+    <div class="ssp-dot"></div>
+    <div class="ssp-name">AI Search States</div>
+  </div>
+
+  <div class="screen-pill" onclick="goScreen('wishlist')">
+    <div class="sp-name">❤️ Wishlist</div>
+    <div class="sp-desc">Saved properties</div>
+  </div>
+  <div class="screen-pill" onclick="goScreen('market')">
+    <div class="sp-name">📈 Market</div>
+    <div class="sp-desc">Real estate marketplace</div>
+  </div>
+  <div class="screen-pill" onclick="goScreen('messages')">
+    <div class="sp-name">💬 Messages</div>
+    <div class="sp-desc">Agent & AI conversations</div>
+  </div>
+  <div class="sub-screen-pill" id="pill-chat" onclick="goScreen('messages','chat')">
+    <div class="ssp-dot"></div>
+    <div class="ssp-name">Chat Detail</div>
+  </div>
+  <div class="screen-pill" onclick="goScreen('profile')">
+    <div class="sp-name">👤 Profile</div>
+    <div class="sp-desc">Account & preferences</div>
+  </div>
+</aside>
+
+<!-- ── PHONE ── -->
+<div class="phone" id="phone">
+  <div class="dynamic-island"></div>
+
+  <!-- Status bar -->
+  <div class="status-bar">
+    <div class="s-time">9:41</div>
+    <div class="s-icons">
+      <svg width="16" height="12" fill="currentColor" viewBox="0 0 16 12"><rect x="0" y="3" width="3" height="9" rx="1" opacity=".3"/><rect x="4.5" y="2" width="3" height="10" rx="1" opacity=".5"/><rect x="9" y="0" width="3" height="12" rx="1" opacity=".7"/><rect x="13.5" y="0" width="3" height="12" rx="1"/></svg>
+      <svg width="16" height="12" fill="currentColor" viewBox="0 0 16 12"><path d="M8 2.4C5.6 2.4 3.4 3.4 1.8 5L0 3.2C2.2 1.2 5 0 8 0s5.8 1.2 8 3.2L14.2 5C12.6 3.4 10.4 2.4 8 2.4zm0 4c-1.4 0-2.6.6-3.4 1.4L3 6.2C4.2 5 6 4.2 8 4.2s3.8.8 5 2L11.4 7.8C10.6 7 9.4 6.4 8 6.4zm0 4a1.6 1.6 0 100-3.2 1.6 1.6 0 000 3.2z" opacity=".8"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x="0.5" y="0.5" width="21" height="11" rx="3.5" stroke="currentColor" stroke-opacity=".35"/><rect x="2" y="2" width="17" height="8" rx="2" fill="currentColor"/><path d="M23 4v4a2 2 0 000-4z" fill="currentColor" opacity=".4"/></svg>
+    </div>
+  </div>
+
+  <div class="screen-wrap">
+
+    <!-- ══ EXPLORE: LISTING ══ -->
+    <div class="screen active" id="screen-explore-listing">
+      <div class="scroll-area">
+        <div class="exp-top">
+          <div class="exp-greeting">Good morning, Alex 👋</div>
+          <div class="exp-title">Find your next home.</div>
+          <!-- AI Search bar - typed state -->
+          <div class="ai-bar focused">
+            <div class="ai-ic-wrap">
+              <svg width="18" height="18" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><path d="M11 8v6M8 11h6" stroke-width="2.5"/></svg>
+            </div>
+            <div class="ai-text">
+              <div class="ai-main">3-room apartment Berlin …</div>
+              <div class="ai-sub">under €2,000 · furnished · balcony</div>
+            </div>
+            <div class="ai-mic">
+              <svg width="14" height="14" fill="none" stroke="var(--text-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0014 0M12 19v3M9 22h6"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Toggle -->
+        <div class="toggle-row">
+          <div class="view-toggle">
+            <button class="toggle-btn active" onclick="setToggle(this,'listing')">Listing</button>
+            <button class="toggle-btn" onclick="setToggle(this,'map')">Map</button>
+          </div>
+          <div class="toggle-count">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 6h18M7 12h10M11 18h2"/></svg>
+            24 results
+          </div>
+        </div>
+
+        <!-- Filter chips -->
+        <div class="chip-row">
+          <div class="chip active">All</div>
+          <div class="chip">Rent</div>
+          <div class="chip">Buy</div>
+          <div class="chip"><span class="chip-dot"></span>Berlin</div>
+          <div class="chip">München</div>
+          <div class="chip">Hamburg</div>
+          <div class="chip">&lt; €2k</div>
+          <div class="chip">New</div>
+        </div>
+
+        <!-- Section -->
+        <div class="sec-head">
+          <div class="sec-title">Top picks for you</div>
+          <div class="sec-link">See all</div>
+        </div>
+
+        <!-- Property cards -->
+        <div class="prop-list">
+
+          <!-- Card 1 -->
+          <div class="prop-card">
+            <div class="prop-img">
+              <img src="https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=700&q=80" alt="" loading="lazy" onerror="this.parentElement.innerHTML='<div class=prop-img-ph style=background:linear-gradient(135deg,#7C6EF230,#C084FC20)></div>'">
+              <div class="prop-badge b-rent">Rent</div>
+              <button class="prop-save">
+                <svg width="15" height="15" fill="none" stroke="#1A1A2E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+              </button>
+              <div class="prop-dots">
+                <div class="prop-dot on"></div><div class="prop-dot"></div><div class="prop-dot"></div><div class="prop-dot"></div>
+              </div>
+            </div>
+            <div class="prop-info">
+              <div class="prop-meta">
+                <div class="prop-loc">Prenzlauer Berg, Berlin</div>
+                <div class="prop-rating">
+                  <svg width="12" height="12" fill="#1A1A2E" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                  4.92
+                </div>
+              </div>
+              <div class="prop-sub">Modern 3-room · 5th floor · Balcony</div>
+              <div class="prop-price"><strong>€1,840</strong> <em>/ month</em></div>
+              <div class="prop-tags">
+                <span class="prop-tag">Furnished</span>
+                <span class="prop-tag">Pets OK</span>
+                <span class="prop-tag">94 m²</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2 -->
+          <div class="prop-card">
+            <div class="prop-img">
+              <img src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=700&q=80" alt="" loading="lazy" onerror="this.parentElement.innerHTML='<div class=prop-img-ph style=background:linear-gradient(135deg,#34C75920,#00C89620)></div>'">
+              <div class="prop-badge b-buy">Buy</div>
+              <button class="prop-save" style="background:rgba(255,69,58,.15);backdrop-filter:blur(12px);">
+                <svg width="15" height="15" fill="var(--err)" stroke="var(--err)" stroke-width="2" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+              </button>
+              <div class="prop-dots">
+                <div class="prop-dot"></div><div class="prop-dot on"></div><div class="prop-dot"></div>
+              </div>
+            </div>
+            <div class="prop-info">
+              <div class="prop-meta">
+                <div class="prop-loc">Westend, Frankfurt</div>
+                <div class="prop-rating">
+                  <svg width="12" height="12" fill="#1A1A2E" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                  4.85
+                </div>
+              </div>
+              <div class="prop-sub">Luxury villa · 6 bd · 4 ba · Pool</div>
+              <div class="prop-price"><strong>€1,285,000</strong></div>
+              <div class="prop-tags">
+                <span class="prop-tag">New listing</span>
+                <span class="prop-tag">340 m²</span>
+                <span class="prop-tag">Garden</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 3 -->
+          <div class="prop-card">
+            <div class="prop-img">
+              <img src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=700&q=80" alt="" loading="lazy" onerror="this.parentElement.innerHTML='<div class=prop-img-ph style=background:linear-gradient(135deg,#FF9F0A20,#FFD60A20)></div>'">
+              <div class="prop-badge b-rent">Rent</div>
+              <div class="prop-badge b-new" style="left:auto;right:14px;">New</div>
+              <button class="prop-save">
+                <svg width="15" height="15" fill="none" stroke="#1A1A2E" stroke-width="2" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+              </button>
+              <div class="prop-dots">
+                <div class="prop-dot"></div><div class="prop-dot"></div><div class="prop-dot on"></div><div class="prop-dot"></div>
+              </div>
+            </div>
+            <div class="prop-info">
+              <div class="prop-meta">
+                <div class="prop-loc">Schwabing, München</div>
+                <div class="prop-rating">
+                  <svg width="12" height="12" fill="#1A1A2E" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                  4.71
+                </div>
+              </div>
+              <div class="prop-sub">Studio · Top floor · Panorama view</div>
+              <div class="prop-price"><strong>€1,190</strong> <em>/ month</em></div>
+              <div class="prop-tags">
+                <span class="prop-tag">Unfurnished</span>
+                <span class="prop-tag">38 m²</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 4 -->
+          <div class="prop-card">
+            <div class="prop-img">
+              <img src="https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=700&q=80" alt="" loading="lazy" onerror="this.parentElement.innerHTML='<div class=prop-img-ph style=background:linear-gradient(135deg,#C084FC20,#7C6EF220)></div>'">
+              <div class="prop-badge b-buy">Buy</div>
+              <button class="prop-save">
+                <svg width="15" height="15" fill="none" stroke="#1A1A2E" stroke-width="2" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+              </button>
+              <div class="prop-dots">
+                <div class="prop-dot on"></div><div class="prop-dot"></div><div class="prop-dot"></div>
+              </div>
+            </div>
+            <div class="prop-info">
+              <div class="prop-meta">
+                <div class="prop-loc">Kreuzberg, Berlin</div>
+                <div class="prop-rating">
+                  <svg width="12" height="12" fill="#1A1A2E" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                  4.88
+                </div>
+              </div>
+              <div class="prop-sub">Altbau · 4 bd · Original floors</div>
+              <div class="prop-price"><strong>€840,000</strong></div>
+              <div class="prop-tags">
+                <span class="prop-tag">Renovated</span>
+                <span class="prop-tag">Courtyard</span>
+                <span class="prop-tag">118 m²</span>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /prop-list -->
+        <div style="height:32px;"></div>
+      </div><!-- /scroll-area -->
+    </div><!-- /screen-explore-listing -->
+
+    <!-- ══ EXPLORE: MAP ══ -->
+    <div class="screen" id="screen-explore-map">
+      <!-- Map top -->
+      <div class="map-top">
+        <div class="map-search-pill">
+          <svg width="16" height="16" fill="none" stroke="var(--text-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          3-room apartment Berlin · under €2,000
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <div class="view-toggle">
+            <button class="toggle-btn" onclick="setToggle(this,'listing')" style="font-size:13px;padding:7px 16px;">Listing</button>
+            <button class="toggle-btn active" onclick="setToggle(this,'map')" style="font-size:13px;padding:7px 16px;">Map</button>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <div style="display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.94);backdrop-filter:blur(16px);padding:7px 12px;border-radius:12px;font-size:13px;font-weight:600;color:var(--text-1);cursor:pointer;box-shadow:var(--shadow-sm);">
+              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M3 6h18M7 12h10M11 18h2"/></svg>
+              Filters
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Map bg -->
+      <div class="map-screen">
+        <div class="map-bg">
+          <!-- Stylized map roads -->
+          <div class="map-road" style="width:100%;height:6px;top:38%;left:0;transform:rotate(-3deg);"></div>
+          <div class="map-road" style="width:100%;height:4px;top:55%;left:0;transform:rotate(1deg);"></div>
+          <div class="map-road" style="width:4px;height:100%;left:30%;top:0;transform:rotate(2deg);"></div>
+          <div class="map-road" style="width:4px;height:100%;left:65%;top:0;transform:rotate(-1deg);"></div>
+          <div class="map-road" style="width:100%;height:3px;top:72%;left:0;"></div>
+          <div class="map-road" style="width:3px;height:100%;left:50%;top:0;"></div>
+          <!-- Subtle map blocks -->
+          <div style="position:absolute;top:20%;left:10%;width:18%;height:12%;background:rgba(255,255,255,.25);border-radius:6px;"></div>
+          <div style="position:absolute;top:20%;left:35%;width:22%;height:14%;background:rgba(255,255,255,.2);border-radius:6px;"></div>
+          <div style="position:absolute;top:58%;left:15%;width:14%;height:10%;background:rgba(255,255,255,.25);border-radius:6px;"></div>
+          <div style="position:absolute;top:60%;left:55%;width:20%;height:8%;background:rgba(255,255,255,.2);border-radius:6px;"></div>
+          <!-- Green space -->
+          <div style="position:absolute;top:40%;left:68%;width:26%;height:18%;background:rgba(52,199,89,.12);border-radius:8px;"></div>
+
+          <!-- Price pins -->
+          <div class="p-pin sel" style="top:42%;left:38%;">€1,840</div>
+          <div class="p-pin" style="top:28%;left:22%;">€2,100</div>
+          <div class="p-pin" style="top:35%;left:60%;">€1,520</div>
+          <div class="p-pin" style="top:55%;left:28%;">€840k</div>
+          <div class="p-pin" style="top:52%;left:72%;">€1,190</div>
+          <div class="p-pin" style="top:65%;left:45%;">€2,350</div>
+          <div class="p-pin" style="top:25%;left:78%;">€1,650</div>
+          <div class="p-pin" style="top:70%;left:18%;">€1,285k</div>
+
+          <!-- User dot -->
+          <div style="position:absolute;top:45%;left:50%;transform:translate(-50%,-50%);">
+            <div style="width:16px;height:16px;border-radius:50%;background:var(--primary);border:3px solid white;box-shadow:0 0 0 4px rgba(124,110,242,.25);"></div>
+          </div>
+        </div>
+
+        <!-- Bottom sheet -->
+        <div class="map-sheet">
+          <div class="sheet-handle"></div>
+          <div class="sheet-title">24 properties nearby</div>
+          <div class="sheet-cards">
+            <div class="s-card">
+              <div class="s-card-img">
+                <img src="https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400&q=80" alt="" onerror="this.style.display='none'">
+              </div>
+              <div class="s-card-info">
+                <div class="s-card-loc">Prenzlauer Berg</div>
+                <div class="s-card-pr"><strong>€1,840</strong>/mo · 94 m²</div>
+              </div>
+            </div>
+            <div class="s-card">
+              <div class="s-card-img">
+                <img src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&q=80" alt="" onerror="this.style.display='none'">
+              </div>
+              <div class="s-card-info">
+                <div class="s-card-loc">Schwabing, München</div>
+                <div class="s-card-pr"><strong>€1,190</strong>/mo · 38 m²</div>
+              </div>
+            </div>
+            <div class="s-card">
+              <div class="s-card-img">
+                <img src="https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=400&q=80" alt="" onerror="this.style.display='none'">
+              </div>
+              <div class="s-card-info">
+                <div class="s-card-loc">Altona, Hamburg</div>
+                <div class="s-card-pr"><strong>€1,520</strong>/mo · 71 m²</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div><!-- /screen-explore-map -->
+
+    <!-- ══ EXPLORE: AI SEARCH STATES ══ -->
+    <div class="screen" id="screen-explore-ai">
+      <div class="scroll-area">
+        <div class="exp-top">
+          <div class="exp-greeting">AI Search — all states</div>
+          <div class="exp-title" style="font-size:20px;">Smart search bar</div>
+        </div>
+
+        <!-- State 1: Default -->
+        <div style="padding:0 20px 20px;">
+          <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">① Default</div>
+          <div class="ai-bar">
+            <div class="ai-ic-wrap">
+              <svg width="18" height="18" fill="none" stroke="var(--primary)" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            </div>
+            <div class="ai-text">
+              <div class="ai-main" style="color:var(--text-3);font-weight:400;">What are you looking for?</div>
+              <div class="ai-sub">City · Type · Budget</div>
+            </div>
+            <div class="ai-mic">
+              <svg width="14" height="14" fill="none" stroke="var(--text-2)" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0014 0M12 19v3M9 22h6"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- State 2: Focused + Suggestions -->
+        <div style="padding:0 20px 20px;">
+          <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">② Focused — AI Suggestions</div>
+          <div class="ai-bar focused">
+            <div class="ai-ic-wrap">
+              <svg width="18" height="18" fill="none" stroke="var(--primary)" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            </div>
+            <div class="ai-text">
+              <div class="ai-main">Berlin apartment</div>
+              <div class="ai-sub">Typing…</div>
+            </div>
+            <div class="ai-mic">
+              <svg width="14" height="14" fill="none" stroke="var(--primary)" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0014 0M12 19v3M9 22h6"/></svg>
+            </div>
+          </div>
+          <div class="ai-dropdown">
+            <div class="ai-typing-indicator">
+              <div class="ai-typing-dots"><div class="ai-dot"></div><div class="ai-dot"></div><div class="ai-dot"></div></div>
+              Habino AI is generating suggestions…
+            </div>
+            <div class="ai-drop-section">
+              <div class="ai-drop-label">AI Suggestions</div>
+              <div class="ai-drop-item">
+                <div class="ai-drop-ic">✨</div>
+                <div>
+                  <div class="ai-drop-main">3-room · Berlin Mitte · under €2k</div>
+                  <div class="ai-drop-sub">Furnished · near U-Bahn</div>
+                </div>
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 18l6-6-6-6"/></svg>
+              </div>
+              <div class="ai-drop-item">
+                <div class="ai-drop-ic">✨</div>
+                <div>
+                  <div class="ai-drop-main">Penthouse · Charlottenburg · buy</div>
+                  <div class="ai-drop-sub">€800k–€1.5M · 150 m²+</div>
+                </div>
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 18l6-6-6-6"/></svg>
+              </div>
+            </div>
+            <div class="ai-drop-section" style="border-top:1px solid var(--border);">
+              <div class="ai-drop-label">Recent</div>
+              <div class="ai-drop-item">
+                <div class="ai-drop-ic">🕐</div>
+                <div>
+                  <div class="ai-drop-main">3-room apartment Berlin Mitte under €2,000</div>
+                  <div class="ai-drop-sub">Today, 14:32</div>
+                </div>
+              </div>
+              <div class="ai-drop-item">
+                <div class="ai-drop-ic">🕐</div>
+                <div>
+                  <div class="ai-drop-main">Rental prices München Q1 2026</div>
+                  <div class="ai-drop-sub">Yesterday</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- State 3: Results loaded -->
+        <div style="padding:0 20px 20px;">
+          <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">③ Results loaded</div>
+          <div class="ai-bar" style="background:var(--bg-soft);">
+            <div class="ai-ic-wrap">
+              <svg width="18" height="18" fill="none" stroke="var(--primary)" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            </div>
+            <div class="ai-text">
+              <div class="ai-main">3-room Berlin Mitte &lt;€2k</div>
+              <div class="ai-sub">24 results found · AI search</div>
+            </div>
+            <div style="background:rgba(52,199,89,.12);border-radius:8px;padding:4px 9px;font-size:11px;font-weight:700;color:var(--ok);">24</div>
+          </div>
+        </div>
+
+        <div style="height:32px;"></div>
+      </div>
+    </div><!-- /screen-explore-ai -->
+
+    <!-- ══ WISHLIST ══ -->
+    <div class="screen" id="screen-wishlist">
+      <div class="scroll-area">
+        <div class="w-head">
+          <div class="w-title">Wishlist</div>
+          <div class="w-sub">4 properties saved</div>
+        </div>
+        <div class="w-tabs">
+          <div class="w-tab active">All saved</div>
+          <div class="w-tab">Compare</div>
+          <div class="w-tab">Collections</div>
+        </div>
+        <div class="w-grid">
+          <div class="w-card">
+            <div class="w-card-img">
+              <img src="https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400&q=80" alt="" onerror="this.style.display='none'">
+              <div class="w-heart">
+                <svg width="13" height="13" fill="var(--err)" stroke="var(--err)" stroke-width="2" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+              </div>
+            </div>
+            <div class="w-card-info">
+              <div class="w-card-loc">Prenzlauer Berg</div>
+              <div class="w-card-sub">Berlin · Rent</div>
+              <div class="w-card-pr">€1,840/mo</div>
+            </div>
+          </div>
+          <div class="w-card">
+            <div class="w-card-img">
+              <img src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=400&q=80" alt="" onerror="this.style.display='none'">
+              <div class="w-heart">
+                <svg width="13" height="13" fill="var(--err)" stroke="var(--err)" stroke-width="2" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+              </div>
+            </div>
+            <div class="w-card-info">
+              <div class="w-card-loc">Westend</div>
+              <div class="w-card-sub">Frankfurt · Buy</div>
+              <div class="w-card-pr">€1.285M</div>
+            </div>
+          </div>
+          <div class="w-card">
+            <div class="w-card-img">
+              <img src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&q=80" alt="" onerror="this.style.display='none'">
+              <div class="w-heart">
+                <svg width="13" height="13" fill="var(--err)" stroke="var(--err)" stroke-width="2" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+              </div>
+            </div>
+            <div class="w-card-info">
+              <div class="w-card-loc">Schwabing</div>
+              <div class="w-card-sub">München · Rent</div>
+              <div class="w-card-pr">€1,190/mo</div>
+            </div>
+          </div>
+          <div class="w-card">
+            <div class="w-card-img" style="background:var(--bg-soft);display:flex;align-items:center;justify-content:center;border:1.5px dashed var(--border-md);">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--text-3);">
+                <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" d="M12 8v8M8 12h8"/></svg>
+                <span style="font-size:11px;font-weight:600;">Add more</span>
+              </div>
+            </div>
+            <div class="w-card-info">
+              <div class="w-card-loc" style="color:var(--text-3);">Discover more</div>
+              <div class="w-card-sub">Explore →</div>
+            </div>
+          </div>
+        </div>
+        <!-- Compare CTA -->
+        <div style="padding:20px;">
+          <div style="background:var(--bg-soft);border-radius:16px;padding:16px;display:flex;align-items:center;gap:14px;">
+            <div style="width:44px;height:44px;border-radius:14px;background:var(--primary-light);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--primary);font-size:18px;">⚖️</div>
+            <div style="flex:1;">
+              <div style="font-size:14px;font-weight:600;color:var(--text-1);">Compare your saves</div>
+              <div style="font-size:12px;color:var(--text-2);margin-top:2px;">Side-by-side comparison of 4 properties</div>
+            </div>
+            <div style="font-size:13px;font-weight:600;color:var(--primary);">Compare →</div>
+          </div>
+        </div>
+        <div style="height:24px;"></div>
+      </div>
+    </div>
+
+    <!-- ══ MARKET ══ -->
+    <div class="screen" id="screen-market">
+      <div class="scroll-area">
+        <div class="mkt-head">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <div class="mkt-title">Market</div>
+            <div style="font-size:13px;font-weight:600;color:var(--primary);cursor:pointer;">Berlin ▾</div>
+          </div>
+          <div class="mkt-sub">Real estate trends &amp; new listings</div>
+        </div>
+        <!-- Categories -->
+        <div class="cat-row">
+          <div class="cat-item active">
+            <div class="cat-ic">🏠</div>
+            <div class="cat-lb">All</div>
+          </div>
+          <div class="cat-item">
+            <div class="cat-ic">🏢</div>
+            <div class="cat-lb">Apart­ments</div>
+          </div>
+          <div class="cat-item">
+            <div class="cat-ic">🏡</div>
+            <div class="cat-lb">Houses</div>
+          </div>
+          <div class="cat-item">
+            <div class="cat-ic">🏗️</div>
+            <div class="cat-lb">New Dev</div>
+          </div>
+          <div class="cat-item">
+            <div class="cat-ic">🏬</div>
+            <div class="cat-lb">Com­mercial</div>
+          </div>
+          <div class="cat-item">
+            <div class="cat-ic">🌍</div>
+            <div class="cat-lb">Land</div>
+          </div>
+        </div>
+        <!-- Market banner -->
+        <div class="mkt-banner">
+          <div class="mkt-banner-tag">📊 Live Report</div>
+          <div class="mkt-banner-title">Berlin Market Q2 2026</div>
+          <div class="mkt-banner-sub">Demand exceeds supply by 28%. Prices up 4.2% YoY across all districts.</div>
+          <div class="mkt-banner-stats">
+            <div class="mkt-stat"><div class="mkt-stat-val">€5,800</div><div class="mkt-stat-lb">Avg. Buy/m²</div></div>
+            <div class="mkt-stat"><div class="mkt-stat-val">€19/m²</div><div class="mkt-stat-lb">Avg. Rent</div></div>
+            <div class="mkt-stat"><div class="mkt-stat-val">4.1%</div><div class="mkt-stat-lb">Gross Yield</div></div>
+          </div>
+        </div>
+        <!-- Featured new listings -->
+        <div class="sec-head">
+          <div class="sec-title">New this week</div>
+          <div class="sec-link">All →</div>
+        </div>
+        <div class="mkt-h-scroll">
+          <div class="mkt-h-card">
+            <div class="mkt-h-img">
+              <img src="https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400&q=80" alt="" onerror="this.style.display='none'">
+              <div class="prop-badge b-rent" style="top:10px;left:10px;position:absolute;">Rent</div>
+            </div>
+            <div class="mkt-h-info">
+              <div class="mkt-h-loc">Friedrichshain, Berlin</div>
+              <div class="mkt-h-sub">3 bd · 2 ba · 88 m²</div>
+              <div class="mkt-h-pr">€1,960 <span style="font-size:12px;font-weight:400;color:var(--text-2);">/mo</span></div>
+            </div>
+          </div>
+          <div class="mkt-h-card">
+            <div class="mkt-h-img">
+              <img src="https://images.unsplash.com/photo-1486325212027-8081e485255e?w=400&q=80" alt="" onerror="this.style.display='none'">
+              <div class="prop-badge b-buy" style="top:10px;left:10px;position:absolute;">Buy</div>
+            </div>
+            <div class="mkt-h-info">
+              <div class="mkt-h-loc">Charlottenburg</div>
+              <div class="mkt-h-sub">4 bd · 3 ba · 142 m²</div>
+              <div class="mkt-h-pr">€1,080,000</div>
+            </div>
+          </div>
+          <div class="mkt-h-card">
+            <div class="mkt-h-img">
+              <img src="https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400&q=80" alt="" onerror="this.style.display='none'">
+              <div class="prop-badge b-new" style="top:10px;left:10px;position:absolute;">New Dev</div>
+            </div>
+            <div class="mkt-h-info">
+              <div class="mkt-h-loc">Mitte, Berlin</div>
+              <div class="mkt-h-sub">Studio · 32 m² · Q4 2026</div>
+              <div class="mkt-h-pr">€310,000</div>
+            </div>
+          </div>
+        </div>
+        <!-- Market insights -->
+        <div class="sec-head" style="padding-top:8px;">
+          <div class="sec-title">Market insights</div>
+        </div>
+        <div class="insight-row">
+          <div class="insight-ic" style="background:var(--primary-light);">📈</div>
+          <div class="insight-text">
+            <div class="insight-title">High demand zones</div>
+            <div class="insight-sub">Mitte, Prenzlauer Berg · 14-day avg. listing time</div>
+          </div>
+          <div class="insight-badge" style="background:rgba(52,199,89,.1);color:var(--ok);">+4.5%</div>
+        </div>
+        <div class="insight-row">
+          <div class="insight-ic" style="background:rgba(255,159,10,.1);">🏗️</div>
+          <div class="insight-text">
+            <div class="insight-title">New developments</div>
+            <div class="insight-sub">12 new projects in Berlin · Q3–Q4 delivery</div>
+          </div>
+          <div class="insight-badge" style="background:rgba(255,159,10,.1);color:var(--warn);">12</div>
+        </div>
+        <div class="insight-row">
+          <div class="insight-ic" style="background:rgba(52,199,89,.1);">💰</div>
+          <div class="insight-text">
+            <div class="insight-title">Rental yield hotspots</div>
+            <div class="insight-sub">Neukölln · Spandau · up to 4.8% gross yield</div>
+          </div>
+          <div class="insight-badge" style="background:rgba(124,110,242,.1);color:var(--primary);">See</div>
+        </div>
+        <div style="height:32px;"></div>
+      </div>
+    </div>
+
+    <!-- ══ MESSAGES ══ -->
+    <div class="screen" id="screen-messages">
+      <div class="scroll-area">
+        <div class="msg-head">
+          <div class="msg-title">Messages</div>
+          <button class="msg-new-btn">
+            <svg width="16" height="16" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+        </div>
+        <div class="msg-tabs">
+          <div class="msg-tab active">All</div>
+          <div class="msg-tab">Agents</div>
+          <div class="msg-tab">AI Chat</div>
+        </div>
+        <div class="convo-list">
+          <div class="convo-item" onclick="goScreen('messages','chat')">
+            <div class="avatar" style="background:linear-gradient(135deg,#7C6EF2,#C084FC);">
+              <div class="av-ph">S</div>
+              <div class="av-online"></div>
+            </div>
+            <div class="convo-body">
+              <div class="convo-top">
+                <div class="convo-name">Sarah M. — Agent</div>
+                <div class="convo-time">2 min ago</div>
+              </div>
+              <div class="convo-preview unread">I can arrange a viewing for Thursday…</div>
+            </div>
+            <div class="unread-dot" style="margin-left:8px;"></div>
+          </div>
+          <div class="convo-item">
+            <div class="avatar" style="background:linear-gradient(135deg,#7C6EF2,#A89BF8);">
+              <div class="av-ph" style="font-size:14px;">AI</div>
+            </div>
+            <div class="convo-body">
+              <div class="convo-top">
+                <div class="convo-name">Habino AI</div>
+                <div class="convo-time">12 min</div>
+              </div>
+              <div class="convo-preview">Based on your search, I found 3 new matches…</div>
+            </div>
+          </div>
+          <div class="convo-item">
+            <div class="avatar" style="background:linear-gradient(135deg,#FF9F0A,#FFCC4D);">
+              <div class="av-ph">T</div>
+            </div>
+            <div class="convo-body">
+              <div class="convo-top">
+                <div class="convo-name">Thomas K. — Landlord</div>
+                <div class="convo-time">1h ago</div>
+              </div>
+              <div class="convo-preview">The apartment is available from May 1st…</div>
+            </div>
+          </div>
+          <div class="convo-item">
+            <div class="avatar" style="background:linear-gradient(135deg,#34C759,#30D64F);">
+              <div class="av-ph" style="font-size:12px;">MP</div>
+            </div>
+            <div class="convo-body">
+              <div class="convo-top">
+                <div class="convo-name">Max Property</div>
+                <div class="convo-time">Yesterday</div>
+              </div>
+              <div class="convo-preview">New listings in your saved areas — 8 new…</div>
+            </div>
+            <div class="unread-dot" style="margin-left:8px;background:var(--ok);"></div>
+          </div>
+          <div class="convo-item">
+            <div class="avatar" style="background:var(--bg-soft2);">
+              <div class="av-ph" style="color:var(--text-3);font-size:20px;">🔔</div>
+            </div>
+            <div class="convo-body">
+              <div class="convo-top">
+                <div class="convo-name">Habino</div>
+                <div class="convo-time">Mar 30</div>
+              </div>
+              <div class="convo-preview">Your saved search — Prenzlauer Berg matched…</div>
+            </div>
+          </div>
+          <div class="convo-item">
+            <div class="avatar" style="background:linear-gradient(135deg,#FF453A,#FF6B6B);">
+              <div class="av-ph">L</div>
+            </div>
+            <div class="convo-body">
+              <div class="convo-top">
+                <div class="convo-name">Lisa Wagner — Agent</div>
+                <div class="convo-time">Mar 28</div>
+              </div>
+              <div class="convo-preview">Here's the contract draft we discussed…</div>
+            </div>
+          </div>
+        </div>
+        <div style="height:24px;"></div>
+      </div>
+    </div>
+
+    <!-- ══ MESSAGES: CHAT ══ -->
+    <div class="screen" id="screen-messages-chat" style="background:var(--bg-soft);">
+      <div class="chat-hd">
+        <button class="chat-back" onclick="goScreen('messages')">
+          <svg width="18" height="18" fill="none" stroke="var(--text-1)" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
+        </button>
+        <div class="chat-av" style="background:linear-gradient(135deg,#7C6EF2,#C084FC);">
+          <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:white;">S</div>
+        </div>
+        <div class="chat-hd-info">
+          <div class="chat-hd-name">Sarah M.</div>
+          <div class="chat-hd-sub">● Online · Real Estate Agent</div>
+        </div>
+        <svg width="20" height="20" fill="none" stroke="var(--text-2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+      </div>
+      <div class="chat-msgs">
+        <div class="msg-time-divider">Today, 14:20</div>
+        <div class="bubble b-in">Hi Alex! I saw you saved the Prenzlauer Berg listing 👋</div>
+        <div class="bubble b-out">Yes! It looks perfect. Can I arrange a viewing?</div>
+        <div class="prop-msg-card">
+          <div class="prop-msg-img">
+            <img src="https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400&q=80" alt="" onerror="this.style.display='none'">
+          </div>
+          <div class="prop-msg-info">
+            <div style="font-size:13px;font-weight:600;color:var(--text-1);">Prenzlauer Berg, Berlin</div>
+            <div style="font-size:12px;color:var(--text-2);margin-top:2px;">€1,840/mo · 94 m² · 3 bd</div>
+          </div>
+        </div>
+        <div class="bubble b-in">Absolutely! I can arrange a viewing for Thursday at 15:00 or Friday morning. Which works better for you?</div>
+        <div class="bubble b-out">Thursday at 15:00 works great!</div>
+        <div class="bubble b-in">Perfect ✅ I'll send you the confirmation and address details shortly.</div>
+        <div class="msg-time-divider">Just now</div>
+        <div class="bubble b-in">Also — the landlord mentioned there's a similar unit on the 3rd floor available at €1,780. Shall I share the details?</div>
+      </div>
+      <div class="chat-input-bar">
+        <textarea class="chat-input" placeholder="Message Sarah…" rows="1">Thursday 15:00 sounds perfect, thanks!</textarea>
+        <button class="chat-send">
+          <svg width="16" height="16" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- ══ PROFILE ══ -->
+    <div class="screen" id="screen-profile">
+      <div class="scroll-area">
+        <div class="prf-top-bar">
+          <div class="prf-top-title">Profile</div>
+          <div class="prf-settings-ic">
+            <svg width="18" height="18" fill="none" stroke="var(--text-1)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          </div>
+        </div>
+        <div class="prf-hero">
+          <div class="prf-av">AM</div>
+          <div class="prf-name">Alex Müller</div>
+          <div class="prf-email">alex@habino.app</div>
+          <div class="prf-badge">
+            <svg width="12" height="12" fill="var(--primary)" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            Pro Member
+          </div>
+        </div>
+        <div class="prf-stats">
+          <div class="prf-stat"><div class="ps-val">4</div><div class="ps-lb">Saved</div></div>
+          <div class="prf-stat"><div class="ps-val">2</div><div class="ps-lb">Viewings</div></div>
+          <div class="prf-stat"><div class="ps-val">1</div><div class="ps-lb">Offer</div></div>
+          <div class="prf-stat"><div class="ps-val">★4.9</div><div class="ps-lb">Rating</div></div>
+        </div>
+        <!-- Account -->
+        <div class="prf-section">
+          <div class="prf-section-lb">Account</div>
+          <div class="prf-row">
+            <div class="prf-row-ic">👤</div>
+            <div class="prf-row-text"><div class="prf-row-title">Personal information</div><div class="prf-row-sub">Name, email, phone</div></div>
+            <svg class="prf-row-chev" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+          </div>
+          <div class="prf-row">
+            <div class="prf-row-ic">🔔</div>
+            <div class="prf-row-text"><div class="prf-row-title">Notifications</div><div class="prf-row-sub">New matches, messages, alerts</div></div>
+            <div class="prf-row-badge" style="background:var(--primary-light);color:var(--primary);">3 new</div>
+          </div>
+          <div class="prf-row">
+            <div class="prf-row-ic">💳</div>
+            <div class="prf-row-text"><div class="prf-row-title">Payment & billing</div><div class="prf-row-sub">Pro plan · €12.99/mo</div></div>
+            <svg class="prf-row-chev" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+          </div>
+          <div class="prf-row">
+            <div class="prf-row-ic">🔒</div>
+            <div class="prf-row-text"><div class="prf-row-title">Security &amp; privacy</div><div class="prf-row-sub">Password, 2FA</div></div>
+            <svg class="prf-row-chev" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+          </div>
+        </div>
+        <!-- Preferences -->
+        <div class="prf-section">
+          <div class="prf-section-lb">Preferences</div>
+          <div class="prf-row">
+            <div class="prf-row-ic">🌍</div>
+            <div class="prf-row-text"><div class="prf-row-title">Language &amp; region</div><div class="prf-row-sub">English (US)</div></div>
+            <svg class="prf-row-chev" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+          </div>
+          <div class="prf-row">
+            <div class="prf-row-ic">🎨</div>
+            <div class="prf-row-text"><div class="prf-row-title">Appearance</div><div class="prf-row-sub">Light mode</div></div>
+            <svg class="prf-row-chev" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+          </div>
+        </div>
+        <!-- Support -->
+        <div class="prf-section">
+          <div class="prf-section-lb">Support</div>
+          <div class="prf-row">
+            <div class="prf-row-ic">❓</div>
+            <div class="prf-row-text"><div class="prf-row-title">Help Center</div></div>
+            <svg class="prf-row-chev" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+          </div>
+          <div class="prf-row">
+            <div class="prf-row-ic">💬</div>
+            <div class="prf-row-text"><div class="prf-row-title">Contact us</div></div>
+            <svg class="prf-row-chev" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+          </div>
+        </div>
+        <div class="prf-signout">Sign out</div>
+        <div style="padding:8px 20px 12px;text-align:center;font-size:11px;color:var(--text-3);">Habino v2.0.0 · Made with ♥ in Berlin</div>
+        <div style="height:24px;"></div>
+      </div>
+    </div>
+
+  </div><!-- /screen-wrap -->
+
+  <!-- Bottom Navigation -->
+  <nav class="bottom-nav">
+    <div class="nav-tab active" id="nav-explore" onclick="goScreen('explore','listing')">
+      <div class="nav-ic">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      </div>
+      <div class="nav-lb">Explore</div>
+    </div>
+    <div class="nav-tab" id="nav-wishlist" onclick="goScreen('wishlist')">
+      <div class="nav-ic">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+      </div>
+      <div class="nav-lb">Wishlist</div>
+    </div>
+    <div class="nav-tab" id="nav-market" onclick="goScreen('market')">
+      <div class="nav-ic">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+      </div>
+      <div class="nav-lb">Market</div>
+    </div>
+    <div class="nav-tab" id="nav-messages" onclick="goScreen('messages')">
+      <div class="nav-ic nav-badge">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+      </div>
+      <div class="nav-lb">Messages</div>
+    </div>
+    <div class="nav-tab" id="nav-profile" onclick="goScreen('profile')">
+      <div class="nav-ic">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </div>
+      <div class="nav-lb">Profile</div>
+    </div>
+  </nav>
+
+  <div class="home-indicator"></div>
+</div><!-- /phone -->
+
+<!-- ── ANNOTATIONS ── -->
+<aside class="annotations">
+  <div class="ann-title">Design approach</div>
+  <div class="ann-sub">Airbnb-inspired UX with Habino's brand identity. Light mode, clean cards, generous whitespace.</div>
+
+  <div class="note-card">
+    <div class="note-tag nt-ai">AI Search</div>
+    <div class="note-title">Smart search bar — 3 states</div>
+    <div class="note-body">Default → placeholder. Focused → live AI typing indicator + suggestion dropdown with recent searches. Loaded → compact results chip. See "AI Search States" screen.</div>
+  </div>
+  <div class="note-card">
+    <div class="note-tag nt-ux">UX Pattern</div>
+    <div class="note-title">Listing / Map toggle</div>
+    <div class="note-body">Pill toggle below search bar. Listing = full-card scroll. Map = immersive full-screen map with floating price pins and bottom sheet preview carousel.</div>
+  </div>
+  <div class="note-card">
+    <div class="note-tag nt-visual">Visual System</div>
+    <div class="note-title">Property cards — Airbnb DNA</div>
+    <div class="note-body">230px tall image with rounded-28px corners, photo carousel dots, contextual badges (Rent/Buy/New), heart save button, clean info hierarchy below.</div>
+  </div>
+  <div class="note-card">
+    <div class="note-tag nt-arch">Architecture</div>
+    <div class="note-title">5-tab bottom nav</div>
+    <div class="note-body">Explore · Wishlist · Market · Messages · Profile. Persistent across all screens. Active state: violet icon + bold label. Unread badge on Messages.</div>
+  </div>
+
+  <div class="next-steps">
+    <div class="ns-title">From mockup → real app</div>
+    <div class="ns-item">
+      <div class="ns-num">1</div>
+      <div class="ns-text"><strong>Next.js + React Native (Expo)</strong> — Share business logic, split presentation layer for web and mobile.</div>
+    </div>
+    <div class="ns-item">
+      <div class="ns-num">2</div>
+      <div class="ns-text"><strong>Map integration</strong> — Mapbox GL JS or Google Maps with real property coordinates from Supabase PostGIS.</div>
+    </div>
+    <div class="ns-item">
+      <div class="ns-num">3</div>
+      <div class="ns-text"><strong>AI search</strong> — Connect search bar to Claude API with streaming. Real-time suggestion generation.</div>
+    </div>
+    <div class="ns-item">
+      <div class="ns-num">4</div>
+      <div class="ns-text"><strong>Design tokens</strong> — Export CSS variables to a shared design token package (Style Dictionary) for web + mobile parity.</div>
+    </div>
+    <div class="ns-item">
+      <div class="ns-num">5</div>
+      <div class="ns-text"><strong>Animations</strong> — Framer Motion (web) / Reanimated (native) for card swipes, toggle transitions, search bar expansion.</div>
+    </div>
+  </div>
+</aside>
+
+</div><!-- /layout -->
+
+<script>
+let currentMain = 'explore';
+let currentSub  = 'listing';
+
+function goScreen(main, sub) {
+  currentMain = main;
+  currentSub  = sub || null;
+
+  // Hide all screens
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  // Show correct screen
+  const key = sub ? `screen-${main}-${sub}` : `screen-${main}`;
+  const target = document.getElementById(key);
+  if (target) target.classList.add('active');
+
+  // Update bottom nav
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  const navEl = document.getElementById('nav-'+main);
+  if (navEl) navEl.classList.add('active');
+
+  // Update sidebar pills
+  document.querySelectorAll('.screen-pill').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sub-screen-pill').forEach(p => p.classList.remove('active'));
+
+  // Map pill states
+  if (main === 'explore') {
+    document.querySelectorAll('.screen-pill')[0].classList.add('active');
+    if (sub === 'listing') document.querySelectorAll('.sub-screen-pill')[0].classList.add('active');
+    if (sub === 'map')     document.getElementById('pill-map').classList.add('active');
+    if (sub === 'ai')      document.getElementById('pill-ai').classList.add('active');
+  } else if (main === 'wishlist') {
+    document.querySelectorAll('.screen-pill')[1].classList.add('active');
+  } else if (main === 'market') {
+    document.querySelectorAll('.screen-pill')[2].classList.add('active');
+  } else if (main === 'messages') {
+    document.querySelectorAll('.screen-pill')[3].classList.add('active');
+    if (sub === 'chat') document.getElementById('pill-chat').classList.add('active');
+  } else if (main === 'profile') {
+    document.querySelectorAll('.screen-pill')[4].classList.add('active');
+  }
+}
+
+function setToggle(btn, view) {
+  const container = btn.closest('.view-toggle');
+  container.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (view === 'map') {
+    goScreen('explore', 'map');
+  } else {
+    goScreen('explore', 'listing');
+  }
+}
+</script>
+</body>
+</html>

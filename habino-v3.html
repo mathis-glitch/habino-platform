@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Habino — Prototype v3</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+/* ─── TOKENS ─── */
+:root {
+  --p:       #2E7D46;
+  --p-dark:  #235f35;
+  --p-light: #e8f5ed;
+  --s:       #0F1F3D;
+  --acc:     #00A884;
+  --h:       56px;
+  --panel-w: 390px;
+  --menu-w:  260px;
+  --ease:    cubic-bezier(.4,0,.2,1);
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; overflow:hidden; font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif; background:#0F1F3D; -webkit-font-smoothing:antialiased; }
+
+/* ─── PROTO NAV ─── */
+#proto-nav {
+  position:fixed; top:0; left:0; right:0; height:38px; z-index:9999;
+  background:#060e1c; border-bottom:1px solid rgba(255,255,255,0.06);
+  display:flex; align-items:center; padding:0 12px; gap:10px;
+}
+.pn-logo { font-size:10px; font-weight:800; color:var(--p); letter-spacing:.1em; text-transform:uppercase; white-space:nowrap; flex-shrink:0; }
+.pn-sep  { width:1px; height:18px; background:rgba(255,255,255,0.08); flex-shrink:0; }
+.pn-btns { display:flex; gap:4px; overflow-x:auto; }
+.pn-btns::-webkit-scrollbar { display:none; }
+.pn-btn  {
+  padding:3px 11px; border-radius:5px; border:1px solid rgba(255,255,255,.1);
+  background:transparent; color:rgba(255,255,255,.45); font-size:10px; font-weight:600;
+  cursor:pointer; white-space:nowrap; transition:all .12s;
+}
+.pn-btn:hover  { color:white; background:rgba(255,255,255,.07); }
+.pn-btn.active { background:var(--p); border-color:var(--p); color:white; }
+.pn-hint { font-size:10px; color:rgba(255,255,255,.18); white-space:nowrap; flex-shrink:0; margin-left:auto; }
+
+/* ─── FRAME ─── */
+#frame { position:fixed; top:38px; left:0; right:0; bottom:0; overflow:hidden; }
+
+/* ═══════════════════════════════════════
+   LOGIN
+═══════════════════════════════════════ */
+#scr-login {
+  position:absolute; inset:0; display:flex;
+  align-items:center; justify-content:center; overflow:hidden;
+}
+.login-bg {
+  position:absolute; inset:0;
+  background:
+    radial-gradient(ellipse 80% 55% at 15% 15%, rgba(0,168,132,.38) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 50% at 85% 85%, rgba(46,125,70,.28) 0%, transparent 55%),
+    linear-gradient(160deg,#000e1e 0%,#0a2040 40%,#062215 72%,#0F1F3D 100%);
+  animation:bgPulse 10s ease-in-out infinite alternate;
+}
+@keyframes bgPulse { 0%{filter:brightness(.95)} 100%{filter:brightness(1.05)} }
+.login-bg::after {
+  content:''; position:absolute; inset:0;
+  background:
+    radial-gradient(1px 1px at 18% 28%, rgba(255,220,100,.65), transparent),
+    radial-gradient(1px 1px at 35% 62%, rgba(255,180,60,.45), transparent),
+    radial-gradient(2px 2px at 55% 38%, rgba(255,255,190,.32), transparent),
+    radial-gradient(1px 1px at 72% 22%, rgba(180,255,190,.42), transparent),
+    radial-gradient(1px 1px at 88% 68%, rgba(255,220,100,.5), transparent),
+    radial-gradient(1px 1px at 22% 78%, rgba(255,200,80,.32), transparent),
+    radial-gradient(1px 1px at 62% 82%, rgba(255,180,60,.38), transparent),
+    radial-gradient(1px 1px at 44% 15%, rgba(190,220,255,.3), transparent);
+  animation:cityPulse 4s ease-in-out infinite alternate;
+}
+@keyframes cityPulse { 0%{opacity:.6} 100%{opacity:1} }
+
+.login-card {
+  position:relative; z-index:2; width:100%; max-width:352px; margin:0 20px;
+  background:rgba(255,255,255,.09); backdrop-filter:blur(24px) saturate(160%);
+  -webkit-backdrop-filter:blur(24px) saturate(160%);
+  border:1px solid rgba(255,255,255,.17); border-radius:24px;
+  padding:34px 26px 26px;
+  box-shadow:0 24px 64px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.11);
+}
+.login-logo-wrap { display:flex; justify-content:center; margin-bottom:18px; }
+.login-logo {
+  width:54px; height:54px; border-radius:15px;
+  background:linear-gradient(135deg,#00A884,#0F1F3D);
+  display:flex; align-items:center; justify-content:center;
+  font-size:24px; font-weight:900; color:white;
+  box-shadow:0 8px 28px rgba(0,168,132,.45);
+}
+.login-h1 { text-align:center; color:white; font-size:19px; font-weight:800; letter-spacing:-.02em; margin-bottom:3px; }
+.login-sub { text-align:center; color:rgba(255,255,255,.5); font-size:13px; margin-bottom:22px; }
+.oauth-btn {
+  width:100%; display:flex; align-items:center; justify-content:center; gap:10px;
+  padding:12px 18px; border-radius:11px; border:1px solid rgba(255,255,255,.2);
+  background:rgba(255,255,255,.1); color:white; font-size:14px; font-weight:600;
+  cursor:pointer; margin-bottom:8px; transition:background .14s; font-family:inherit;
+}
+.oauth-btn:hover { background:rgba(255,255,255,.18); }
+.oauth-icon { width:17px; height:17px; flex-shrink:0; }
+.login-or { display:flex; align-items:center; gap:10px; margin:13px 0; color:rgba(255,255,255,.3); font-size:12px; }
+.login-or::before,.login-or::after { content:''; flex:1; height:1px; background:rgba(255,255,255,.14); }
+.login-input {
+  width:100%; padding:11px 13px; border-radius:9px;
+  border:1px solid rgba(255,255,255,.17); background:rgba(255,255,255,.07);
+  color:white; font-size:14px; margin-bottom:8px; outline:none; font-family:inherit;
+  transition:border-color .14s;
+}
+.login-input::placeholder { color:rgba(255,255,255,.32); }
+.login-input:focus { border-color:var(--acc); }
+.login-cta {
+  width:100%; padding:13px; background:var(--p); color:white;
+  font-size:14px; font-weight:700; border:none; border-radius:11px;
+  cursor:pointer; margin-top:2px; transition:background .14s; font-family:inherit;
+}
+.login-cta:hover { background:var(--p-dark); }
+.login-footer { text-align:center; margin-top:14px; color:rgba(255,255,255,.38); font-size:12px; }
+.login-footer a { color:rgba(255,255,255,.68); cursor:pointer; text-decoration:underline; }
+
+/* ═══════════════════════════════════════
+   APP SHELL
+═══════════════════════════════════════ */
+#app { position:absolute; inset:0; display:flex; flex-direction:column; }
+
+/* ─── HEADER ─── */
+#hdr {
+  height:var(--h); flex-shrink:0; background:white;
+  border-bottom:1px solid #f0f4f8;
+  display:flex; align-items:center; gap:10px; padding:0 14px;
+  position:relative; z-index:100;
+}
+.hdr-logo {
+  font-size:18px; font-weight:900; color:#0f172a; letter-spacing:-.04em; flex-shrink:0;
+}
+.hdr-logo span { color:var(--p); }
+
+/* ── SCHNELLEINGABE (Quick Input) ── */
+#schnelleingabe {
+  flex:1; max-width:520px;
+  display:flex; align-items:center; gap:8px;
+  background:#f8fafc; border:1.5px solid #e8edf2;
+  border-radius:14px; padding:8px 14px;
+  cursor:text; transition:border-color .15s, box-shadow .15s;
+}
+#schnelleingabe:focus-within {
+  border-color:var(--p); box-shadow:0 0 0 3px rgba(46,125,70,.12);
+}
+.se-ai-dot {
+  width:22px; height:22px; border-radius:7px;
+  background:linear-gradient(135deg,#00A884,#0F1F3D);
+  display:flex; align-items:center; justify-content:center;
+  font-size:10px; font-weight:900; color:white; flex-shrink:0;
+}
+#schnelleingabe input {
+  flex:1; border:none; background:transparent; outline:none;
+  font-size:13px; color:#0f172a; font-family:inherit;
+}
+#schnelleingabe input::placeholder { color:#94a3b8; }
+.se-kbd {
+  font-size:10px; color:#94a3b8; background:#f1f5f9;
+  padding:2px 6px; border-radius:5px; white-space:nowrap; flex-shrink:0;
+}
+
+.hdr-gap { flex:1; }
+.hdr-btn {
+  width:34px; height:34px; border-radius:10px; background:#f1f5f9;
+  border:none; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  color:#475569; transition:background .12s; flex-shrink:0;
+}
+.hdr-btn:hover { background:#e2e8f0; }
+.hdr-inserieren {
+  background:var(--p); color:white; border:none; padding:7px 15px;
+  border-radius:10px; font-size:13px; font-weight:700; cursor:pointer;
+  transition:background .12s; font-family:inherit; flex-shrink:0;
+}
+.hdr-inserieren:hover { background:var(--p-dark); }
+.hdr-avatar {
+  width:30px; height:30px; border-radius:50%;
+  background:var(--p-light); border:2px solid var(--p);
+  display:flex; align-items:center; justify-content:center;
+  font-size:11px; font-weight:800; color:var(--p); cursor:pointer; flex-shrink:0;
+}
+
+/* ─── MAIN ROW (Map + Listing Panel) ─── */
+#main-row {
+  flex:1; display:flex; overflow:hidden; position:relative;
+}
+
+/* ─── MAP PANEL ─── */
+#map-panel { flex:1; position:relative; overflow:hidden; background:#e5e0d6; }
+#lmap { width:100%; height:100%; }
+
+/* Map overlay */
+.map-chips {
+  position:absolute; top:12px; left:12px; z-index:10;
+  display:flex; gap:6px; overflow-x:auto; max-width:calc(100% - 24px);
+}
+.map-chips::-webkit-scrollbar { display:none; }
+.m-chip {
+  background:white; border:1px solid #e2e8f0; border-radius:20px;
+  padding:5px 12px; font-size:11px; font-weight:600; color:#475569;
+  cursor:pointer; white-space:nowrap; box-shadow:0 1px 4px rgba(0,0,0,.09);
+  flex-shrink:0; transition:all .12s; user-select:none;
+}
+.m-chip.active { background:var(--p-light); border-color:var(--p); color:var(--p); }
+
+/* Map AI button (open AI panel) */
+#map-ai-btn {
+  position:absolute; bottom:20px; right:14px; z-index:10;
+  width:50px; height:50px; border-radius:15px; background:var(--s);
+  border:none; color:white; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 4px 18px rgba(0,0,0,.25); transition:transform .14s;
+}
+#map-ai-btn:hover { transform:scale(1.06); }
+.map-ai-tooltip {
+  position:absolute; bottom:26px; right:72px; z-index:10;
+  background:var(--s); color:white; padding:5px 11px;
+  border-radius:9px; font-size:11px; font-weight:700; white-space:nowrap;
+  box-shadow:0 2px 10px rgba(0,0,0,.2); pointer-events:none;
+  animation:tooltipPulse 3s ease-in-out infinite;
+}
+@keyframes tooltipPulse { 0%,100%{opacity:.9} 50%{opacity:.6} }
+
+/* ─── LISTING PANEL ─── */
+#listing-panel {
+  width:var(--panel-w); flex-shrink:0;
+  background:#f8fafc; border-left:1px solid #f0f4f8;
+  display:flex; flex-direction:column; overflow:hidden;
+  transform:translateX(0); transition:transform .3s var(--ease);
+}
+.lp-header {
+  padding:14px 14px 10px;
+  border-bottom:1px solid #f0f4f8;
+  background:white; flex-shrink:0;
+}
+.lp-title-row {
+  display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;
+}
+.lp-title { font-size:14px; font-weight:800; color:#0f172a; }
+.lp-count { font-size:11px; font-weight:700; color:var(--p); background:var(--p-light); padding:3px 9px; border-radius:20px; }
+.lp-sort { display:flex; gap:5px; }
+.lp-sort-btn {
+  padding:4px 11px; border-radius:8px; font-size:11px; font-weight:600;
+  border:1px solid #e2e8f0; background:white; color:#64748b;
+  cursor:pointer; transition:all .12s; font-family:inherit;
+}
+.lp-sort-btn.active { background:var(--p-light); border-color:var(--p); color:var(--p); }
+.lp-list { flex:1; overflow-y:auto; padding:10px; display:flex; flex-direction:column; gap:8px; }
+.lp-list::-webkit-scrollbar { width:3px; }
+.lp-list::-webkit-scrollbar-thumb { background:#e2e8f0; border-radius:2px; }
+
+/* Listing card */
+.lc {
+  background:white; border:1px solid #f0f4f8; border-radius:14px;
+  overflow:hidden; cursor:pointer;
+  transition:box-shadow .14s, transform .14s; flex-shrink:0;
+  box-shadow:0 1px 4px rgba(0,0,0,.06);
+}
+.lc:hover { box-shadow:0 6px 20px rgba(0,0,0,.1); transform:translateY(-1px); }
+.lc.active { border-color:var(--p); box-shadow:0 0 0 2px rgba(46,125,70,.2); }
+.lc-img {
+  width:100%; height:130px;
+  background:linear-gradient(135deg,#e8f5ed 0%,#b8dfc8 100%);
+  display:flex; align-items:center; justify-content:center;
+  font-size:44px; position:relative;
+}
+.lc-badge {
+  position:absolute; top:8px; left:8px;
+  background:var(--s); color:white; font-size:10px; font-weight:700;
+  padding:3px 8px; border-radius:6px;
+}
+.lc-fav {
+  position:absolute; top:8px; right:8px; width:28px; height:28px;
+  background:rgba(255,255,255,.9); border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:14px; cursor:pointer;
+}
+.lc-body { padding:11px 12px 12px; }
+.lc-price { font-size:15px; font-weight:800; color:var(--p); letter-spacing:-.01em; }
+.lc-name  { font-size:13px; font-weight:600; color:#0f172a; margin:3px 0 2px; }
+.lc-loc   { font-size:11px; color:#94a3b8; display:flex; align-items:center; gap:3px; }
+.lc-specs { display:flex; gap:12px; margin-top:9px; padding-top:9px; border-top:1px solid #f8fafc; }
+.lc-spec  { display:flex; align-items:center; gap:4px; font-size:11px; color:#64748b; font-weight:600; }
+
+/* ─── AI PANEL (slide in from right over listing panel) ─── */
+#ai-panel {
+  position:absolute; top:0; right:0; bottom:0; width:var(--panel-w);
+  background:white; z-index:30;
+  display:flex; flex-direction:column;
+  transform:translateX(100%); transition:transform .32s var(--ease);
+  box-shadow:-6px 0 30px rgba(0,0,0,.1);
+}
+#ai-panel.open { transform:translateX(0); }
+
+.aip-header {
+  height:52px; border-bottom:1px solid #f0f4f8; flex-shrink:0;
+  display:flex; align-items:center; padding:0 14px; gap:10px; background:white;
+}
+.aip-close {
+  width:30px; height:30px; border-radius:9px; background:#f1f5f9;
+  border:none; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  color:#64748b; flex-shrink:0;
+}
+.aip-title { font-size:14px; font-weight:800; color:#0f172a; flex:1; }
+.aip-lang-btn {
+  padding:4px 10px; border-radius:7px; border:1px solid #e2e8f0;
+  background:white; font-size:11px; font-weight:600; color:#64748b;
+  cursor:pointer; font-family:inherit;
+}
+.aip-messages { flex:1; overflow-y:auto; padding:14px 12px 8px; display:flex; flex-direction:column; gap:12px; }
+.aip-messages::-webkit-scrollbar { width:3px; }
+.aip-messages::-webkit-scrollbar-thumb { background:#e2e8f0; border-radius:2px; }
+
+.ai-row { display:flex; flex-direction:column; }
+.ai-meta { display:flex; align-items:center; gap:6px; margin-bottom:4px; }
+.ai-ava { width:20px; height:20px; border-radius:6px; background:linear-gradient(135deg,#00A884,#0F1F3D); display:flex; align-items:center; justify-content:center; font-size:8px; font-weight:900; color:white; }
+.ai-name { font-size:10px; font-weight:700; color:#94a3b8; }
+.bubble-ai   { background:#f8fafc; border:1px solid #e8edf2; border-bottom-left-radius:4px; color:#0f172a; }
+.bubble-user { background:var(--p); color:white; border-bottom-right-radius:4px; align-self:flex-end; }
+.bubble { padding:9px 13px; border-radius:14px; font-size:13px; line-height:1.55; max-width:88%; }
+
+/* Prop cards in chat */
+.chat-props { display:flex; gap:8px; overflow-x:auto; padding:3px 0 4px; }
+.chat-props::-webkit-scrollbar { display:none; }
+.cp-card {
+  flex-shrink:0; width:160px; background:white;
+  border:1px solid #e8edf2; border-radius:11px; overflow:hidden;
+  cursor:pointer; transition:transform .12s; box-shadow:0 1px 4px rgba(0,0,0,.07);
+}
+.cp-card:hover { transform:translateY(-2px); }
+.cp-img { height:80px; background:linear-gradient(135deg,#e8f5ed,#b8dfc8); display:flex; align-items:center; justify-content:center; font-size:28px; }
+.cp-body { padding:8px 9px; }
+.cp-price { font-size:11px; font-weight:800; color:var(--p); }
+.cp-name  { font-size:11px; font-weight:600; color:#0f172a; margin:1px 0; }
+.cp-meta  { font-size:10px; color:#94a3b8; }
+
+.aip-chips { padding:8px 12px; display:flex; gap:6px; overflow-x:auto; border-top:1px solid #f0f4f8; background:#fafcff; }
+.aip-chips::-webkit-scrollbar { display:none; }
+.chip {
+  flex-shrink:0; padding:6px 12px; border-radius:20px; font-size:11px; font-weight:600;
+  border:1px solid #e2e8f0; background:white; color:#475569;
+  cursor:pointer; transition:all .12s; font-family:inherit;
+}
+.chip:hover { background:var(--p-light); border-color:var(--p); color:var(--p); }
+
+.aip-input-bar {
+  padding:10px 12px 12px; background:white; border-top:1px solid #f0f4f8;
+  display:flex; gap:7px; align-items:flex-end;
+}
+.aip-textarea {
+  flex:1; border:1px solid #e2e8f0; border-radius:11px; padding:9px 12px;
+  font-size:13px; font-family:inherit; resize:none; min-height:36px; max-height:80px;
+  outline:none; line-height:1.5; color:#0f172a; transition:border-color .14s;
+}
+.aip-textarea:focus { border-color:var(--p); }
+.aip-send {
+  width:36px; height:36px; border-radius:10px; background:var(--p);
+  border:none; color:white; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  transition:background .12s;
+}
+.aip-send:hover { background:var(--p-dark); }
+
+/* Typing dots */
+.typing { display:flex; gap:4px; align-items:center; padding:2px 0; }
+.td { width:5px; height:5px; border-radius:50%; background:#94a3b8; animation:tdBounce 1.2s ease-in-out infinite; }
+.td:nth-child(2){animation-delay:.2s} .td:nth-child(3){animation-delay:.4s}
+@keyframes tdBounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
+
+/* ─── MENU DRAWER ─── */
+#menu-drawer {
+  position:absolute; top:0; left:0; bottom:0; width:var(--menu-w);
+  background:white; z-index:200;
+  transform:translateX(-100%); transition:transform .3s var(--ease);
+  box-shadow:4px 0 24px rgba(0,0,0,.15);
+  display:flex; flex-direction:column;
+}
+#menu-drawer.open { transform:translateX(0); }
+.menu-head {
+  padding:20px 18px 14px;
+  border-bottom:1px solid #f0f4f8; flex-shrink:0;
+  display:flex; align-items:center; gap:12px;
+}
+.menu-logo { font-size:20px; font-weight:900; color:#0f172a; letter-spacing:-.03em; }
+.menu-logo span { color:var(--p); }
+.menu-close {
+  margin-left:auto; width:30px; height:30px; border-radius:9px;
+  background:#f1f5f9; border:none; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; color:#64748b;
+}
+.menu-body { flex:1; padding:12px 10px; overflow-y:auto; }
+.menu-section-label { font-size:10px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:.06em; padding:8px 8px 4px; }
+.menu-item {
+  display:flex; align-items:center; gap:12px;
+  padding:10px 10px; border-radius:11px; cursor:pointer;
+  font-size:14px; font-weight:600; color:#334155;
+  transition:background .12s; user-select:none;
+}
+.menu-item:hover { background:#f8fafc; }
+.menu-item.active { background:var(--p-light); color:var(--p); }
+.menu-item-icon { width:34px; height:34px; border-radius:10px; background:#f1f5f9; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:16px; }
+.menu-item.active .menu-item-icon { background:white; }
+.menu-badge { margin-left:auto; background:var(--p); color:white; font-size:10px; font-weight:700; padding:2px 7px; border-radius:20px; }
+.menu-divider { height:1px; background:#f0f4f8; margin:8px 8px; }
+.menu-footer {
+  padding:14px 18px 18px; border-top:1px solid #f0f4f8; flex-shrink:0;
+}
+.menu-user { display:flex; align-items:center; gap:10px; }
+.menu-user-avatar { width:36px; height:36px; border-radius:50%; background:var(--p-light); border:2px solid var(--p); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; color:var(--p); }
+.menu-user-info {}
+.menu-user-name { font-size:13px; font-weight:700; color:#0f172a; }
+.menu-user-email { font-size:11px; color:#94a3b8; }
+.menu-logout { margin-top:10px; width:100%; padding:9px; border:1px solid #f0f4f8; border-radius:10px; background:white; font-size:13px; font-weight:600; color:#64748b; cursor:pointer; font-family:inherit; transition:all .12s; }
+.menu-logout:hover { background:#fef2f2; color:#ef4444; border-color:#fee2e2; }
+
+/* ─── OVERLAY BACKDROP ─── */
+#backdrop {
+  position:absolute; inset:0; background:rgba(0,0,0,.32);
+  z-index:150; display:none; cursor:pointer;
+}
+
+/* ─── PROPERTY DRAWER (bottom sheet) ─── */
+#prop-drawer {
+  position:absolute; bottom:0; left:0; right:0;
+  max-height:88%; background:white;
+  border-radius:22px 22px 0 0;
+  box-shadow:0 -8px 40px rgba(0,0,0,.18);
+  z-index:160; display:flex; flex-direction:column;
+  transform:translateY(100%); transition:transform .36s cubic-bezier(.34,1.48,.64,1);
+}
+#prop-drawer.open { transform:translateY(0); display:flex; }
+.pd-handle { width:36px; height:4px; background:#d1d5db; border-radius:2px; margin:10px auto 0; flex-shrink:0; }
+.pd-close { position:absolute; top:13px; right:13px; width:28px; height:28px; border-radius:50%; background:#f1f5f9; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; color:#64748b; font-size:13px; }
+.pd-img { width:100%; height:200px; background:linear-gradient(135deg,#e8f5ed,#b8dfc8 50%,#cce8d8); display:flex; align-items:center; justify-content:center; font-size:60px; flex-shrink:0; }
+.pd-scroll { overflow-y:auto; flex:1; }
+.pd-scroll::-webkit-scrollbar { width:3px; }
+.pd-body { padding:16px 18px 32px; }
+.pd-price { font-size:26px; font-weight:900; color:var(--p); letter-spacing:-.02em; }
+.pd-price-note { font-size:12px; color:#94a3b8; margin-top:1px; }
+.pd-name { font-size:17px; font-weight:800; color:#0f172a; margin:9px 0 3px; }
+.pd-loc { font-size:12px; color:#64748b; display:flex; align-items:center; gap:3px; }
+.pd-specs { display:flex; gap:0; margin:14px 0; padding:12px 0; border-top:1px solid #f0f4f8; border-bottom:1px solid #f0f4f8; }
+.pd-spec { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; }
+.pd-spec:not(:last-child) { border-right:1px solid #f0f4f8; }
+.pd-sv { font-size:16px; font-weight:800; color:#0f172a; }
+.pd-sl { font-size:10px; color:#94a3b8; font-weight:600; }
+.pd-avm { background:var(--p-light); border-radius:11px; padding:10px 12px; display:flex; align-items:center; gap:9px; margin:10px 0; }
+.pd-avm-icon { font-size:16px; }
+.pd-avm-label { font-size:10px; font-weight:800; color:var(--p-dark); text-transform:uppercase; letter-spacing:.04em; }
+.pd-avm-val { font-size:12px; color:#0f172a; margin-top:1px; }
+.pd-desc { font-size:13px; color:#475569; line-height:1.65; margin:10px 0 16px; }
+.pd-ctas { display:flex; gap:8px; }
+.pd-cta-main { flex:1; padding:12px; background:var(--p); color:white; border:none; border-radius:12px; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit; transition:background .12s; }
+.pd-cta-main:hover { background:var(--p-dark); }
+.pd-cta-sec { padding:12px 14px; background:white; border:2px solid #e2e8f0; border-radius:12px; font-size:18px; cursor:pointer; transition:all .12s; }
+.pd-cta-sec:hover { border-color:#ef4444; color:#ef4444; }
+
+/* ─── MOBILE FLOAT NAV ─── */
+#float-nav {
+  position:absolute; bottom:14px; left:50%; transform:translateX(-50%);
+  z-index:20; background:rgba(255,255,255,.96); backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,.9);
+  border-radius:20px; padding:4px 6px; display:none; gap:2px;
+  box-shadow:0 4px 24px rgba(0,0,0,.14);
+}
+.fn-tab {
+  display:flex; flex-direction:column; align-items:center; gap:2px;
+  padding:6px 13px; border-radius:13px; border:none; background:transparent;
+  color:#94a3b8; cursor:pointer; font-family:inherit; transition:all .12s;
+}
+.fn-tab.active { background:var(--p-light); color:var(--p); }
+.fn-tab span { font-size:9px; font-weight:700; }
+
+/* ─── ANIMATIONS ─── */
+@keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+.fade-up { animation:fadeUp .26s ease forwards; }
+
+/* ─── RESPONSIVE ─── */
+@media (max-width:768px) {
+  #listing-panel { display:none; }
+  #float-nav     { display:flex; }
+  #schnelleingabe .se-kbd { display:none; }
+  .hdr-inserieren { display:none; }
+  #ai-panel { width:100%; }
+  #menu-drawer { width:80vw; max-width:var(--menu-w); }
+}
+@media (max-width:480px) {
+  #schnelleingabe { max-width:none; flex:1; }
+}
+</style>
+</head>
+<body>
+
+<!-- ░░ PROTO NAV ░░ -->
+<div id="proto-nav">
+  <span class="pn-logo">habino v3</span>
+  <div class="pn-sep"></div>
+  <div class="pn-btns">
+    <button class="pn-btn active" data-s="login"    onclick="goTo('login')">🔐 Login</button>
+    <button class="pn-btn"        data-s="app"      onclick="goTo('app')">🗺 Map + Listings</button>
+    <button class="pn-btn"        data-s="ai"       onclick="goTo('app');openAI()">🤖 AI Panel</button>
+    <button class="pn-btn"        data-s="menu"     onclick="goTo('app');openMenu()">☰ Menü</button>
+    <button class="pn-btn"        data-s="drawer"   onclick="goTo('app');openDrawer(DEMO_PROP)">🏠 Property Drawer</button>
+  </div>
+  <span class="pn-hint">Klick zum Wechseln</span>
+</div>
+
+<!-- ░░ FRAME ░░ -->
+<div id="frame">
+
+  <!-- ══════════ LOGIN ══════════ -->
+  <div id="scr-login" style="display:flex">
+    <div class="login-bg"></div>
+    <div class="login-card">
+      <div class="login-logo-wrap"><div class="login-logo">H</div></div>
+      <div class="login-h1">Willkommen bei habino</div>
+      <div class="login-sub">Ihr KI-Immobilienmakler für Afrika</div>
+
+      <button class="oauth-btn" onclick="goTo('app')">
+        <svg class="oauth-icon" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Mit Google anmelden
+      </button>
+      <button class="oauth-btn" onclick="goTo('app')">
+        <svg class="oauth-icon" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+        Mit Facebook anmelden
+      </button>
+
+      <div class="login-or">oder</div>
+      <input class="login-input" type="email"    placeholder="E-Mail-Adresse" />
+      <input class="login-input" type="password" placeholder="Passwort" />
+      <button class="login-cta" onclick="goTo('app')">Anmelden</button>
+      <div class="login-footer">Noch kein Konto? <a>Registrieren</a>&nbsp;·&nbsp;<a>Passwort vergessen?</a></div>
+    </div>
+  </div>
+
+  <!-- ══════════ APP ══════════ -->
+  <div id="app" style="display:none">
+
+    <!-- HEADER -->
+    <header id="hdr">
+      <!-- Hamburger -->
+      <button class="hdr-btn" onclick="openMenu()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <line x1="3" y1="6"  x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+
+      <span class="hdr-logo">habi<span>no</span></span>
+
+      <!-- SCHNELLEINGABE -->
+      <div id="schnelleingabe" onclick="openAI()">
+        <div class="se-ai-dot">H</div>
+        <input type="text" placeholder="KI fragen: 3 Zimmer in Bole unter 5 Mio. ETB …" id="se-input" onkeydown="seKey(event)" />
+        <span class="se-kbd">↵ Senden</span>
+      </div>
+
+      <div class="hdr-gap"></div>
+      <button class="hdr-inserieren">+ Inserieren</button>
+      <div class="hdr-avatar" title="Profil">M</div>
+    </header>
+
+    <!-- MAIN ROW -->
+    <div id="main-row">
+
+      <!-- MAP PANEL -->
+      <div id="map-panel">
+        <div id="lmap"></div>
+
+        <!-- Filter chips -->
+        <div class="map-chips">
+          <div class="m-chip active" onclick="tChip(this)">Alle</div>
+          <div class="m-chip" onclick="tChip(this)">Kaufen</div>
+          <div class="m-chip" onclick="tChip(this)">Mieten</div>
+          <div class="m-chip" onclick="tChip(this)">Wohnung</div>
+          <div class="m-chip" onclick="tChip(this)">Haus</div>
+          <div class="m-chip" onclick="tChip(this)">Preis ▾</div>
+          <div class="m-chip" onclick="tChip(this)">Zimmer ▾</div>
+        </div>
+
+        <!-- AI CTA on map -->
+        <span class="map-ai-tooltip">KI-Agent fragen</span>
+        <button id="map-ai-btn" onclick="openAI()">
+          <svg width="22" height="22" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+          </svg>
+        </button>
+
+        <!-- Mobile float nav -->
+        <nav id="float-nav">
+          <button class="fn-tab active">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            <span>Suche</span>
+          </button>
+          <button class="fn-tab" onclick="openAI()">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+            <span>KI Agent</span>
+          </button>
+          <button class="fn-tab">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+            <span>Gespeichert</span>
+          </button>
+          <button class="fn-tab">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+            <span>Markt</span>
+          </button>
+        </nav>
+      </div>
+
+      <!-- LISTING PANEL -->
+      <div id="listing-panel">
+        <div class="lp-header">
+          <div class="lp-title-row">
+            <span class="lp-title">Suchergebnisse</span>
+            <span class="lp-count">18 Objekte</span>
+          </div>
+          <div class="lp-sort">
+            <button class="lp-sort-btn active">Empfohlen</button>
+            <button class="lp-sort-btn" onclick="sortActive(this)">Preis ↑</button>
+            <button class="lp-sort-btn" onclick="sortActive(this)">Neu</button>
+          </div>
+        </div>
+
+        <div class="lp-list" id="lp-list">
+          <!-- Generated by JS -->
+        </div>
+      </div>
+
+      <!-- AI PANEL (slides in over listing panel) -->
+      <div id="ai-panel">
+        <div class="aip-header">
+          <button class="aip-close" onclick="closeAI()">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+          </button>
+          <span class="aip-title">KI-Agent</span>
+          <button class="aip-lang-btn">DE ▾</button>
+        </div>
+
+        <div class="aip-messages" id="aip-msgs">
+          <!-- Greeting -->
+          <div class="ai-row fade-up">
+            <div class="ai-meta"><div class="ai-ava">H</div><span class="ai-name">habino KI-Agent</span></div>
+            <div class="bubble bubble-ai">Hallo! 👋 Ich bin Ihr persönlicher Immobilienberater für Addis Abeba. Was suchen Sie?</div>
+          </div>
+          <!-- User -->
+          <div class="ai-row fade-up">
+            <div class="bubble bubble-user">3-Zimmer Wohnung in Bole, max. 5 Mio. ETB</div>
+          </div>
+          <!-- AI + property results -->
+          <div class="ai-row fade-up">
+            <div class="ai-meta"><div class="ai-ava">H</div><span class="ai-name">habino KI-Agent</span></div>
+            <div class="bubble bubble-ai">Ich habe <strong>8 passende Objekte</strong> gefunden. Hier die Top-Treffer:</div>
+            <div class="chat-props" style="margin-top:8px;">
+              <div class="cp-card" onclick="openDrawer(PROPS[0])"><div class="cp-img">🏢</div><div class="cp-body"><div class="cp-price">4,8 Mio. ETB</div><div class="cp-name">Bole Wohnung, 3 Zim.</div><div class="cp-meta">120 m² · Bole Road</div></div></div>
+              <div class="cp-card" onclick="openDrawer(PROPS[3])"><div class="cp-img">🏙️</div><div class="cp-body"><div class="cp-price">5,2 Mio. ETB</div><div class="cp-name">Kazanchis Flat, 3 Zim.</div><div class="cp-meta">135 m² · Bole Road</div></div></div>
+              <div class="cp-card" onclick="openDrawer(PROPS[5])"><div class="cp-img">🌆</div><div class="cp-body"><div class="cp-price">4,5 Mio. ETB</div><div class="cp-name">Megenagna, 3 Zim.</div><div class="cp-meta">110 m² · Bole</div></div></div>
+            </div>
+            <div class="bubble bubble-ai" style="margin-top:8px;">Soll ich einen <strong>Besichtigungstermin</strong> vereinbaren?</div>
+          </div>
+        </div>
+
+        <div class="aip-chips">
+          <button class="chip" onclick="sendChip(this)">📅 Termin anfragen</button>
+          <button class="chip" onclick="sendChip(this)">💰 Budget ändern</button>
+          <button class="chip" onclick="sendChip(this)">📍 Andere Lage</button>
+          <button class="chip" onclick="sendChip(this)">🏠 Nur Häuser</button>
+          <button class="chip" onclick="sendChip(this)">📊 Marktbericht</button>
+        </div>
+
+        <div class="aip-input-bar">
+          <textarea class="aip-textarea" id="ai-input" rows="1" placeholder="Nachricht schreiben …" onkeydown="aiKey(event)"></textarea>
+          <button class="aip-send" onclick="sendMsg()">
+            <svg width="15" height="15" fill="none" stroke="white" stroke-width="2.5" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+      </div>
+
+    </div><!-- /main-row -->
+  </div><!-- /app -->
+
+  <!-- ══════════ MENU DRAWER ══════════ -->
+  <div id="menu-drawer">
+    <div class="menu-head">
+      <span class="menu-logo">habi<span>no</span></span>
+      <button class="menu-close" onclick="closeMenu()">✕</button>
+    </div>
+    <div class="menu-body">
+      <div class="menu-section-label">Hauptmenü</div>
+      <div class="menu-item active" onclick="closeMenu()">
+        <div class="menu-item-icon">🗺️</div>Karte &amp; Suche
+      </div>
+      <div class="menu-item" onclick="closeMenu();openAI()">
+        <div class="menu-item-icon">🤖</div>KI-Agent
+        <span class="menu-badge">NEU</span>
+      </div>
+      <div class="menu-item" onclick="closeMenu()">
+        <div class="menu-item-icon">♥</div>Gespeichert
+      </div>
+      <div class="menu-item" onclick="closeMenu()">
+        <div class="menu-item-icon">📊</div>Marktintelligenz
+      </div>
+      <div class="menu-item" onclick="closeMenu()">
+        <div class="menu-item-icon">📋</div>Meine Inserate
+      </div>
+      <div class="menu-divider"></div>
+      <div class="menu-section-label">Konto</div>
+      <div class="menu-item" onclick="closeMenu()">
+        <div class="menu-item-icon">👤</div>Profil
+      </div>
+      <div class="menu-item" onclick="closeMenu()">
+        <div class="menu-item-icon">⚙️</div>Einstellungen
+      </div>
+      <div class="menu-item" onclick="closeMenu()">
+        <div class="menu-item-icon">🛡️</div>Admin
+      </div>
+    </div>
+    <div class="menu-footer">
+      <div class="menu-user">
+        <div class="menu-user-avatar">M</div>
+        <div class="menu-user-info">
+          <div class="menu-user-name">Mats B.</div>
+          <div class="menu-user-email">mathis@one-hvg.com</div>
+        </div>
+      </div>
+      <button class="menu-logout" onclick="goTo('login');closeMenu()">Abmelden</button>
+    </div>
+  </div>
+
+  <!-- Backdrop -->
+  <div id="backdrop" onclick="closeAll()"></div>
+
+  <!-- ══════════ PROPERTY DRAWER ══════════ -->
+  <div id="prop-drawer">
+    <div class="pd-handle"></div>
+    <button class="pd-close" onclick="closeDrawer()">✕</button>
+    <div class="pd-img" id="pd-img">🏢</div>
+    <div class="pd-scroll">
+      <div class="pd-body">
+        <div class="pd-price"    id="pd-price">4.800.000 ETB</div>
+        <div class="pd-price-note">≈ 85.700 USD · 40.000 ETB/m²</div>
+        <div class="pd-name"    id="pd-name">Bole Wohnung, 3 Zimmer</div>
+        <div class="pd-loc"     id="pd-loc">
+          <svg width="12" height="12" fill="none" stroke="#94a3b8" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          Bole, Addis Abeba
+        </div>
+        <div class="pd-specs">
+          <div class="pd-spec"><div class="pd-sv" id="pd-rooms">3</div><div class="pd-sl">Zimmer</div></div>
+          <div class="pd-spec"><div class="pd-sv" id="pd-bath">2</div><div class="pd-sl">Bäder</div></div>
+          <div class="pd-spec"><div class="pd-sv" id="pd-sqm">120</div><div class="pd-sl">m²</div></div>
+          <div class="pd-spec"><div class="pd-sv" id="pd-floor">5.</div><div class="pd-sl">Etage</div></div>
+          <div class="pd-spec"><div class="pd-sv" id="pd-year">2022</div><div class="pd-sl">Bj.</div></div>
+        </div>
+        <div class="pd-avm">
+          <div class="pd-avm-icon">✨</div>
+          <div><div class="pd-avm-label">KI-Bewertung</div><div class="pd-avm-val" id="pd-avm">Marktgerecht · 4,6–5,0 Mio. ETB</div></div>
+        </div>
+        <div class="pd-desc" id="pd-desc">Modernes Apartment im Herzen von Bole mit 3 Schlafzimmern, 2 Vollbädern und großer Balkonterrasse. 24h-Sicherheit, Tiefgarage, Gemeinschaftspool.</div>
+        <div class="pd-ctas">
+          <button class="pd-cta-main">📅 Besichtigung anfragen</button>
+          <button class="pd-cta-sec">♥</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /frame -->
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ─── DATA ───
+const PROPS = [
+  { e:'🏢', price:'4.800.000', name:'Bole Wohnung, 3 Zimmer',   loc:'Bole, Addis Abeba',    rooms:3, bath:2, sqm:120, floor:5,  year:2022, lat:8.9806, lng:38.7578, label:'4,8M', type:'Kaufen', desc:'Modernes Apartment in Bole. Großer Balkon, 24h-Security, Pool.' },
+  { e:'🏗️', price:'7.200.000', name:'Bole Luxury, 4 Zimmer',    loc:'Bole Road, Addis',     rooms:4, bath:3, sqm:180, floor:9,  year:2023, lat:8.9855, lng:38.7612, label:'7,2M', type:'Kaufen', desc:'Penthouse mit 360°-Stadtblick, private Terrasse, concierge.' },
+  { e:'🏠', price:'2.400.000', name:'Bole Studio, 1 Zimmer',    loc:'Bole, Addis Abeba',    rooms:1, bath:1, sqm:45,  floor:2,  year:2021, lat:8.9742, lng:38.7543, label:'2,4M', type:'Kaufen', desc:'Kompaktes Studio, ideal als Kapitalanlage oder Erstwohnung.' },
+  { e:'🏙️', price:'5.200.000', name:'Kazanchis Flat, 3 Zimmer', loc:'Kazanchis · Bole Road', rooms:3, bath:2, sqm:135, floor:7,  year:2021, lat:9.0089, lng:38.7614, label:'5,2M', type:'Kaufen', desc:'Stilvolles Apartment mit Panoramablick. Marmorbäder, offene Küche.' },
+  { e:'🏢', price:'3.800.000', name:'Kazanchis 2Zim.',          loc:'Kazanchis, Addis',     rooms:2, bath:1, sqm:90,  floor:4,  year:2020, lat:9.0124, lng:38.7589, label:'3,8M', type:'Kaufen', desc:'Gepflegtes Apartment in zentraler Lage, ruhig und sonnig.' },
+  { e:'🌆', price:'4.500.000', name:'Megenagna, 3 Zimmer',      loc:'Megenagna · Bole',     rooms:3, bath:1, sqm:110, floor:3,  year:2020, lat:9.0205, lng:38.7812, label:'4,5M', type:'Kaufen', desc:'Ruhige Lage, gute ÖPNV-Anbindung, helle Räume.' },
+  { e:'🏡', price:'6.100.000', name:'Megenagna Villa, 4 Zimmer',loc:'Megenagna, Addis',     rooms:4, bath:2, sqm:200, floor:1,  year:2018, lat:9.0189, lng:38.7845, label:'6,1M', type:'Kaufen', desc:'Villa mit Garten und Carport in exklusiver Anlage.' },
+  { e:'🏢', price:'4.900.000', name:'CMC Wohnung, 3 Zimmer',   loc:'CMC Road · Arada',     rooms:3, bath:2, sqm:125, floor:4,  year:2023, lat:9.0389, lng:38.8089, label:'4,9M', type:'Kaufen', desc:'Brandneu, Erstbezug. Hochwertige Ausstattung, offene Küche.' },
+  { e:'🏡', price:'8.900.000', name:'CMC Villa, 5 Zimmer',      loc:'CMC Road, Addis',      rooms:5, bath:3, sqm:280, floor:1,  year:2019, lat:9.0423, lng:38.8112, label:'8,9M', type:'Kaufen', desc:'Villa auf eigenem Grundstück. Garten, 2 Garagen, Personalzimmer.' },
+  { e:'🏙️', price:'3.100.000', name:'Piassa Flat, 2 Zimmer',   loc:'Piassa, Addis Abeba',  rooms:2, bath:1, sqm:75,  floor:3,  year:2019, lat:9.0312, lng:38.7489, label:'3,1M', type:'Mieten', desc:'Apartment im historischen Piassa-Viertel, lebhaft und zentral.' },
+  { e:'🏗️', price:'1.800.000', name:'Gerji Studio',             loc:'Gerji · Bole Sub-city',rooms:1, bath:1, sqm:42,  floor:2,  year:2023, lat:9.0012, lng:38.8234, label:'1,8M', type:'Kaufen', desc:'Kompaktes Studio im aufstrebenden Gerji. Ideal als Anlage.' },
+  { e:'🏢', price:'3.400.000', name:'Gerji 2Zimmer',            loc:'Gerji, Addis Abeba',   rooms:2, bath:1, sqm:85,  floor:3,  year:2022, lat:9.0045, lng:38.8267, label:'3,4M', type:'Kaufen', desc:'Helles Apartment mit modernem Bad und großem Wohnzimmer.' },
+  { e:'🌳', price:'6.400.000', name:'Yeka Haus, 4 Zimmer',      loc:'Yeka Sub-city',        rooms:4, bath:2, sqm:200, floor:1,  year:2018, lat:9.0198, lng:38.8156, label:'6,4M', type:'Kaufen', desc:'Einfamilienhaus in Yeka. Privater Garten, ruhige Nachbarschaft.' },
+  { e:'🏢', price:'4.200.000', name:'Sarbet Apartment, 3 Zim.',loc:'Sarbet, Addis Abeba',  rooms:3, bath:2, sqm:105, floor:4,  year:2021, lat:8.9934, lng:38.7312, label:'4,2M', type:'Kaufen', desc:'Modernes Apartment in Sarbet, gehobene Ausstattung.' },
+  { e:'🏡', price:'5.800.000', name:'Ayat House, 4 Zimmer',     loc:'Ayat, Addis Abeba',    rooms:4, bath:2, sqm:220, floor:1,  year:2020, lat:9.0534, lng:38.8412, label:'5,8M', type:'Kaufen', desc:'Großes Haus in Ayat-Anlage. Garten, Garage, Pool.' },
+  { e:'🏠', price:'2.800.000', name:'Kolfe Wohnung, 2 Zimmer', loc:'Kolfe Keranio',        rooms:2, bath:1, sqm:80,  floor:2,  year:2020, lat:8.9634, lng:38.7112, label:'2,8M', type:'Mieten', desc:'Günstig und gut angebunden. Ideal für Familien.' },
+  { e:'🏢', price:'3.600.000', name:'Lideta Apartment, 2 Zim.',loc:'Lideta, Addis Abeba',  rooms:2, bath:1, sqm:88,  floor:5,  year:2021, lat:9.0289, lng:38.7334, label:'3,6M', type:'Kaufen', desc:'Renoviert, neues Bad, nahe Merkato.' },
+  { e:'🏙️', price:'4.100.000', name:'Kirkos Center, 3 Zimmer', loc:'Kirkos, Addis Abeba',  rooms:3, bath:2, sqm:98,  floor:6,  year:2022, lat:9.0334, lng:38.7589, label:'4,1M', type:'Kaufen', desc:'Zentrales Apartment, direkte Anbindung an Büroviertel.' },
+];
+const DEMO_PROP = PROPS[0];
+
+// ─── NAVIGATION ───
+function goTo(s) {
+  document.querySelectorAll('.pn-btn').forEach(b => b.classList.toggle('active', b.dataset.s === s));
+  document.getElementById('scr-login').style.display = s === 'login' ? 'flex' : 'none';
+  document.getElementById('app').style.display       = s !== 'login' ? 'flex' : 'none';
+  if (s !== 'login' && !mapReady) initMap();
+}
+
+// ─── MAP ───
+let mapReady = false, lmap = null;
+
+function initMap() {
+  mapReady = true;
+  const el = document.getElementById('lmap');
+  if (!el || typeof L === 'undefined') {
+    el.innerHTML = '<div style="display:flex;height:100%;align-items:center;justify-content:center;flex-direction:column;gap:14px;color:#64748b;background:#e8e4d9;"><div style="font-size:52px">🗺️</div><div style="font-size:14px;font-weight:700;">Karte lädt… (Internet erforderlich)</div></div>';
+    return;
+  }
+  lmap = L.map(el, { zoomControl:false, attributionControl:false }).setView([9.0192,38.7525],13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(lmap);
+  L.control.zoom({ position:'bottomleft' }).addTo(lmap);
+  PROPS.forEach(p => {
+    const icon = L.divIcon({
+      className:'',
+      html:`<div style="background:white;border:2px solid #2E7D46;border-radius:20px;padding:4px 9px;font-size:11px;font-weight:700;color:#2E7D46;cursor:pointer;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.14);font-family:-apple-system,sans-serif;" onmouseover="this.style.background='#2E7D46';this.style.color='white'" onmouseout="this.style.background='white';this.style.color='#2E7D46'">${p.label} ETB</div>`,
+      iconSize:[0,0], iconAnchor:[0,40]
+    });
+    L.marker([p.lat,p.lng],{icon}).addTo(lmap).on('click',()=>openDrawer(p));
+  });
+}
+
+// ─── LISTING PANEL ───
+function buildListings() {
+  const list = document.getElementById('lp-list');
+  list.innerHTML = '';
+  PROPS.forEach(p => {
+    const card = document.createElement('div');
+    card.className = 'lc';
+    card.innerHTML = `
+      <div class="lc-img">
+        ${p.e}
+        <span class="lc-badge">${p.type}</span>
+        <span class="lc-fav">♥</span>
+      </div>
+      <div class="lc-body">
+        <div class="lc-price">${parseInt(p.price).toLocaleString('de-DE')} ETB</div>
+        <div class="lc-name">${p.name}</div>
+        <div class="lc-loc">
+          <svg width="10" height="10" fill="none" stroke="#94a3b8" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          ${p.loc}
+        </div>
+        <div class="lc-specs">
+          <span class="lc-spec">🛏 ${p.rooms}</span>
+          <span class="lc-spec">🚿 ${p.bath}</span>
+          <span class="lc-spec">📐 ${p.sqm} m²</span>
+        </div>
+      </div>`;
+    card.onclick = () => openDrawer(p);
+    list.appendChild(card);
+  });
+}
+
+function sortActive(btn) {
+  document.querySelectorAll('.lp-sort-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// ─── AI PANEL ───
+function openAI() {
+  document.getElementById('ai-panel').classList.add('open');
+  document.getElementById('backdrop').style.display = 'block';
+  document.querySelector('[data-s="ai"]')?.classList.add('active');
+}
+function closeAI() {
+  document.getElementById('ai-panel').classList.remove('open');
+  if (!document.getElementById('menu-drawer').classList.contains('open'))
+    document.getElementById('backdrop').style.display = 'none';
+  document.querySelector('[data-s="ai"]')?.classList.remove('active');
+}
+function sendMsg() {
+  const inp = document.getElementById('ai-input');
+  const txt = inp.value.trim(); if (!txt) return;
+  const msgs = document.getElementById('aip-msgs');
+  const row = document.createElement('div');
+  row.className = 'ai-row fade-up';
+  row.innerHTML = `<div class="bubble bubble-user">${esc(txt)}</div>`;
+  msgs.appendChild(row);
+  inp.value = '';
+  msgs.scrollTop = msgs.scrollHeight;
+  // Typing
+  const tr = document.createElement('div');
+  tr.className = 'ai-row';
+  tr.innerHTML = `<div class="ai-meta"><div class="ai-ava">H</div><span class="ai-name">habino</span></div><div class="bubble bubble-ai"><div class="typing"><div class="td"></div><div class="td"></div><div class="td"></div></div></div>`;
+  msgs.appendChild(tr);
+  msgs.scrollTop = msgs.scrollHeight;
+  setTimeout(() => {
+    tr.remove();
+    const ar = document.createElement('div');
+    ar.className = 'ai-row fade-up';
+    ar.innerHTML = `<div class="ai-meta"><div class="ai-ava">H</div><span class="ai-name">habino</span></div><div class="bubble bubble-ai">Ich suche passende Objekte… einen Moment.</div>`;
+    msgs.appendChild(ar);
+    msgs.scrollTop = msgs.scrollHeight;
+  }, 1400);
+}
+function sendChip(el) {
+  const msgs = document.getElementById('aip-msgs');
+  const row = document.createElement('div');
+  row.className = 'ai-row fade-up';
+  row.innerHTML = `<div class="bubble bubble-user">${esc(el.textContent.trim())}</div>`;
+  msgs.appendChild(row);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+function aiKey(e) { if (e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();} }
+function seKey(e) {
+  if (e.key==='Enter') {
+    const txt = document.getElementById('se-input').value.trim();
+    if (!txt) return;
+    openAI();
+    setTimeout(() => {
+      const inp = document.getElementById('ai-input');
+      inp.value = txt;
+      document.getElementById('se-input').value = '';
+      sendMsg();
+    }, 100);
+  }
+}
+
+// ─── MENU ───
+function openMenu() {
+  document.getElementById('menu-drawer').classList.add('open');
+  document.getElementById('backdrop').style.display = 'block';
+  document.querySelector('[data-s="menu"]')?.classList.add('active');
+}
+function closeMenu() {
+  document.getElementById('menu-drawer').classList.remove('open');
+  if (!document.getElementById('ai-panel').classList.contains('open'))
+    document.getElementById('backdrop').style.display = 'none';
+  document.querySelector('[data-s="menu"]')?.classList.remove('active');
+}
+
+// ─── PROPERTY DRAWER ───
+function openDrawer(p) {
+  document.getElementById('pd-img').textContent    = p.e;
+  document.getElementById('pd-price').textContent  = parseInt(p.price).toLocaleString('de-DE') + ' ETB';
+  document.getElementById('pd-name').textContent   = p.name;
+  document.getElementById('pd-loc').innerHTML      = `<svg width="12" height="12" fill="none" stroke="#94a3b8" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg> ${p.loc}`;
+  document.getElementById('pd-rooms').textContent  = p.rooms;
+  document.getElementById('pd-bath').textContent   = p.bath;
+  document.getElementById('pd-sqm').textContent    = p.sqm;
+  document.getElementById('pd-floor').textContent  = p.floor + '.';
+  document.getElementById('pd-year').textContent   = p.year;
+  document.getElementById('pd-desc').textContent   = p.desc;
+  const d = document.getElementById('prop-drawer');
+  d.style.display = 'flex';
+  requestAnimationFrame(()=>requestAnimationFrame(()=>d.classList.add('open')));
+}
+function closeDrawer() {
+  const d = document.getElementById('prop-drawer');
+  d.classList.remove('open');
+  setTimeout(()=>{ d.style.display='none'; }, 400);
+}
+
+// ─── MISC ───
+function closeAll() { closeMenu(); closeAI(); }
+function tChip(el) { el.classList.toggle('active'); }
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ─── INIT ───
+goTo('login');
+buildListings();
+document.addEventListener('keydown', e => { if(e.key==='Escape'){ closeAll(); closeDrawer(); } });
+</script>
+</body>
+</html>

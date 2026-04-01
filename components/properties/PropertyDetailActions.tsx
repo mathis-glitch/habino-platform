@@ -1,7 +1,6 @@
 "use client";
 
 import { useSavedListings } from "@/app/hooks/useSavedListings";
-import Link from "next/link";
 
 interface Props {
   propertyId: string;
@@ -28,16 +27,15 @@ export function SaveButton({ propertyId }: { propertyId: string }) {
   );
 }
 
-export function StickyContactBar({ agentPhone, agentEmail, propertyTitle, propertyId }: Props) {
+export function StickyContactBar({ agentPhone, agentEmail, propertyTitle }: Props) {
   const whatsappMsg = encodeURIComponent(`Hi, I'm interested in: ${propertyTitle}`);
   const whatsappNum = agentPhone?.replace(/\D/g, "");
 
   return (
     <div
       className="fixed bottom-[64px] md:bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-100 px-4 py-3 flex gap-2"
-      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      style={{ paddingBottom: "env(safe-area-inset-bottom)", maxWidth: 430, left: "50%", transform: "translateX(-50%)" }}
     >
-      {/* WhatsApp — primary CTA */}
       {whatsappNum && (
         <a
           href={`https://wa.me/${whatsappNum}?text=${whatsappMsg}`}
@@ -53,32 +51,31 @@ export function StickyContactBar({ agentPhone, agentEmail, propertyTitle, proper
         </a>
       )}
 
-      {/* Phone call */}
       {agentPhone && (
         <a
           href={`tel:${agentPhone}`}
-          className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors active:scale-[0.98]"
+          className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors active:scale-[0.98]"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
               d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
           </svg>
-          Call
+          Call agent
         </a>
       )}
 
-      {/* Viewing via chat */}
-      <Link
-        href={`/?q=${encodeURIComponent("I'd like to book a viewing for: " + propertyTitle)}`}
-        className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90 active:scale-[0.98]"
-        style={{ backgroundColor: "var(--color-primary)" }}
-      >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        </svg>
-        Book viewing
-      </Link>
+      {agentEmail && !agentPhone && (
+        <a
+          href={`mailto:${agentEmail}?subject=${encodeURIComponent("Property inquiry: " + propertyTitle)}`}
+          className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-white"
+          style={{ backgroundColor: "#2D6A4F" }}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+          Email agent
+        </a>
+      )}
     </div>
   );
 }

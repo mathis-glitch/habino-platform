@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { Property } from "@/lib/types";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function fmt(price: number, currency: string) {
@@ -28,7 +27,6 @@ function listingLabel(t: string) {
 
 // ── Detail Drawer ─────────────────────────────────────────────────────────────
 function DetailDrawer({ property: initialProperty, onClose }: { property: Property; onClose: () => void }) {
-  const router    = useRouter();
   const [imgIdx, setImgIdx]       = useState(0);
   const [property, setProperty]   = useState(initialProperty);
   const [uploading, setUploading] = useState(false);
@@ -54,11 +52,6 @@ function DetailDrawer({ property: initialProperty, onClose }: { property: Proper
     true                    && { label: "Type",        value: propTypeLabel(property.property_type) },
     property.area_sqm      && { label: "Price/m²",    value: pricePerSqm(property) },
   ].filter(Boolean) as { label: string; value: string }[];
-
-  function bookViewing() {
-    const q = encodeURIComponent(`I would like to book a viewing for "${property.title}" in ${property.city}`);
-    router.push(`/?q=${q}`);
-  }
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
@@ -309,21 +302,13 @@ function DetailDrawer({ property: initialProperty, onClose }: { property: Proper
           background: "var(--surface)", padding: "14px 16px",
           display: "flex", gap: 10,
         }}>
-          <button onClick={bookViewing} style={{
-            flex: 1, padding: "12px 0", borderRadius: 10, border: "none",
-            fontSize: 13, fontWeight: 600, color: "white", cursor: "pointer",
-            background: "var(--color-primary)",
-            boxShadow: "0 0 0 1px rgba(124,110,242,0.3), 0 4px 16px rgba(124,110,242,0.2)",
-          }}>
-            Book a viewing
-          </button>
           <Link href="/" style={{
-            display: "flex", alignItems: "center", justifyContent: "center",
-            padding: "12px 16px", borderRadius: 10,
-            border: "1px solid var(--border2)", background: "var(--surface2)",
-            fontSize: 13, fontWeight: 500, color: "var(--text-2)", textDecoration: "none",
+            flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
+            padding: "12px 16px", borderRadius: 10, border: "none",
+            fontSize: 13, fontWeight: 600, color: "white", cursor: "pointer",
+            background: "var(--color-primary)", textDecoration: "none",
           }}>
-            Ask AI
+            Ask Habib AI
           </Link>
         </div>
       </div>

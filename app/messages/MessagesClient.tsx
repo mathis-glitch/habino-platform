@@ -325,44 +325,6 @@ export default function MessagesClient() {
         </p>
       </div>
 
-      {/* Habib pinned AI conversation */}
-      <div style={{
-        margin: "14px 16px 0",
-        background: T.primaryL,
-        border: `1.5px solid rgba(45,106,79,0.2)`,
-        borderRadius: 16, padding: 14,
-        display: "flex", gap: 12, alignItems: "center",
-        cursor: "pointer",
-      }}>
-        <div style={{
-          width: 44, height: 44, borderRadius: 14, flexShrink: 0,
-          background: T.primary,
-          display: "flex", alignItems: "center", justifyContent: "center",
-        }}>
-          <svg width="20" height="20" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-          </svg>
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: T.primary }}>Habib — AI Assistant</div>
-          <div style={{ fontSize: 12, color: T.text2, marginTop: 2 }}>Ask me anything about properties in Addis Abeba</div>
-        </div>
-        <a href="/" style={{
-          padding: "7px 12px", borderRadius: 10,
-          background: T.primary, color: "#fff",
-          fontSize: 12, fontWeight: 700, textDecoration: "none", flexShrink: 0,
-          whiteSpace: "nowrap",
-        }}>
-          Chat
-        </a>
-      </div>
-
-      <div style={{ padding: "14px 18px 8px", borderBottom: `1px solid ${T.border}` }}>
-        <span style={{ fontSize: 11, fontWeight: 600, color: T.text3, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-          Agent conversations
-        </span>
-      </div>
-
       {/* Conversation list */}
       <div style={{ flex: 1, overflowY: "auto" }}>
         {loading ? (

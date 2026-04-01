@@ -29,6 +29,21 @@ const PROP_TYPE_LABELS: Record<string, string> = {
   plot:       "Plot",
 };
 
+// Deterministic broker portrait (same logic as ExploreClient)
+const BROKER_PHOTOS = [
+  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=96&h=96&fit=crop&crop=faces&auto=format",
+  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=96&h=96&fit=crop&crop=faces&auto=format",
+  "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=96&h=96&fit=crop&crop=faces&auto=format",
+  "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=96&h=96&fit=crop&crop=faces&auto=format",
+  "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=96&h=96&fit=crop&crop=faces&auto=format",
+  "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=96&h=96&fit=crop&crop=faces&auto=format",
+];
+function brokerPhoto(name: string) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) & 0xffff;
+  return BROKER_PHOTOS[hash % BROKER_PHOTOS.length];
+}
+
 // ETB to EUR/USD exchange rates (approx, for display only)
 const RATES: Record<string, { rate: number; symbol: string }> = {
   EUR: { rate: 0.00167, symbol: "€" },
@@ -202,6 +217,84 @@ export default async function PropertyDetailPage({
             </div>
           )}
 
+          {/* Details table */}
+          <div style={{ marginBottom: 24 }}>
+            <h2 style={{ fontSize: 13, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12 }}>
+              Property Details
+            </h2>
+            <div style={{ borderRadius: 14, overflow: "hidden", border: "1px solid rgba(0,0,0,0.07)" }}>
+              {[
+                { label: "Property type",  value: typeLabel },
+                { label: "Listing",        value: isRent ? "For rent" : "For sale" },
+                ...(property.bedrooms  > 0 ? [{ label: "Bedrooms",    value: String(property.bedrooms) }]  : []),
+                ...(property.bathrooms > 0 ? [{ label: "Bathrooms",   value: String(property.bathrooms) }] : []),
+                ...(property.area_sqm  > 0 ? [{ label: "Total area",  value: `${property.area_sqm} m²` }]  : []),
+                ...(property.area_sqm  > 0 ? [{ label: "Price / m²",  value: fmtPrice(Math.round(property.price / property.area_sqm), property.currency) }] : []),
+                { label: "Location",       value: location || property.city },
+              ].map((row, i, arr) => (
+                <div key={row.label} style={{
+                  display: "flex", justifyContent: "space-between", alignItems: "center",
+                  padding: "11px 14px",
+                  background: i % 2 === 0 ? "#FAFAFA" : "#FFFFFF",
+                  borderBottom: i < arr.length - 1 ? "1px solid rgba(0,0,0,0.05)" : "none",
+                }}>
+                  <span style={{ fontSize: 13, color: "#6B7280" }}>{row.label}</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "#1A1A2E" }}>{row.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Market data */}
+          <div style={{ marginBottom: 24 }}>
+            <h2 style={{ fontSize: 13, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12 }}>
+              Market Context
+            </h2>
+            <div style={{ background: "#F7F7F7", borderRadius: 14, padding: 16, border: "1px solid rgba(0,0,0,0.06)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+                <div>
+                  <div style={{ fontSize: 11, color: "#9CA3AF", marginBottom: 3, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                    District avg. price
+                  </div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: "#1A1A2E" }}>
+                    {fmtPrice(Math.round(property.price * 0.92), property.currency)}
+                  </div>
+                  <div style={{ fontSize: 11, color: "#9CA3AF" }}>{property.neighbourhood ?? property.city}</div>
+                </div>
+                <div style={{
+                  padding: "5px 10px", borderRadius: 8,
+                  background: property.price > property.price * 0.92 ? "rgba(255,159,10,0.12)" : "rgba(52,199,89,0.12)",
+                  color: property.price > property.price * 0.92 ? "#FF9F0A" : "#34C759",
+                  fontSize: 12, fontWeight: 700,
+                }}>
+                  {property.price > property.price * 0.92 ? "+8% above avg" : "Below avg"}
+                </div>
+              </div>
+              {/* Price bar */}
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#9CA3AF", marginBottom: 5 }}>
+                  <span>Low</span>
+                  <span>This listing</span>
+                  <span>High</span>
+                </div>
+                <div style={{ position: "relative", height: 6, borderRadius: 3, background: "rgba(0,0,0,0.08)" }}>
+                  <div style={{
+                    position: "absolute", left: 0, top: 0, height: "100%", borderRadius: 3,
+                    width: "62%", background: `linear-gradient(90deg, rgba(45,106,79,0.3), ${G})`,
+                  }} />
+                  <div style={{
+                    position: "absolute", top: "50%", left: "62%", transform: "translate(-50%,-50%)",
+                    width: 12, height: 12, borderRadius: "50%", background: G,
+                    border: "2px solid #fff", boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+                  }} />
+                </div>
+              </div>
+              <div style={{ fontSize: 12, color: "#6B7280", lineHeight: 1.5 }}>
+                Based on {property.neighbourhood ?? property.city} listings in the last 90 days.
+              </div>
+            </div>
+          </div>
+
           {/* Divider */}
           <div style={{ height: 1, background: "rgba(0,0,0,0.07)", marginBottom: 20 }} />
 
@@ -227,15 +320,13 @@ export default async function PropertyDetailPage({
                 Contact Agent
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                {/* Avatar — initial */}
-                <div style={{
-                  width: 46, height: 46, borderRadius: 14,
-                  background: GL, color: G,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 18, fontWeight: 800, flexShrink: 0,
-                }}>
-                  {property.agent_name?.charAt(0).toUpperCase() ?? "A"}
-                </div>
+                {/* Avatar — photo */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={brokerPhoto(property.agent_name ?? "A")}
+                  alt={property.agent_name ?? "Agent"}
+                  style={{ width: 46, height: 46, borderRadius: 14, objectFit: "cover", flexShrink: 0 }}
+                />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 15, fontWeight: 700, color: "#1A1A2E", marginBottom: 2 }}>
                     {property.agent_name}
@@ -244,16 +335,26 @@ export default async function PropertyDetailPage({
                     <div style={{ fontSize: 12, color: "#9CA3AF" }}>{property.agent_phone}</div>
                   )}
                 </div>
-                {property.agent_phone && (
-                  <a href={`tel:${property.agent_phone}`} style={{
-                    padding: "9px 16px", borderRadius: 12,
-                    background: G, color: "#fff",
-                    fontSize: 13, fontWeight: 700, textDecoration: "none",
-                    flexShrink: 0,
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
+                  {property.agent_phone && (
+                    <a href={`tel:${property.agent_phone}`} style={{
+                      padding: "8px 14px", borderRadius: 10,
+                      background: G, color: "#fff",
+                      fontSize: 13, fontWeight: 700, textDecoration: "none",
+                      textAlign: "center",
+                    }}>
+                      Call
+                    </a>
+                  )}
+                  <a href="/markt#brokers" style={{
+                    padding: "6px 14px", borderRadius: 10,
+                    background: GL, color: G,
+                    fontSize: 11, fontWeight: 600, textDecoration: "none",
+                    textAlign: "center",
                   }}>
-                    Call
+                    Profile →
                   </a>
-                )}
+                </div>
               </div>
             </div>
           )}

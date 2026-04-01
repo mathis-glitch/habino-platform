@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Habino — UI Design Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ── Design Tokens ──────────────────────────────────────────────────── */
+:root {
+  --green:        #2E7D46;
+  --green-dark:   #235f35;
+  --green-light:  #e8f5ed;
+  --green-mid:    #4a9b61;
+  --navy:         #0F1F3D;
+  --slate-900:    #0f172a;
+  --slate-700:    #334155;
+  --slate-500:    #64748b;
+  --slate-400:    #94a3b8;
+  --slate-200:    #e2e8f0;
+  --slate-100:    #f1f5f9;
+  --slate-50:     #f8fafc;
+  --white:        #ffffff;
+  --serif: 'Georgia', 'Times New Roman', serif;
+  --sans:  'Inter', -apple-system, sans-serif;
+  --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-xl: 20px; --r-2xl: 24px;
+  --sh-sm: 0 1px 3px rgba(0,0,0,0.08),0 1px 2px rgba(0,0,0,0.05);
+  --sh-md: 0 4px 12px rgba(0,0,0,0.08),0 2px 4px rgba(0,0,0,0.05);
+  --sh-lg: 0 10px 30px rgba(0,0,0,0.10),0 4px 8px rgba(0,0,0,0.06);
+  --sh-xl: 0 20px 50px rgba(0,0,0,0.12),0 8px 16px rgba(0,0,0,0.06);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--sans); background: #1a1a2e; color: var(--slate-700); }
+
+/* ── Screen Navigator ───────────────────────────────────────────────── */
+.nav-bar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+  background: rgba(15,15,30,0.95); backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  height: 52px; display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 0 16px;
+}
+.nav-pill {
+  display: flex; align-items: center; gap: 0;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 99px; overflow: hidden;
+}
+.nav-btn {
+  background: none; border: none; cursor: pointer; color: rgba(255,255,255,0.5);
+  padding: 6px 12px; font-size: 13px; font-weight: 600; font-family: var(--sans);
+  transition: all 0.15s; white-space: nowrap;
+}
+.nav-btn:hover { color: white; background: rgba(255,255,255,0.08); }
+.nav-btn.active { background: var(--green); color: white; }
+.nav-label { color: rgba(255,255,255,0.3); font-size: 11px; margin: 0 4px; }
+
+/* ── Screens ────────────────────────────────────────────────────────── */
+.screen { display: none; min-height: 100vh; padding-top: 52px; }
+.screen.active { display: block; }
+
+/* ════════════════════════════════════════════════════════════════════════
+   SCREEN 1 — LANDING PAGE
+════════════════════════════════════════════════════════════════════════ */
+.s1-header {
+  position: absolute; top: 52px; left: 0; right: 0; z-index: 10;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 40px;
+}
+.s1-logo { font-family: var(--serif); font-size: 24px; font-weight: 700; color: white; letter-spacing: -0.02em; }
+.s1-nav-links { display: flex; gap: 28px; }
+.s1-nav-links a { color: rgba(255,255,255,0.8); text-decoration: none; font-size: 14px; font-weight: 500; transition: color 0.15s; }
+.s1-nav-links a:hover { color: white; }
+.s1-cta-row { display: flex; gap: 10px; }
+.btn-outline-white {
+  padding: 8px 18px; border: 1.5px solid rgba(255,255,255,0.4); border-radius: 8px;
+  color: white; background: transparent; font-size: 13px; font-weight: 600; cursor: pointer;
+  font-family: var(--sans); transition: all 0.15s;
+}
+.btn-outline-white:hover { background: rgba(255,255,255,0.12); }
+.btn-green {
+  padding: 8px 18px; border: none; border-radius: 8px;
+  color: white; background: var(--green); font-size: 13px; font-weight: 600; cursor: pointer;
+  font-family: var(--sans); transition: opacity 0.15s;
+}
+.btn-green:hover { opacity: 0.9; }
+
+.s1-hero {
+  position: relative; height: 580px; overflow: hidden;
+  background: linear-gradient(135deg, #0a2e1a 0%, #1a4a2e 50%, #0f3d24 100%);
+  display: flex; align-items: center; justify-content: center; flex-direction: column;
+}
+.s1-hero::before {
+  content: ''; position: absolute; inset: 0;
+  background: url('https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=1600&q=70') center/cover;
+  opacity: 0.25;
+}
+.s1-hero-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.65) 100%);
+}
+.s1-hero-content { position: relative; z-index: 2; text-align: center; padding: 0 20px; max-width: 760px; }
+.s1-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(46,125,70,0.3); border: 1px solid rgba(46,125,70,0.5);
+  border-radius: 99px; padding: 5px 14px; margin-bottom: 20px;
+  color: #86efac; font-size: 12px; font-weight: 600; letter-spacing: 0.03em;
+}
+.s1-hero h1 {
+  font-family: var(--serif); font-size: 54px; font-weight: 700; color: white;
+  line-height: 1.15; letter-spacing: -0.02em; margin-bottom: 16px;
+}
+.s1-hero h1 span { color: #86efac; }
+.s1-hero p { font-size: 17px; color: rgba(255,255,255,0.72); margin-bottom: 36px; line-height: 1.6; }
+
+/* Search bar */
+.search-bar {
+  background: white; border-radius: 16px; padding: 6px 6px 6px 20px;
+  display: flex; align-items: center; gap: 8px;
+  box-shadow: var(--sh-xl); max-width: 700px; width: 100%;
+}
+.search-bar-inner { flex: 1; display: flex; gap: 0; }
+.search-segment { flex: 1; display: flex; flex-direction: column; padding: 6px 16px; border-right: 1px solid var(--slate-200); }
+.search-segment:last-child { border-right: none; }
+.search-segment label { font-size: 10px; font-weight: 700; color: var(--slate-400); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px; }
+.search-segment input, .search-segment select {
+  border: none; outline: none; font-size: 14px; font-weight: 500; color: var(--slate-900);
+  background: transparent; font-family: var(--sans); width: 100%;
+}
+.search-segment select option { color: var(--slate-900); }
+.search-btn {
+  background: var(--green); border: none; border-radius: 12px;
+  width: 52px; height: 52px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0; transition: opacity 0.15s;
+}
+.search-btn:hover { opacity: 0.9; }
+.search-btn svg { color: white; }
+
+/* Stats row */
+.s1-stats {
+  display: flex; justify-content: center; gap: 48px; padding: 28px 40px;
+  background: var(--white); border-bottom: 1px solid var(--slate-100);
+}
+.stat-item { text-align: center; }
+.stat-item .num {
+  font-family: var(--serif); font-size: 28px; font-weight: 700; color: var(--slate-900); display: block;
+}
+.stat-item .lbl { font-size: 12px; color: var(--slate-400); font-weight: 500; margin-top: 2px; }
+
+/* Featured */
+.s1-featured { padding: 40px 40px; background: var(--slate-50); }
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+.section-title { font-family: var(--serif); font-size: 26px; font-weight: 700; color: var(--slate-900); letter-spacing: -0.02em; }
+.see-all { font-size: 13px; color: var(--green); font-weight: 600; text-decoration: none; cursor: pointer; }
+.cards-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.prop-card {
+  background: white; border-radius: var(--r-xl); overflow: hidden;
+  border: 1px solid var(--slate-100); box-shadow: var(--sh-sm);
+  transition: transform 0.2s, box-shadow 0.2s; cursor: pointer;
+}
+.prop-card:hover { transform: translateY(-3px); box-shadow: var(--sh-lg); }
+.prop-card-img { position: relative; height: 190px; overflow: hidden; }
+.prop-card-img img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s; }
+.prop-card:hover .prop-card-img img { transform: scale(1.05); }
+.badge-rent { position: absolute; top: 12px; left: 12px; background: var(--green); color: white; padding: 4px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; }
+.badge-buy  { position: absolute; top: 12px; left: 12px; background: #3b82f6; color: white; padding: 4px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; }
+.badge-verified { position: absolute; top: 12px; right: 12px; background: rgba(0,0,0,0.45); backdrop-filter: blur(4px); color: white; padding: 3px 8px; border-radius: 99px; font-size: 10px; font-weight: 700; display: flex; align-items: center; gap: 4px; }
+.save-btn { position: absolute; bottom: 10px; right: 10px; width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.9); backdrop-filter: blur(4px); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.prop-card-body { padding: 14px 16px; }
+.prop-price { font-family: var(--serif); font-size: 20px; font-weight: 700; color: var(--slate-900); }
+.prop-price .per-mo { font-size: 12px; font-weight: 400; color: var(--slate-400); margin-left: 3px; font-family: var(--sans); }
+.prop-title { font-size: 13px; color: var(--slate-600); margin: 4px 0; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.prop-loc { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--slate-400); margin-bottom: 10px; }
+.prop-specs { display: flex; gap: 12px; padding-top: 10px; border-top: 1px solid var(--slate-100); }
+.spec { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--slate-500); }
+.spec svg { color: var(--slate-400); }
+
+/* Footer strip */
+.s1-footer-strip {
+  background: var(--navy); color: rgba(255,255,255,0.6);
+  padding: 20px 40px; font-size: 12px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.s1-footer-strip .logo { font-family: var(--serif); font-size: 18px; color: white; font-weight: 700; }
+
+/* ════════════════════════════════════════════════════════════════════════
+   SCREEN 2 — MAP VIEW
+════════════════════════════════════════════════════════════════════════ */
+.s2-wrap { display: flex; height: calc(100vh - 52px); overflow: hidden; }
+.s2-sidebar {
+  width: 360px; flex-shrink: 0; background: white; border-right: 1px solid var(--slate-100);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.s2-topbar {
+  padding: 14px 16px; border-bottom: 1px solid var(--slate-100);
+  display: flex; align-items: center; gap: 8px;
+}
+.s2-logo { font-family: var(--serif); font-size: 20px; font-weight: 700; color: var(--slate-900); letter-spacing: -0.02em; flex-shrink: 0; }
+.s2-search {
+  flex: 1; display: flex; align-items: center; gap: 8px;
+  background: var(--slate-50); border: 1.5px solid var(--slate-200); border-radius: 10px;
+  padding: 8px 12px;
+}
+.s2-search input { border: none; outline: none; background: transparent; font-size: 13px; width: 100%; font-family: var(--sans); color: var(--slate-700); }
+.s2-filter-bar {
+  padding: 10px 14px; border-bottom: 1px solid var(--slate-100);
+  display: flex; gap: 6px; overflow-x: auto;
+}
+.s2-filter-bar::-webkit-scrollbar { display: none; }
+.filter-chip {
+  flex-shrink: 0; padding: 6px 14px; border-radius: 99px; font-size: 12px; font-weight: 600;
+  border: 1.5px solid var(--slate-200); background: white; color: var(--slate-600);
+  cursor: pointer; transition: all 0.15s; white-space: nowrap;
+}
+.filter-chip.active { background: var(--green-light); border-color: var(--green); color: var(--green); }
+.s2-listings { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.s2-listings::-webkit-scrollbar { width: 4px; }
+.s2-listings::-webkit-scrollbar-thumb { background: var(--slate-200); border-radius: 99px; }
+
+.list-card {
+  background: white; border: 1.5px solid var(--slate-100); border-radius: var(--r-lg);
+  padding: 12px; display: flex; gap: 12px; cursor: pointer; transition: all 0.15s;
+}
+.list-card:hover { border-color: var(--green); box-shadow: var(--sh-md); }
+.list-card.selected { border-color: var(--green); background: var(--green-light); }
+.list-card-img {
+  width: 82px; height: 72px; border-radius: 10px; overflow: hidden; flex-shrink: 0;
+  background: var(--slate-100);
+}
+.list-card-img img { width: 100%; height: 100%; object-fit: cover; }
+.list-card-body { flex: 1; min-width: 0; }
+.list-card-price { font-family: var(--serif); font-size: 16px; font-weight: 700; color: var(--slate-900); }
+.list-card-title { font-size: 12px; color: var(--slate-600); margin: 3px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.list-card-loc { font-size: 11px; color: var(--slate-400); display: flex; align-items: center; gap: 3px; }
+.list-card-specs { display: flex; gap: 10px; margin-top: 6px; }
+.list-card-spec { font-size: 11px; color: var(--slate-500); display: flex; align-items: center; gap: 3px; }
+.badge-sm { padding: 2px 7px; border-radius: 99px; font-size: 10px; font-weight: 700; }
+.badge-sm.rent { background: var(--green-light); color: var(--green); }
+.badge-sm.buy  { background: #eff6ff; color: #3b82f6; }
+
+/* Map area */
+.s2-map {
+  flex: 1; position: relative; overflow: hidden;
+  background: linear-gradient(135deg, #d4e8d0 0%, #c8e0c2 30%, #d0e6ca 60%, #c5dcc0 100%);
+}
+/* Faux map grid */
+.map-grid {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+.map-roads {
+  position: absolute; inset: 0;
+  background: linear-gradient(
+    rgba(255,255,255,0.6) 0%, transparent 0%,
+    transparent 49%, rgba(255,255,255,0.6) 49%,
+    rgba(255,255,255,0.6) 51%, transparent 51%
+  );
+  background-size: 100% 160px;
+}
+.map-roads-v {
+  position: absolute; inset: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.4) 0%, transparent 0%,
+    transparent 33%, rgba(255,255,255,0.6) 33%,
+    rgba(255,255,255,0.6) 34%, transparent 34%,
+    transparent 66%, rgba(255,255,255,0.4) 66%,
+    rgba(255,255,255,0.4) 67%, transparent 67%
+  );
+}
+.map-label {
+  position: absolute; font-size: 11px; font-weight: 700; color: rgba(0,0,0,0.35);
+  letter-spacing: 0.04em; text-transform: uppercase; pointer-events: none;
+}
+/* Map pins */
+.map-pin {
+  position: absolute; transform: translate(-50%, -50%);
+  background: var(--green); color: white; border: 2px solid white;
+  border-radius: 99px; padding: 4px 9px; font-size: 11px; font-weight: 700;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2); cursor: pointer; white-space: nowrap;
+  transition: all 0.15s;
+}
+.map-pin:hover { transform: translate(-50%, -50%) scale(1.1); z-index: 10; }
+.map-pin.selected { background: var(--slate-900); transform: translate(-50%, -50%) scale(1.15); z-index: 10; }
+.map-pin.blue { background: #3b82f6; }
+.map-pin.dot {
+  width: 12px; height: 12px; padding: 0; border-radius: 50%;
+  background: var(--green); border: 2px solid white;
+}
+.map-controls {
+  position: absolute; right: 16px; top: 16px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.map-ctrl-btn {
+  width: 36px; height: 36px; background: white; border: none; border-radius: 10px;
+  box-shadow: var(--sh-md); cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 700; color: var(--slate-700); transition: all 0.15s;
+}
+.map-ctrl-btn:hover { box-shadow: var(--sh-lg); }
+.map-currency {
+  position: absolute; right: 60px; top: 16px;
+  display: flex; align-items: center; gap: 5px;
+  background: white; border: 1px solid var(--slate-200); border-radius: 99px;
+  padding: 6px 12px; box-shadow: var(--sh-sm); cursor: pointer; font-size: 13px; font-weight: 700;
+}
+.map-ai-btn {
+  position: absolute; left: 16px; bottom: 24px;
+  background: var(--navy); color: white;
+  border: none; border-radius: 14px; padding: 10px 18px;
+  display: flex; align-items: center; gap: 8px; cursor: pointer;
+  box-shadow: var(--sh-lg); font-size: 13px; font-weight: 700; font-family: var(--sans);
+}
+.ai-dot { width: 8px; height: 8px; border-radius: 50%; background: #86efac; animation: pulse 2s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.map-zoom { position: absolute; right: 16px; bottom: 80px; display: flex; flex-direction: column; gap: 1px; }
+.zoom-btn { width: 36px; height: 36px; background: white; border: none; font-size: 18px; font-weight: 700; color: var(--slate-700); cursor: pointer; box-shadow: var(--sh-sm); display: flex; align-items: center; justify-content: center; }
+.zoom-btn:first-child { border-radius: 8px 8px 0 0; }
+.zoom-btn:last-child { border-radius: 0 0 8px 8px; }
+
+/* ════════════════════════════════════════════════════════════════════════
+   SCREEN 3 — PROPERTY DETAIL
+════════════════════════════════════════════════════════════════════════ */
+.s3-wrap { display: flex; height: calc(100vh - 52px); overflow: hidden; }
+.s3-map { flex: 1; position: relative; overflow: hidden; background: linear-gradient(135deg, #d4e8d0, #c8e0c2, #d0e6ca); filter: brightness(0.85); }
+.s3-panel {
+  width: 400px; flex-shrink: 0; background: white; overflow: hidden;
+  display: flex; flex-direction: column; box-shadow: var(--sh-xl);
+  border-left: 1px solid var(--slate-100);
+}
+.s3-panel-topbar {
+  display: flex; align-items: center; gap: 10px; padding: 12px 14px;
+  border-bottom: 1px solid var(--slate-100); flex-shrink: 0;
+}
+.back-btn {
+  width: 34px; height: 34px; border-radius: 50%; background: var(--slate-100); border: none;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.s3-panel-title { flex: 1; font-size: 13px; font-weight: 600; color: var(--slate-900); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.s3-panel-scroll { flex: 1; overflow-y: auto; }
+.s3-panel-scroll::-webkit-scrollbar { width: 4px; }
+.s3-panel-scroll::-webkit-scrollbar-thumb { background: var(--slate-200); border-radius: 99px; }
+.photo-carousel { position: relative; aspect-ratio: 16/9; overflow: hidden; background: var(--slate-100); }
+.photo-carousel img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.photo-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 50%); pointer-events: none; }
+.photo-price {
+  position: absolute; bottom: 12px; left: 14px;
+  font-family: var(--serif); font-size: 26px; font-weight: 800; color: white;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.4); line-height: 1;
+}
+.photo-price .per-mo { font-size: 13px; font-weight: 500; margin-left: 4px; opacity: 0.85; font-family: var(--sans); }
+.photo-type-badge {
+  position: absolute; bottom: 14px; right: 14px;
+  background: rgba(255,255,255,0.2); backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,255,255,0.3); border-radius: 99px;
+  padding: 4px 10px; font-size: 10px; font-weight: 700; color: white; letter-spacing: 0.05em;
+}
+.photo-dots { position: absolute; bottom: 46px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; }
+.photo-dot { width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,0.4); border: none; cursor: pointer; }
+.photo-dot.active { background: white; }
+.panel-body { padding: 16px 14px 0; }
+.panel-loc { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--slate-500); margin-bottom: 12px; }
+.panel-specs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.panel-spec {
+  display: flex; align-items: center; gap: 5px;
+  background: var(--slate-50); border: 1px solid var(--slate-200); border-radius: 10px;
+  padding: 6px 10px; font-size: 12px;
+}
+.panel-spec .val { font-weight: 700; color: var(--slate-900); }
+.panel-spec .unit { color: var(--slate-400); font-size: 11px; }
+.section-lbl { font-size: 10px; font-weight: 700; color: var(--slate-400); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 8px; }
+.details-table { border: 1px solid var(--slate-200); border-radius: 12px; overflow: hidden; margin-bottom: 14px; }
+.detail-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; border-bottom: 1px solid var(--slate-100); }
+.detail-row:last-child { border-bottom: none; }
+.detail-row:nth-child(odd) { background: var(--slate-50); }
+.detail-lbl { font-size: 12px; color: var(--slate-400); font-weight: 500; }
+.detail-val { font-size: 12px; color: var(--slate-900); font-weight: 600; }
+.feature-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.feature-tag {
+  font-size: 11px; font-weight: 600; color: var(--slate-600);
+  background: var(--slate-100); border: 1px solid var(--slate-200);
+  border-radius: 20px; padding: 4px 10px;
+}
+.market-card {
+  margin-bottom: 14px; padding: 12px 14px; border-radius: 14px;
+  border: 1px solid #bbf7d0; background: #f0fdf4;
+}
+.market-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.market-label { font-size: 12px; font-weight: 700; color: #16a34a; display: flex; align-items: center; gap: 5px; }
+.market-pct { font-size: 13px; font-weight: 700; color: #16a34a; }
+.market-bar { height: 5px; background: var(--slate-200); border-radius: 99px; overflow: hidden; position: relative; }
+.market-fill { height: 100%; background: #16a34a; border-radius: 99px; width: 38%; }
+.market-mid { position: absolute; top: 0; left: 50%; width: 2px; height: 100%; background: rgba(0,0,0,0.15); }
+.agent-card {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; border: 1px solid var(--slate-200); border-radius: 14px;
+  background: #fafafa; margin-bottom: 14px;
+}
+.agent-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid white; box-shadow: var(--sh-sm); flex-shrink: 0; }
+.agent-name { font-size: 13px; font-weight: 700; color: var(--slate-900); }
+.agent-role { font-size: 10px; color: var(--slate-400); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+.verified-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;
+  border-radius: 99px; padding: 2px 7px; font-size: 10px; font-weight: 700;
+}
+.panel-ctas { padding: 0 14px 20px; display: flex; flex-direction: column; gap: 8px; }
+.cta-primary {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 14px; border-radius: 14px; background: var(--green);
+  color: white; font-size: 14px; font-weight: 700; text-decoration: none;
+  box-shadow: 0 2px 10px rgba(46,125,70,0.25); border: none; cursor: pointer; font-family: var(--sans);
+}
+.cta-secondary-row { display: flex; gap: 8px; }
+.cta-wa {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 12px; border-radius: 14px; background: #25D366; color: white;
+  font-size: 13px; font-weight: 600; border: none; cursor: pointer; font-family: var(--sans);
+}
+.cta-tour {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 12px; border-radius: 14px; background: white; color: var(--slate-900);
+  font-size: 13px; font-weight: 600; border: 1.5px solid var(--slate-200); cursor: pointer; font-family: var(--sans);
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   SCREEN 4 — LOGIN
+════════════════════════════════════════════════════════════════════════ */
+.s4-wrap { display: flex; min-height: calc(100vh - 52px); }
+.s4-photo { width: 46%; position: relative; overflow: hidden; flex-shrink: 0; }
+.s4-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.s4-photo-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.4) 0%, transparent 60%);
+}
+.s4-photo-quote {
+  position: absolute; bottom: 32px; left: 28px; right: 28px;
+  font-size: 14px; color: rgba(255,255,255,0.9); font-style: italic; line-height: 1.6; font-weight: 500;
+}
+.s4-form-panel { flex: 1; background: white; display: flex; flex-direction: column; padding: 28px 40px; }
+.s4-logo { font-family: var(--serif); font-size: 22px; font-weight: 700; color: var(--slate-900); letter-spacing: -0.02em; }
+.s4-form-center { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.s4-form-wrap { width: 100%; max-width: 380px; }
+.s4-heading { font-family: var(--serif); font-size: 30px; font-weight: 700; color: var(--slate-900); letter-spacing: -0.02em; margin-bottom: 6px; }
+.s4-sub { font-size: 14px; color: var(--slate-400); margin-bottom: 28px; line-height: 1.6; }
+.form-group { margin-bottom: 14px; }
+.form-group label { display: block; font-size: 13px; font-weight: 500; color: #374151; margin-bottom: 5px; }
+.form-group .label-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+.form-group .forgot { font-size: 12px; color: var(--green); font-weight: 500; text-decoration: none; }
+.form-input {
+  width: 100%; padding: 11px 14px; border: 1px solid #d1d5db; border-radius: 6px;
+  font-size: 14px; color: var(--slate-900); outline: none; background: white; font-family: var(--sans);
+  transition: border-color 0.15s;
+}
+.form-input:focus { border-color: var(--green); }
+.form-input-wrap { position: relative; }
+.pw-toggle {
+  position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; cursor: pointer; color: var(--slate-400);
+  display: flex; align-items: center;
+}
+.form-btn {
+  width: 100%; padding: 13px; background: var(--green); border: none; border-radius: 6px;
+  color: white; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 6px;
+  font-family: var(--sans); letter-spacing: 0.01em; transition: opacity 0.15s;
+}
+.form-btn:hover { opacity: 0.9; }
+.form-divider { display: flex; align-items: center; gap: 12px; margin: 18px 0; }
+.form-divider-line { flex: 1; height: 1px; background: #e5e7eb; }
+.form-divider-text { font-size: 12px; color: var(--slate-400); font-weight: 500; }
+.form-footer { font-size: 13px; color: var(--slate-400); text-align: center; }
+.form-footer a { color: var(--green); font-weight: 600; text-decoration: none; }
+.form-error {
+  display: flex; gap: 8px; align-items: flex-start;
+  background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px;
+  padding: 10px 14px; font-size: 13px; color: #b91c1c; margin-bottom: 14px;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   SCREEN 5 — MARKET PAGE
+════════════════════════════════════════════════════════════════════════ */
+.s5-wrap { background: var(--slate-50); min-height: calc(100vh - 52px); }
+.s5-header {
+  background: white; border-bottom: 1px solid var(--slate-100);
+  padding: 16px 32px; display: flex; align-items: center; justify-content: space-between;
+}
+.s5-logo { font-family: var(--serif); font-size: 20px; font-weight: 700; color: var(--slate-900); }
+.s5-header-nav { display: flex; gap: 4px; }
+.s5-nav-item {
+  padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 600;
+  cursor: pointer; color: var(--slate-500); background: transparent; border: none; font-family: var(--sans);
+}
+.s5-nav-item.active { background: var(--green-light); color: var(--green); }
+.s5-body { padding: 24px 32px; }
+.s5-page-title { font-family: var(--serif); font-size: 28px; font-weight: 700; color: var(--slate-900); margin-bottom: 4px; }
+.s5-page-sub { font-size: 14px; color: var(--slate-500); margin-bottom: 24px; }
+.s5-selectors { display: flex; gap: 10px; margin-bottom: 24px; }
+.s5-select {
+  padding: 8px 14px; border: 1.5px solid var(--slate-200); border-radius: 10px;
+  font-size: 13px; font-weight: 600; color: var(--slate-700); background: white;
+  cursor: pointer; font-family: var(--sans);
+}
+.s5-select.active { border-color: var(--green); color: var(--green); background: var(--green-light); }
+/* Stat cards */
+.s5-stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+.s5-stat-card {
+  background: white; border: 1px solid var(--slate-100); border-radius: var(--r-lg);
+  padding: 18px 20px; box-shadow: var(--sh-sm);
+}
+.s5-stat-label { font-size: 11px; font-weight: 700; color: var(--slate-400); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+.s5-stat-value { font-family: var(--serif); font-size: 24px; font-weight: 700; color: var(--slate-900); margin-bottom: 6px; }
+.s5-stat-trend { display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; }
+.trend-up { color: #16a34a; }
+.trend-down { color: #dc2626; }
+.trend-arrow-up::before { content: '↑'; margin-right: 2px; }
+.trend-arrow-down::before { content: '↓'; margin-right: 2px; }
+/* Charts row */
+.s5-charts-row { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 24px; }
+.chart-card {
+  background: white; border: 1px solid var(--slate-100); border-radius: var(--r-lg);
+  padding: 20px; box-shadow: var(--sh-sm);
+}
+.chart-title { font-size: 14px; font-weight: 700; color: var(--slate-900); margin-bottom: 4px; }
+.chart-sub { font-size: 12px; color: var(--slate-400); margin-bottom: 18px; }
+/* Faux line chart */
+.faux-chart { width: 100%; height: 140px; position: relative; }
+.faux-chart svg { width: 100%; height: 100%; }
+/* District bars */
+.district-bars { display: flex; flex-direction: column; gap: 10px; }
+.district-row { display: flex; align-items: center; gap: 10px; }
+.district-name { font-size: 12px; color: var(--slate-600); font-weight: 500; width: 72px; flex-shrink: 0; }
+.district-bar-wrap { flex: 1; height: 8px; background: var(--slate-100); border-radius: 99px; overflow: hidden; }
+.district-bar { height: 100%; border-radius: 99px; background: var(--green); }
+.district-val { font-size: 11px; font-weight: 700; color: var(--slate-700); width: 64px; text-align: right; flex-shrink: 0; }
+/* Micro factors */
+.s5-micro-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.micro-card {
+  background: white; border: 1px solid var(--slate-100); border-radius: var(--r-lg);
+  padding: 18px; box-shadow: var(--sh-sm);
+}
+.micro-title { font-size: 14px; font-weight: 700; color: var(--slate-900); margin-bottom: 16px; }
+.micro-factor { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.micro-factor:last-child { margin-bottom: 0; }
+.micro-icon { font-size: 16px; width: 24px; text-align: center; flex-shrink: 0; }
+.micro-label { font-size: 12px; color: var(--slate-600); flex: 1; }
+.micro-bar-wrap { width: 80px; height: 6px; background: var(--slate-100); border-radius: 99px; overflow: hidden; }
+.micro-bar { height: 100%; border-radius: 99px; background: var(--green); }
+.micro-score { font-size: 11px; font-weight: 700; color: var(--slate-700); width: 28px; text-align: right; }
+
+/* ── Shared helpers ─────────────────────────────────────────────────── */
+.tag-green { display: inline-flex; align-items: center; gap: 3px; background: var(--green-light); color: var(--green); border-radius: 99px; padding: 2px 8px; font-size: 10px; font-weight: 700; }
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.flex { display: flex; }
+.items-center { align-items: center; }
+.gap-6 { gap: 6px; }
+.mt-8 { margin-top: 8px; }
+
+/* Screen transition */
+.screen { animation: fadeIn 0.2s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+</style>
+</head>
+<body>
+
+<!-- ── Navigation Bar ─────────────────────────────────────────────── -->
+<div class="nav-bar">
+  <span style="color:rgba(255,255,255,0.4);font-size:11px;font-weight:600;margin-right:4px;">HABINO DESIGN</span>
+  <div class="nav-pill">
+    <button class="nav-btn active" onclick="show(1)">1 · Landing</button>
+    <button class="nav-btn" onclick="show(2)">2 · Map</button>
+    <button class="nav-btn" onclick="show(3)">3 · Detail</button>
+    <button class="nav-btn" onclick="show(4)">4 · Login</button>
+    <button class="nav-btn" onclick="show(5)">5 · Market</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     SCREEN 1 — LANDING PAGE
+══════════════════════════════════════════════════════════════════════ -->
+<div class="screen active" id="s1">
+  <!-- Header -->
+  <div class="s1-header">
+    <div class="s1-logo">habino</div>
+    <div class="s1-nav-links">
+      <a href="#">Search</a>
+      <a href="#">Market</a>
+      <a href="#">Agents</a>
+      <a href="#">About</a>
+    </div>
+    <div class="s1-cta-row">
+      <button class="btn-outline-white" onclick="show(4)">Sign in</button>
+      <button class="btn-green" onclick="show(4)">List property</button>
+    </div>
+  </div>
+  <!-- Hero -->
+  <div class="s1-hero">
+    <div class="s1-hero-overlay"></div>
+    <div class="s1-hero-content">
+      <div class="s1-badge">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="8"/></svg>
+        AI-Powered · Addis Ababa &amp; Ethiopia
+      </div>
+      <h1>Find your <span>perfect space</span><br>in Ethiopia</h1>
+      <p>Discover apartments, villas, offices and land across Addis Ababa and major Ethiopian cities — with real-time market data and AI assistance.</p>
+      <!-- Search bar -->
+      <div class="search-bar" style="margin:0 auto;">
+        <div class="search-bar-inner">
+          <div class="search-segment">
+            <label>Location</label>
+            <input value="Addis Ababa, Bole" readonly>
+          </div>
+          <div class="search-segment">
+            <label>Type</label>
+            <select><option>Apartment</option><option>House</option><option>Villa</option><option>Office</option></select>
+          </div>
+          <div class="search-segment">
+            <label>Deal</label>
+            <select><option>For Rent</option><option>For Sale</option></select>
+          </div>
+        </div>
+        <button class="search-btn" onclick="show(2)">
+          <svg width="20" height="20" fill="none" stroke="white" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="s1-stats">
+    <div class="stat-item"><span class="num">2,400+</span><div class="lbl">Active Listings</div></div>
+    <div class="stat-item"><span class="num">18</span><div class="lbl">Districts covered</div></div>
+    <div class="stat-item"><span class="num">340+</span><div class="lbl">Verified Agents</div></div>
+    <div class="stat-item"><span class="num">ETB 28K</span><div class="lbl">Avg. price/m² Addis</div></div>
+  </div>
+
+  <!-- Featured Listings -->
+  <div class="s1-featured">
+    <div class="section-header">
+      <div class="section-title">Featured in Addis Ababa</div>
+      <a class="see-all" onclick="show(2)">View on map →</a>
+    </div>
+    <div class="cards-grid">
+      <!-- Card 1 -->
+      <div class="prop-card" onclick="show(3)">
+        <div class="prop-card-img">
+          <img src="https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=600&q=70" alt="">
+          <span class="badge-rent">Rent</span>
+          <span class="badge-verified">✓ Verified</span>
+          <button class="save-btn"><svg width="14" height="14" fill="none" stroke="#94a3b8" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg></button>
+        </div>
+        <div class="prop-card-body">
+          <div class="prop-price">ETB 48K <span class="per-mo">/mo</span></div>
+          <div class="prop-title">3-bed apartment in Bole</div>
+          <div class="prop-loc">
+            <svg width="10" height="10" fill="none" stroke="#94a3b8" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            Bole, Addis Ababa
+          </div>
+          <div class="prop-specs">
+            <div class="spec"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M3 10V7a1 1 0 011-1h16a1 1 0 011 1v3M3 10v7a1 1 0 001 1h16a1 1 0 001-1v-7"/></svg> 3 bd</div>
+            <div class="spec">2 ba</div>
+            <div class="spec">115 m²</div>
+          </div>
+        </div>
+      </div>
+      <!-- Card 2 -->
+      <div class="prop-card" onclick="show(3)">
+        <div class="prop-card-img">
+          <img src="https://images.unsplash.com/photo-1613977257363-707ba9348227?w=600&q=70" alt="">
+          <span class="badge-buy">Buy</span>
+          <button class="save-btn"><svg width="14" height="14" fill="#ef4444" stroke="#ef4444" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg></button>
+        </div>
+        <div class="prop-card-body">
+          <div class="prop-price">ETB 32M</div>
+          <div class="prop-title">Luxury villa for sale in Bole</div>
+          <div class="prop-loc">
+            <svg width="10" height="10" fill="none" stroke="#94a3b8" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            Bole, Addis Ababa
+          </div>
+          <div class="prop-specs">
+            <div class="spec"><svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M3 10V7a1 1 0 011-1h16a1 1 0 011 1v3M3 10v7a1 1 0 001 1h16a1 1 0 001-1v-7"/></svg> 5 bd</div>
+            <div class="spec">4 ba</div>
+            <div class="spec">620 m²</div>
+          </div>
+        </div>
+      </div>
+      <!-- Card 3 -->
+      <div class="prop-card" onclick="show(3)">
+        <div class="prop-card-img">
+          <img src="https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=600&q=70" alt="">
+          <span class="badge-rent">Rent</span>
+          <span class="badge-verified">✓ Verified</span>
+          <button class="save-btn"><svg width="14" height="14" fill="none" stroke="#94a3b8" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg></button>
+        </div>
+        <div class="prop-card-body">
+          <div class="prop-price">ETB 92K <span class="per-mo">/mo</span></div>
+          <div class="prop-title">Office space in Kazanchis</div>
+          <div class="prop-loc">
+            <svg width="10" height="10" fill="none" stroke="#94a3b8" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            Kazanchis, Addis Ababa
+          </div>
+          <div class="prop-specs">
+            <div class="spec">280 m²</div>
+            <div class="spec" style="margin-left:auto;"><span class="tag-green">Commercial</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CTA Banner -->
+    <div style="margin-top:32px;background:linear-gradient(135deg,#0F1F3D 0%,#1a3054 100%);border-radius:20px;padding:32px 40px;display:flex;align-items:center;justify-content:space-between;gap:24px;">
+      <div>
+        <div style="font-family:var(--serif);font-size:22px;font-weight:700;color:white;margin-bottom:8px;">Let AI find your perfect property</div>
+        <div style="font-size:14px;color:rgba(255,255,255,0.65);line-height:1.6;">Describe what you're looking for and our AI agent searches across all listings in seconds.</div>
+      </div>
+      <button onclick="show(2)" style="flex-shrink:0;padding:12px 24px;background:var(--green);border:none;border-radius:12px;color:white;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--sans);white-space:nowrap;box-shadow:0 2px 12px rgba(46,125,70,0.35);">Try AI Search →</button>
+    </div>
+  </div>
+
+  <!-- Footer strip -->
+  <div class="s1-footer-strip">
+    <div class="logo">habino</div>
+    <div>© 2025 Habino · Ethiopia · AI Property Platform</div>
+    <div style="display:flex;gap:20px;">
+      <a href="#" style="color:rgba(255,255,255,0.5);text-decoration:none;">Privacy</a>
+      <a href="#" style="color:rgba(255,255,255,0.5);text-decoration:none;">Terms</a>
+      <a href="#" style="color:rgba(255,255,255,0.5);text-decoration:none;">Help</a>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     SCREEN 2 — MAP VIEW
+══════════════════════════════════════════════════════════════════════ -->
+<div class="screen" id="s2">
+  <div class="s2-wrap">
+    <!-- Sidebar -->
+    <div class="s2-sidebar">
+      <!-- Top bar -->
+      <div class="s2-topbar">
+        <div class="s2-logo">habino</div>
+        <div class="s2-search">
+          <svg width="14" height="14" fill="none" stroke="#94a3b8" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35"/></svg>
+          <input placeholder="Search neighbourhood…">
+        </div>
+        <div style="width:34px;height:34px;border-radius:50%;background:var(--green-light);display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;">
+          <svg width="16" height="16" fill="none" stroke="var(--green)" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+      </div>
+      <!-- Filter chips -->
+      <div class="s2-filter-bar">
+        <div class="filter-chip active">All types</div>
+        <div class="filter-chip">Apartment</div>
+        <div class="filter-chip">House</div>
+        <div class="filter-chip">Villa</div>
+        <div class="filter-chip">Office</div>
+        <div class="filter-chip active">For Rent</div>
+        <div class="filter-chip">For Sale</div>
+      </div>
+      <!-- Listings -->
+      <div style="padding:8px 14px 4px;display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:12px;font-weight:600;color:var(--slate-500);">300 listings found</span>
+        <span style="font-size:11px;color:var(--green);font-weight:600;cursor:pointer;">Sort ↕</span>
+      </div>
+      <div class="s2-listings">
+        <!-- Listing rows -->
+        <div class="list-card selected" onclick="show(3)">
+          <div class="list-card-img"><img src="https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=200&q=60" alt=""></div>
+          <div class="list-card-body">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+              <span class="badge-sm rent">Rent</span>
+              <span class="badge-sm" style="background:#eff6ff;color:#3b82f6;">✓ Verified</span>
+            </div>
+            <div class="list-card-price">ETB 48K <span style="font-size:11px;font-weight:400;color:var(--slate-400);font-family:var(--sans);">/mo</span></div>
+            <div class="list-card-title">3-bed apartment in Bole</div>
+            <div class="list-card-loc"><svg width="9" height="9" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg> Bole · 115 m²</div>
+            <div class="list-card-specs">
+              <div class="list-card-spec"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M3 10V7a1 1 0 011-1h16a1 1 0 011 1v3"/></svg> 3 bd</div>
+              <div class="list-card-spec">2 ba</div>
+            </div>
+          </div>
+        </div>
+        <div class="list-card" onclick="show(3)">
+          <div class="list-card-img"><img src="https://images.unsplash.com/photo-1613977257363-707ba9348227?w=200&q=60" alt=""></div>
+          <div class="list-card-body">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;"><span class="badge-sm buy">Buy</span></div>
+            <div class="list-card-price" style="font-family:var(--serif);">ETB 32M</div>
+            <div class="list-card-title">Luxury villa for sale in Bole</div>
+            <div class="list-card-loc"><svg width="9" height="9" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg> Bole · 620 m²</div>
+            <div class="list-card-specs"><div class="list-card-spec">5 bd</div><div class="list-card-spec">4 ba</div></div>
+          </div>
+        </div>
+        <div class="list-card" onclick="show(3)">
+          <div class="list-card-img"><img src="https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=200&q=60" alt=""></div>
+          <div class="list-card-body">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;"><span class="badge-sm rent">Rent</span><span class="badge-sm" style="background:#eff6ff;color:#3b82f6;">✓ Verified</span></div>
+            <div class="list-card-price" style="font-family:var(--serif);">ETB 92K <span style="font-size:11px;font-weight:400;color:var(--slate-400);font-family:var(--sans);">/mo</span></div>
+            <div class="list-card-title">Office space in Kazanchis</div>
+            <div class="list-card-loc"><svg width="9" height="9" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg> Kazanchis · 280 m²</div>
+            <div class="list-card-specs"><div class="list-card-spec"><span class="tag-green">Commercial</span></div></div>
+          </div>
+        </div>
+        <div class="list-card" onclick="show(3)">
+          <div class="list-card-img"><img src="https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=200&q=60" alt=""></div>
+          <div class="list-card-body">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;"><span class="badge-sm buy">Buy</span></div>
+            <div class="list-card-price" style="font-family:var(--serif);">ETB 9.5M</div>
+            <div class="list-card-title">Family home in CMC</div>
+            <div class="list-card-loc"><svg width="9" height="9" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg> CMC · 280 m²</div>
+            <div class="list-card-specs"><div class="list-card-spec">4 bd</div><div class="list-card-spec">3 ba</div></div>
+          </div>
+        </div>
+        <div class="list-card" onclick="show(3)">
+          <div class="list-card-img" style="background:linear-gradient(135deg,var(--green-light),#e0f2e8);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;">
+            <svg width="24" height="24" fill="none" stroke="#4a7c59" stroke-width="1.2" viewBox="0 0 24 24" style="opacity:0.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path stroke-linecap="round" stroke-linejoin="round" d="M9 22V12h6v10"/></svg>
+            <span style="font-size:9px;font-weight:700;color:#4a7c59;opacity:0.6;text-transform:uppercase;">Land</span>
+          </div>
+          <div class="list-card-body">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;"><span class="badge-sm buy">Buy</span></div>
+            <div class="list-card-price" style="font-family:var(--serif);">ETB 8.2M</div>
+            <div class="list-card-title">Land for sale in Ayat</div>
+            <div class="list-card-loc"><svg width="9" height="9" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg> Ayat · 900 m²</div>
+            <div class="list-card-specs"><div class="list-card-spec"><span class="tag-green">Fenced</span></div><div class="list-card-spec" style="margin-left:4px;"><span class="tag-green">Title deed</span></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Map -->
+    <div class="s2-map" onclick="show(3)">
+      <div class="map-grid"></div>
+      <div class="map-roads"></div>
+      <div class="map-roads-v"></div>
+      <!-- Neighbourhood labels -->
+      <div class="map-label" style="top:32%;left:62%">Bole</div>
+      <div class="map-label" style="top:28%;left:40%">Kazanchis</div>
+      <div class="map-label" style="top:18%;left:55%">CMC</div>
+      <div class="map-label" style="top:22%;left:66%">Megenagna</div>
+      <div class="map-label" style="top:45%;left:32%">Merkato</div>
+      <div class="map-label" style="top:50%;left:52%">Sarbet</div>
+      <div class="map-label" style="top:38%;left:24%">Lideta</div>
+      <!-- Pins -->
+      <div class="map-pin selected" style="top:38%;left:64%">ETB 48K</div>
+      <div class="map-pin" style="top:42%;left:68%">ETB 35K</div>
+      <div class="map-pin blue" style="top:34%;left:58%">ETB 32M</div>
+      <div class="map-pin" style="top:30%;left:42%">ETB 85K</div>
+      <div class="map-pin" style="top:26%;left:38%">ETB 30K</div>
+      <div class="map-pin blue" style="top:22%;left:56%">ETB 9.5M</div>
+      <div class="map-pin blue" style="top:18%;left:70%">ETB 22M</div>
+      <div class="map-pin dot" style="top:45%;left:74%"></div>
+      <div class="map-pin dot" style="top:52%;left:60%"></div>
+      <div class="map-pin dot" style="top:56%;left:44%"></div>
+      <div class="map-pin dot" style="top:46%;left:28%"></div>
+      <div class="map-pin dot" style="top:36%;left:46%"></div>
+      <div class="map-pin dot" style="top:62%;left:38%"></div>
+      <div class="map-pin dot" style="top:28%;left:50%"></div>
+      <!-- Controls -->
+      <div class="map-currency">🇪🇹 ETB <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg></div>
+      <div class="map-controls">
+        <button class="map-ctrl-btn">⤢</button>
+        <button class="map-ctrl-btn">⊕</button>
+      </div>
+      <div class="map-zoom">
+        <button class="zoom-btn">+</button>
+        <button class="zoom-btn">−</button>
+      </div>
+      <button class="map-ai-btn">
+        <div class="ai-dot"></div>
+        Ask Habino AI
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     SCREEN 3 — PROPERTY DETAIL
+══════════════════════════════════════════════════════════════════════ -->
+<div class="screen" id="s3">
+  <div class="s3-wrap">
+    <!-- Dimmed map bg -->
+    <div class="s3-map">
+      <div class="map-grid"></div>
+      <div class="map-roads"></div>
+      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+        <div class="map-pin selected" style="position:static;transform:none;">ETB 48K</div>
+      </div>
+    </div>
+    <!-- Detail Panel -->
+    <div class="s3-panel">
+      <div class="s3-panel-topbar">
+        <button class="back-btn" onclick="show(2)">
+          <svg width="14" height="14" fill="none" stroke="#334155" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+        </button>
+        <div class="s3-panel-title">3-bed apartment in Bole</div>
+        <span class="verified-badge"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg> Verified</span>
+      </div>
+      <div class="s3-panel-scroll">
+        <!-- Photo carousel -->
+        <div class="photo-carousel">
+          <img src="https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&q=75" alt="">
+          <div class="photo-overlay"></div>
+          <div class="photo-price">ETB 48K <span class="per-mo">/mo</span></div>
+          <div class="photo-type-badge">APARTMENT · RENT</div>
+          <div class="photo-dots">
+            <button class="photo-dot active"></button>
+            <button class="photo-dot"></button>
+            <button class="photo-dot"></button>
+          </div>
+          <!-- Nav arrows -->
+          <button style="position:absolute;top:50%;left:8px;transform:translateY(-50%);width:30px;height:30px;border-radius:50%;background:rgba(15,23,42,0.5);backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,0.2);cursor:pointer;display:flex;align-items:center;justify-content:center;color:white;">
+            <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+          </button>
+          <button style="position:absolute;top:50%;right:8px;transform:translateY(-50%);width:30px;height:30px;border-radius:50%;background:rgba(15,23,42,0.5);backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,0.2);cursor:pointer;display:flex;align-items:center;justify-content:center;color:white;">
+            <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+        <!-- Body -->
+        <div class="panel-body">
+          <!-- Location -->
+          <div class="panel-loc">
+            <svg width="11" height="11" fill="none" stroke="#94a3b8" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>
+            Bole, Addis Ababa
+          </div>
+          <!-- Specs -->
+          <div class="panel-specs">
+            <div class="panel-spec"><span style="font-size:12px;">🛏</span><span class="val">3</span><span class="unit">beds</span></div>
+            <div class="panel-spec"><span style="font-size:12px;">🚿</span><span class="val">2</span><span class="unit">baths</span></div>
+            <div class="panel-spec"><span style="font-size:12px;">📐</span><span class="val">115</span><span class="unit">m²</span></div>
+            <div class="panel-spec"><span style="font-size:12px;">💰</span><span class="val">ETB 417</span><span class="unit">/m²</span></div>
+          </div>
+          <!-- Details table -->
+          <div class="section-lbl">Property Details</div>
+          <div class="details-table" style="margin-bottom:14px;">
+            <div class="detail-row"><span class="detail-lbl">Floor</span><span class="detail-val">Floor 4</span></div>
+            <div class="detail-row"><span class="detail-lbl">Furnishing</span><span class="detail-val">Semi-furnished</span></div>
+            <div class="detail-row"><span class="detail-lbl">Parking</span><span class="detail-val">Included</span></div>
+            <div class="detail-row"><span class="detail-lbl">Year built</span><span class="detail-val">2018</span></div>
+            <div class="detail-row"><span class="detail-lbl">Condition</span><span class="detail-val">Excellent</span></div>
+            <div class="detail-row"><span class="detail-lbl">Pets allowed</span><span class="detail-val">No</span></div>
+          </div>
+          <!-- Features -->
+          <div class="section-lbl">Features & Amenities</div>
+          <div class="feature-tags" style="margin-bottom:14px;">
+            <span class="feature-tag">✓ Balcony</span>
+            <span class="feature-tag">✓ Generator</span>
+            <span class="feature-tag">✓ 24/7 Security</span>
+            <span class="feature-tag">✓ Elevator</span>
+            <span class="feature-tag">✓ Fiber Internet</span>
+          </div>
+          <!-- Nearby -->
+          <div class="section-lbl">Nearby</div>
+          <div class="details-table" style="margin-bottom:14px;">
+            <div class="detail-row"><span class="detail-lbl">✈️ Bole Int'l Airport</span><span class="detail-val">2.1 km · 5 min</span></div>
+            <div class="detail-row"><span class="detail-lbl">🛍️ Edna Mall</span><span class="detail-val">3.2 km · 8 min</span></div>
+            <div class="detail-row"><span class="detail-lbl">🏥 St. Gabriel Hospital</span><span class="detail-val">4.8 km · 12 min</span></div>
+            <div class="detail-row"><span class="detail-lbl">🏫 Bole Ring Road</span><span class="detail-val">1.0 km · 3 min</span></div>
+          </div>
+          <!-- Market comparison -->
+          <div class="market-card">
+            <div class="market-row">
+              <span class="market-label">🟢 Below market</span>
+              <span class="market-pct">−12%</span>
+            </div>
+            <div class="market-bar"><div class="market-fill"></div><div class="market-mid"></div></div>
+            <div style="font-size:10px;color:var(--slate-400);margin-top:5px;">vs. avg. price/m² across 287 comparable listings</div>
+          </div>
+          <!-- Agent card -->
+          <div class="agent-card">
+            <img class="agent-avatar" src="https://i.pravatar.cc/80?u=DawitBekele" alt="">
+            <div>
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
+                <div class="agent-name">Dawit Bekele</div>
+                <span class="verified-badge"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg> Verified</span>
+              </div>
+              <div class="agent-role">Licensed Broker · Habino</div>
+            </div>
+          </div>
+        </div>
+        <!-- CTAs -->
+        <div class="panel-ctas">
+          <button class="cta-primary" onclick="show(1)">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+            View Full Listing
+          </button>
+          <div class="cta-secondary-row">
+            <button class="cta-wa">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.126.558 4.117 1.533 5.845L.054 23.5l5.805-1.524A11.932 11.932 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.896 0-3.67-.52-5.183-1.424l-.371-.22-3.443.904.921-3.36-.242-.386A9.944 9.944 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+              WhatsApp
+            </button>
+            <button class="cta-tour">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              Book Tour
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     SCREEN 4 — LOGIN
+══════════════════════════════════════════════════════════════════════ -->
+<div class="screen" id="s4">
+  <div class="s4-wrap">
+    <!-- Photo left -->
+    <div class="s4-photo">
+      <img src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1400&q=80" alt="">
+      <div class="s4-photo-overlay"></div>
+      <div class="s4-photo-quote">"Find your perfect space in Addis Ababa — powered by AI."</div>
+    </div>
+    <!-- Form right -->
+    <div class="s4-form-panel">
+      <div class="s4-logo">habino</div>
+      <div class="s4-form-center">
+        <div class="s4-form-wrap">
+          <div class="s4-heading">Welcome back</div>
+          <div class="s4-sub">Sign in to your Habino account.</div>
+          <!-- Error example -->
+          <div class="form-error" style="display:none;">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            Invalid email or password. Please try again.
+          </div>
+          <!-- Email -->
+          <div class="form-group">
+            <label>Email</label>
+            <input class="form-input" type="email" placeholder="you@example.com">
+          </div>
+          <!-- Password -->
+          <div class="form-group">
+            <div class="label-row">
+              <label>Password</label>
+              <a class="forgot" href="#">Forgot password?</a>
+            </div>
+            <div class="form-input-wrap">
+              <input class="form-input" type="password" placeholder="••••••••" style="padding-right:40px;">
+              <button class="pw-toggle" onclick="togglePw(this)">
+                <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+              </button>
+            </div>
+          </div>
+          <button class="form-btn" onclick="show(1)">Continue</button>
+          <div class="form-divider">
+            <div class="form-divider-line"></div>
+            <span class="form-divider-text">or</span>
+            <div class="form-divider-line"></div>
+          </div>
+          <div class="form-footer">
+            New to Habino? <a href="#">Create account</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     SCREEN 5 — MARKET PAGE
+══════════════════════════════════════════════════════════════════════ -->
+<div class="screen" id="s5">
+  <div class="s5-wrap">
+    <!-- Header -->
+    <div class="s5-header">
+      <div class="s5-logo">habino</div>
+      <div class="s5-header-nav">
+        <button class="s5-nav-item" onclick="show(2)">Search</button>
+        <button class="s5-nav-item" onclick="show(4)">Saved</button>
+        <button class="s5-nav-item active">Market</button>
+        <button class="s5-nav-item" onclick="show(4)">Profile</button>
+      </div>
+      <button class="btn-green" style="font-size:12px;padding:7px 14px;">List Property</button>
+    </div>
+    <!-- Body -->
+    <div class="s5-body">
+      <div class="s5-page-title">Market Intelligence</div>
+      <div class="s5-page-sub">Real-time property market data · Addis Ababa · Q1 2025</div>
+      <!-- Selectors -->
+      <div class="s5-selectors">
+        <button class="s5-select active">Addis Ababa</button>
+        <button class="s5-select">Hawassa</button>
+        <button class="s5-select">Bahir Dar</button>
+        <button class="s5-select">Dire Dawa</button>
+        <div style="margin-left:auto;display:flex;gap:6px;">
+          <button class="s5-select active" style="background:var(--green-light);border-color:var(--green);color:var(--green);">Residential</button>
+          <button class="s5-select">Commercial</button>
+          <button class="s5-select">Land</button>
+        </div>
+      </div>
+      <!-- Stat cards -->
+      <div class="s5-stats-row">
+        <div class="s5-stat-card">
+          <div class="s5-stat-label">Avg. Buy Price / m²</div>
+          <div class="s5-stat-value">ETB 28,400</div>
+          <div class="s5-stat-trend trend-up"><span class="trend-arrow-up"></span>+5.2% vs last quarter</div>
+        </div>
+        <div class="s5-stat-card">
+          <div class="s5-stat-label">Avg. Rent / m²</div>
+          <div class="s5-stat-value">ETB 320</div>
+          <div class="s5-stat-trend trend-up"><span class="trend-arrow-up"></span>+3.8% vs last quarter</div>
+        </div>
+        <div class="s5-stat-card">
+          <div class="s5-stat-label">Gross Yield</div>
+          <div class="s5-stat-value">3.8%</div>
+          <div class="s5-stat-trend trend-down"><span class="trend-arrow-down"></span>−0.2% vs last quarter</div>
+        </div>
+        <div class="s5-stat-card">
+          <div class="s5-stat-label">Active Listings</div>
+          <div class="s5-stat-value">2,418</div>
+          <div class="s5-stat-trend trend-up"><span class="trend-arrow-up"></span>+127 this week</div>
+        </div>
+      </div>
+      <!-- Charts -->
+      <div class="s5-charts-row">
+        <!-- Line chart -->
+        <div class="chart-card">
+          <div class="chart-title">Price Trend — Bole (per m²)</div>
+          <div class="chart-sub">12-month rolling average · residential buy price</div>
+          <div class="faux-chart">
+            <svg viewBox="0 0 500 130" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+              <!-- Grid lines -->
+              <line x1="0" y1="30"  x2="500" y2="30"  stroke="#f1f5f9" stroke-width="1"/>
+              <line x1="0" y1="60"  x2="500" y2="60"  stroke="#f1f5f9" stroke-width="1"/>
+              <line x1="0" y1="90"  x2="500" y2="90"  stroke="#f1f5f9" stroke-width="1"/>
+              <line x1="0" y1="120" x2="500" y2="120" stroke="#f1f5f9" stroke-width="1"/>
+              <!-- Area fill -->
+              <defs>
+                <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#2E7D46" stop-opacity="0.15"/>
+                  <stop offset="100%" stop-color="#2E7D46" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <path d="M0,100 C30,95 60,88 90,80 C120,72 150,75 180,68 C210,61 240,58 270,52 C300,46 330,44 360,38 C390,32 420,30 450,25 C470,22 490,20 500,18 L500,130 L0,130 Z" fill="url(#areaGrad)"/>
+              <!-- Line -->
+              <path d="M0,100 C30,95 60,88 90,80 C120,72 150,75 180,68 C210,61 240,58 270,52 C300,46 330,44 360,38 C390,32 420,30 450,25 C470,22 490,20 500,18" fill="none" stroke="#2E7D46" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+              <!-- End dot -->
+              <circle cx="500" cy="18" r="4" fill="#2E7D46"/>
+              <!-- Labels -->
+              <text x="0"   y="128" font-size="10" fill="#94a3b8" font-family="Inter,sans-serif">Jan</text>
+              <text x="120" y="128" font-size="10" fill="#94a3b8" font-family="Inter,sans-serif">Apr</text>
+              <text x="248" y="128" font-size="10" fill="#94a3b8" font-family="Inter,sans-serif">Jul</text>
+              <text x="368" y="128" font-size="10" fill="#94a3b8" font-family="Inter,sans-serif">Oct</text>
+              <text x="460" y="128" font-size="10" fill="#94a3b8" font-family="Inter,sans-serif">Now</text>
+              <!-- Y labels -->
+              <text x="0" y="28" font-size="9" fill="#94a3b8" font-family="Inter,sans-serif">50K</text>
+              <text x="0" y="58" font-size="9" fill="#94a3b8" font-family="Inter,sans-serif">45K</text>
+              <text x="0" y="88" font-size="9" fill="#94a3b8" font-family="Inter,sans-serif">40K</text>
+            </svg>
+          </div>
+          <div style="display:flex;gap:16px;margin-top:8px;">
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--slate-500);">
+              <div style="width:24px;height:2.5px;background:var(--green);border-radius:99px;"></div>
+              Buy price / m²
+            </div>
+          </div>
+        </div>
+        <!-- District bars -->
+        <div class="chart-card">
+          <div class="chart-title">Price by District</div>
+          <div class="chart-sub">Buy price per m² · residential</div>
+          <div class="district-bars">
+            <div class="district-row">
+              <span class="district-name">Bole</span>
+              <div class="district-bar-wrap"><div class="district-bar" style="width:100%"></div></div>
+              <span class="district-val">ETB 45K</span>
+            </div>
+            <div class="district-row">
+              <span class="district-name">Kazanchis</span>
+              <div class="district-bar-wrap"><div class="district-bar" style="width:84%"></div></div>
+              <span class="district-val">ETB 38K</span>
+            </div>
+            <div class="district-row">
+              <span class="district-name">CMC</span>
+              <div class="district-bar-wrap"><div class="district-bar" style="width:71%"></div></div>
+              <span class="district-val">ETB 32K</span>
+            </div>
+            <div class="district-row">
+              <span class="district-name">Megenagna</span>
+              <div class="district-bar-wrap"><div class="district-bar" style="width:67%"></div></div>
+              <span class="district-val">ETB 30K</span>
+            </div>
+            <div class="district-row">
+              <span class="district-name">Sarbet</span>
+              <div class="district-bar-wrap"><div class="district-bar" style="width:58%"></div></div>
+              <span class="district-val">ETB 26K</span>
+            </div>
+            <div class="district-row">
+              <span class="district-name">Lideta</span>
+              <div class="district-bar-wrap"><div class="district-bar" style="width:49%"></div></div>
+              <span class="district-val">ETB 22K</span>
+            </div>
+            <div class="district-row">
+              <span class="district-name">Merkato</span>
+              <div class="district-bar-wrap"><div class="district-bar" style="width:36%"></div></div>
+              <span class="district-val">ETB 16K</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Micro factors -->
+      <div class="s5-micro-row">
+        <div class="micro-card">
+          <div class="micro-title">Bole — Neighbourhood Score</div>
+          <div class="micro-factor">
+            <span class="micro-icon">🚌</span>
+            <span class="micro-label">Public Transport</span>
+            <div class="micro-bar-wrap"><div class="micro-bar" style="width:90%"></div></div>
+            <span class="micro-score">90</span>
+          </div>
+          <div class="micro-factor">
+            <span class="micro-icon">🏪</span>
+            <span class="micro-label">Amenities</span>
+            <div class="micro-bar-wrap"><div class="micro-bar" style="width:95%"></div></div>
+            <span class="micro-score">95</span>
+          </div>
+          <div class="micro-factor">
+            <span class="micro-icon">🌳</span>
+            <span class="micro-label">Green Space</span>
+            <div class="micro-bar-wrap"><div class="micro-bar" style="width:72%"></div></div>
+            <span class="micro-score">72</span>
+          </div>
+          <div class="micro-factor">
+            <span class="micro-icon">🏫</span>
+            <span class="micro-label">Schools</span>
+            <div class="micro-bar-wrap"><div class="micro-bar" style="width:88%"></div></div>
+            <span class="micro-score">88</span>
+          </div>
+          <div class="micro-factor">
+            <span class="micro-icon">🔇</span>
+            <span class="micro-label">Noise Level</span>
+            <div class="micro-bar-wrap"><div class="micro-bar" style="width:78%"></div></div>
+            <span class="micro-score">78</span>
+          </div>
+        </div>
+        <div class="micro-card">
+          <div class="micro-title">Market Insights</div>
+          <!-- Insight items -->
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div style="padding:12px;background:var(--green-light);border:1px solid #bbf7d0;border-radius:12px;">
+              <div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:3px;">🏆 Best yield in Addis</div>
+              <div style="font-size:12px;color:var(--slate-600);">Merkato offers 4.7% gross yield — highest in the city for residential.</div>
+            </div>
+            <div style="padding:12px;background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;">
+              <div style="font-size:12px;font-weight:700;color:#c2410c;margin-bottom:3px;">⚠️ Price correction — Lideta</div>
+              <div style="font-size:12px;color:var(--slate-600);">Lideta residential down −1.2% QoQ — possible buying opportunity.</div>
+            </div>
+            <div style="padding:12px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;">
+              <div style="font-size:12px;font-weight:700;color:#1d4ed8;margin-bottom:3px;">📈 Bole on the rise</div>
+              <div style="font-size:12px;color:var(--slate-600);">Bole residential up +6.1% QoQ — driven by expat and diaspora demand.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(n) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('s' + n).classList.add('active');
+  document.querySelectorAll('.nav-btn')[n-1].classList.add('active');
+  window.scrollTo(0, 0);
+}
+function togglePw(btn) {
+  const inp = btn.previousElementSibling;
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+</script>
+</body>
+</html>
