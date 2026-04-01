@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
@@ -43,6 +44,7 @@ function EyeIcon({ open }: { open: boolean }) {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function LandingLoginPage() {
+  const router = useRouter();
   const [mode,     setMode]     = useState<Mode>("signin");
   const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
@@ -50,6 +52,14 @@ export function LandingLoginPage() {
   const [error,    setError]    = useState<string | null>(null);
   const [loading,  setLoading]  = useState(false);
   const [done,     setDone]     = useState(false);
+
+  // If already logged in, redirect away from login page immediately
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) router.replace("/home");
+    });
+  }, [router]);
 
   function switchMode(next: Mode) { setMode(next); setError(null); setDone(false); }
 
