@@ -4,9 +4,22 @@ import { PropertyFilters } from "@/lib/types";
 
 // GET /api/properties — public listing feed
 export async function GET(request: NextRequest) {
-  const tenantId = request.headers.get("x-tenant-id");
+  let tenantId = request.headers.get("x-tenant-id");
+
+  // Fallback: if no tenant resolved from hostname, use the first active tenant
+  // (single-tenant deployments on Vercel preview / custom domains)
   if (!tenantId?.trim()) {
-    return NextResponse.json({ error: "Tenant not found" }, { status: 404 });
+    const svc = createServiceClient();
+    const { data: firstTenant } = await svc
+      .from("tenants")
+      .select("id")
+      .eq("is_active", true)
+      .limit(1)
+      .single();
+    if (!firstTenant) {
+      return NextResponse.json({ error: "No active tenant found" }, { status: 404 });
+    }
+    tenantId = firstTenant.id;
   }
 
   const { searchParams } = new URL(request.url);
