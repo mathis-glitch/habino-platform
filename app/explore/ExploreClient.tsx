@@ -317,7 +317,7 @@ export default function ExploreClient() {
     try {
       const res  = await fetch(`/api/properties?${params}`);
       const data = await res.json();
-      if (res.ok) { setProperties(data.properties ?? []); setTotal(data.total ?? 0); }
+      if (res.ok) { setProperties(data.data ?? []); setTotal(data.total ?? 0); }
     } finally {
       setLoading(false);
     }
