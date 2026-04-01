@@ -77,19 +77,9 @@ export async function middleware(request: NextRequest) {
   // setAll() above already updated supabaseResponse with the new cookies.
   const { data: { user } } = await supabase.auth.getUser();
 
-  // ── 3. Route protection ────────────────────────────────────────────────────
-  // Protected routes require authentication — redirect to landing page if not signed in
-  const protectedPaths = ["/profile", "/saved", "/properties", "/market", "/markt", "/home", "/messages", "/explore"];
-  const isProtected = protectedPaths.some((p) => pathname === p || pathname.startsWith(p + "/"));
-
-  if (isProtected && !user) {
-    const loginUrl = request.nextUrl.clone();
-    loginUrl.pathname = "/";
-    return NextResponse.redirect(loginUrl);
-  }
-
-  // If authenticated user visits "/" (login page), redirect to /explore
-  if (pathname === "/" && user) {
+  // ── 3. Route handling ─────────────────────────────────────────────────────
+  // "/" always redirects to /explore (no login wall)
+  if (pathname === "/") {
     const exploreUrl = request.nextUrl.clone();
     exploreUrl.pathname = "/explore";
     return NextResponse.redirect(exploreUrl);
