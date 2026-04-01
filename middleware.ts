@@ -88,6 +88,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  // If authenticated user visits "/" (login page), redirect to /home (AI Agent)
+  if (pathname === "/" && user) {
+    const homeUrl = request.nextUrl.clone();
+    homeUrl.pathname = "/home";
+    return NextResponse.redirect(homeUrl);
+  }
+
   // ── 4. Inject tenant info into request headers ─────────────
   // Set on supabaseResponse so server components can read via headers()
   supabaseResponse.headers.set("x-tenant-id",   tenantId   ?? "");
