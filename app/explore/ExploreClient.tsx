@@ -104,6 +104,7 @@ function PropCard({ p, saved, onSave }: { p: Property; saved: boolean; onSave: (
   const [imgErr, setImgErr] = useState(false);
   const [imgIdx, setImgIdx] = useState(0);
   const touchStartX = useRef(0);
+  const didSwipe    = useRef(false);
   const isRent = p.listing_type === "rent";
 
   const sortedImages = [...(p.images ?? [])].sort((a, b) => a.sort_order - b.sort_order);
@@ -122,16 +123,21 @@ function PropCard({ p, saved, onSave }: { p: Property; saved: boolean; onSave: (
 
   function handleTouchStart(e: React.TouchEvent) {
     touchStartX.current = e.touches[0].clientX;
+    didSwipe.current = false;
   }
   function handleTouchEnd(e: React.TouchEvent) {
     const dx = e.changedTouches[0].clientX - touchStartX.current;
     if (Math.abs(dx) < 40 || sortedImages.length < 2) return;
+    didSwipe.current = true;
     if (dx < 0) setImgIdx(i => Math.min(i + 1, sortedImages.length - 1));
     else         setImgIdx(i => Math.max(i - 1, 0));
   }
 
   return (
-    <div style={{ cursor: "pointer" }} onClick={() => window.location.assign(`/properties/${p.id}`)}>
+    <div
+      style={{ cursor: "pointer" }}
+      onClick={() => { if (!didSwipe.current) window.location.assign(`/properties/${p.id}`); }}
+    >
       {/* Image */}
       <div
         style={{ position: "relative", height: 230, background: T.bgSoft2, borderRadius: T.r2xl, overflow: "hidden" }}

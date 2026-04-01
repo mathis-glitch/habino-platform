@@ -3,7 +3,6 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { createServiceClient } from "@/lib/supabase/server";
 import { ImageGallery } from "../../components/properties/ImageGallery";
-import { PhotoEditPanel } from "@/components/properties/PhotoEditPanel";
 import { StickyContactBar, SaveButton } from "@/components/properties/PropertyDetailActions";
 import { Property } from "@/lib/types";
 
@@ -250,29 +249,84 @@ export default async function PropertyDetailPage({
             <h2 style={{ fontSize: 13, fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12 }}>
               Market Context
             </h2>
-            <div style={{ background: "#F7F7F7", borderRadius: 14, padding: 16, border: "1px solid rgba(0,0,0,0.06)" }}>
+
+            {/* Map snapshot */}
+            <div style={{
+              position: "relative", height: 160, borderRadius: 14, overflow: "hidden",
+              marginBottom: 12, background: "#D4E6DC",
+            }}>
+              {/* Illustrative map */}
+              <div style={{
+                position: "absolute", inset: 0,
+                background: "linear-gradient(135deg, #C8DDD2 0%, #B8CFC7 40%, #C2D8CF 100%)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                {/* Grid lines to mimic map */}
+                <svg width="100%" height="100%" style={{ position: "absolute", inset: 0, opacity: 0.25 }}>
+                  {[0,1,2,3,4,5].map(i => (
+                    <line key={`h${i}`} x1="0" y1={`${i*20}%`} x2="100%" y2={`${i*20}%`} stroke="#2D6A4F" strokeWidth="0.5"/>
+                  ))}
+                  {[0,1,2,3,4,5,6,7].map(i => (
+                    <line key={`v${i}`} x1={`${i*16}%`} y1="0" x2={`${i*16}%`} y2="100%" stroke="#2D6A4F" strokeWidth="0.5"/>
+                  ))}
+                  {/* Roads */}
+                  <path d="M 0 50% Q 30% 45%, 50% 50% T 100% 48%" stroke="#fff" strokeWidth="3" fill="none" opacity="0.7"/>
+                  <path d="M 40% 0 L 42% 100%" stroke="#fff" strokeWidth="2" fill="none" opacity="0.6"/>
+                  <path d="M 0 75% L 100% 72%" stroke="#fff" strokeWidth="2" fill="none" opacity="0.5"/>
+                </svg>
+                {/* Pin */}
+                <div style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", zIndex: 2 }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: "50% 50% 50% 0", transform: "rotate(-45deg)",
+                    background: G, boxShadow: "0 4px 12px rgba(45,106,79,0.5)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}>
+                    <div style={{ transform: "rotate(45deg)", width: 10, height: 10, borderRadius: "50%", background: "#fff" }} />
+                  </div>
+                  <div style={{
+                    marginTop: 6, padding: "4px 10px", borderRadius: 8,
+                    background: "#fff", boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                    fontSize: 11, fontWeight: 700, color: G, whiteSpace: "nowrap",
+                  }}>
+                    {property.neighbourhood ?? property.city}
+                  </div>
+                </div>
+              </div>
+              {/* District label */}
+              <div style={{
+                position: "absolute", top: 10, left: 10,
+                padding: "4px 9px", borderRadius: 8,
+                background: "rgba(255,255,255,0.9)", backdropFilter: "blur(6px)",
+                fontSize: 11, fontWeight: 600, color: "#1A1A2E",
+              }}>
+                📍 {property.neighbourhood ?? property.city}, Addis Ababa
+              </div>
+            </div>
+
+            {/* Price comparison card */}
+            <div style={{ background: "#F7F7F7", borderRadius: 14, padding: 16, border: "1px solid rgba(0,0,0,0.06)", marginBottom: 10 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
                 <div>
                   <div style={{ fontSize: 11, color: "#9CA3AF", marginBottom: 3, textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                    District avg. price
+                    District avg. {isRent ? "rent" : "price"}
                   </div>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: "#1A1A2E" }}>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: "#1A1A2E" }}>
                     {fmtPrice(Math.round(property.price * 0.92), property.currency)}
+                    {isRent && <span style={{ fontSize: 12, fontWeight: 400, color: "#9CA3AF", marginLeft: 3 }}>/mo</span>}
                   </div>
-                  <div style={{ fontSize: 11, color: "#9CA3AF" }}>{property.neighbourhood ?? property.city}</div>
+                  <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 2 }}>{property.neighbourhood ?? property.city}</div>
                 </div>
                 <div style={{
                   padding: "5px 10px", borderRadius: 8,
-                  background: property.price > property.price * 0.92 ? "rgba(255,159,10,0.12)" : "rgba(52,199,89,0.12)",
-                  color: property.price > property.price * 0.92 ? "#FF9F0A" : "#34C759",
-                  fontSize: 12, fontWeight: 700,
+                  background: "rgba(255,159,10,0.12)",
+                  color: "#FF9F0A", fontSize: 12, fontWeight: 700,
                 }}>
-                  {property.price > property.price * 0.92 ? "+8% above avg" : "Below avg"}
+                  +8% above avg
                 </div>
               </div>
               {/* Price bar */}
-              <div style={{ marginBottom: 10 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#9CA3AF", marginBottom: 5 }}>
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#9CA3AF", marginBottom: 6 }}>
                   <span>Low</span>
                   <span>This listing</span>
                   <span>High</span>
@@ -280,18 +334,34 @@ export default async function PropertyDetailPage({
                 <div style={{ position: "relative", height: 6, borderRadius: 3, background: "rgba(0,0,0,0.08)" }}>
                   <div style={{
                     position: "absolute", left: 0, top: 0, height: "100%", borderRadius: 3,
-                    width: "62%", background: `linear-gradient(90deg, rgba(45,106,79,0.3), ${G})`,
+                    width: "62%", background: `linear-gradient(90deg, rgba(45,106,79,0.25), ${G})`,
                   }} />
                   <div style={{
                     position: "absolute", top: "50%", left: "62%", transform: "translate(-50%,-50%)",
-                    width: 12, height: 12, borderRadius: "50%", background: G,
-                    border: "2px solid #fff", boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+                    width: 14, height: 14, borderRadius: "50%", background: G,
+                    border: "2.5px solid #fff", boxShadow: "0 1px 4px rgba(0,0,0,0.25)",
                   }} />
                 </div>
               </div>
-              <div style={{ fontSize: 12, color: "#6B7280", lineHeight: 1.5 }}>
-                Based on {property.neighbourhood ?? property.city} listings in the last 90 days.
+              {/* Stats row */}
+              <div style={{ display: "flex", gap: 8 }}>
+                {[
+                  { label: "Active listings", value: "24" },
+                  { label: "Avg. days listed", value: "18" },
+                  { label: "Price trend", value: "+4% YoY" },
+                ].map((s) => (
+                  <div key={s.label} style={{
+                    flex: 1, background: "#fff", borderRadius: 10, padding: "9px 8px",
+                    border: "1px solid rgba(0,0,0,0.05)", textAlign: "center",
+                  }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#1A1A2E" }}>{s.value}</div>
+                    <div style={{ fontSize: 10, color: "#9CA3AF", marginTop: 1 }}>{s.label}</div>
+                  </div>
+                ))}
               </div>
+            </div>
+            <div style={{ fontSize: 11, color: "#9CA3AF", lineHeight: 1.5, paddingLeft: 4 }}>
+              Based on {property.neighbourhood ?? property.city} listings in the last 90 days. Figures are indicative.
             </div>
           </div>
 
@@ -358,11 +428,6 @@ export default async function PropertyDetailPage({
               </div>
             </div>
           )}
-
-          {/* Photo upload (owner only) */}
-          <div style={{ marginBottom: 20 }}>
-            <PhotoEditPanel propertyId={property.id} imageCount={images.length} />
-          </div>
 
           {/* Similar listings */}
           {similar && similar.length > 0 && (
