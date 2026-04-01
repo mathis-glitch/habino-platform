@@ -5,11 +5,12 @@ import { usePathname } from "next/navigation";
 
 const TABS = [
   {
-    href: "/",
-    label: "AI Agent",
+    href: "/explore",
+    label: "Explore",
     icon: (active: boolean) => (
-      <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-        <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+      <svg width="22" height="22" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? 0 : 1.8} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+        <polyline points="9 22 9 12 15 12 15 22" />
       </svg>
     ),
   },
@@ -17,7 +18,7 @@ const TABS = [
     href: "/saved",
     label: "Saved",
     icon: (active: boolean) => (
-      <svg width="20" height="20" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? 2 : 1.8} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+      <svg width="22" height="22" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? 0 : 1.8} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
         <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
       </svg>
     ),
@@ -26,7 +27,7 @@ const TABS = [
     href: "/markt",
     label: "Market",
     icon: (active: boolean) => (
-      <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+      <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth={active ? 2.5 : 1.8} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
         <path d="M18 20V10M12 20V4M6 20v-6" />
       </svg>
     ),
@@ -35,11 +36,8 @@ const TABS = [
     href: "/messages",
     label: "Messages",
     icon: (active: boolean) => (
-      <svg width="20" height="20" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? 2 : 1.8} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+      <svg width="22" height="22" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? 0 : 1.8} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
         <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-        <circle cx="9" cy="10" r="0.5" fill="currentColor" />
-        <circle cx="12" cy="10" r="0.5" fill="currentColor" />
-        <circle cx="15" cy="10" r="0.5" fill="currentColor" />
       </svg>
     ),
   },
@@ -47,7 +45,7 @@ const TABS = [
     href: "/profile",
     label: "Profile",
     icon: (active: boolean) => (
-      <svg width="20" height="20" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? 2 : 1.8} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+      <svg width="22" height="22" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? 0 : 1.8} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
         <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z" />
       </svg>
     ),
@@ -62,15 +60,16 @@ export default function BottomNav({ unreadMessages = 0 }: { unreadMessages?: num
       className="md:hidden fixed bottom-0 left-0 right-0 z-50"
       style={{
         paddingBottom: "env(safe-area-inset-bottom)",
-        background: "rgba(17,17,25,0.95)",
+        background: "rgba(255,255,255,0.97)",
         backdropFilter: "blur(20px) saturate(180%)",
         WebkitBackdropFilter: "blur(20px) saturate(180%)",
-        borderTop: "1px solid var(--border)",
+        borderTop: "1px solid rgba(0,0,0,0.06)",
+        boxShadow: "0 -4px 24px rgba(0,0,0,0.06)",
       }}
     >
-      <div className="flex items-stretch h-[56px]">
+      <div className="flex items-stretch h-[60px]">
         {TABS.map((tab) => {
-          const active = tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);
+          const active = pathname === tab.href || pathname.startsWith(tab.href + "/");
           const showBadge = tab.href === "/messages" && unreadMessages > 0;
           return (
             <Link
@@ -78,7 +77,7 @@ export default function BottomNav({ unreadMessages = 0 }: { unreadMessages?: num
               href={tab.href}
               className="flex-1 flex flex-col items-center justify-center gap-0.5 transition-opacity active:opacity-60 relative"
             >
-              <span style={{ color: active ? "var(--color-primary)" : "var(--text-3)" }} className="relative">
+              <span style={{ color: active ? "#7C6EF2" : "#b0b0c0" }} className="relative">
                 {tab.icon(active)}
                 {showBadge && (
                   <span
@@ -90,8 +89,8 @@ export default function BottomNav({ unreadMessages = 0 }: { unreadMessages?: num
                 )}
               </span>
               <span style={{
-                fontSize: 10, fontWeight: 600, letterSpacing: "0.02em",
-                color: active ? "var(--color-primary)" : "var(--text-3)",
+                fontSize: 10, fontWeight: active ? 700 : 500, letterSpacing: "0.01em",
+                color: active ? "#7C6EF2" : "#b0b0c0",
                 transition: "color 0.12s",
               }}>
                 {tab.label}

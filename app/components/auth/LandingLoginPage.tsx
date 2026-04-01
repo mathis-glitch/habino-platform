@@ -57,7 +57,7 @@ export function LandingLoginPage() {
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) router.replace("/home");
+      if (user) router.replace("/explore");
     });
   }, [router]);
 
