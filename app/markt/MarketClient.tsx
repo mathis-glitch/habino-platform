@@ -148,6 +148,7 @@ function ScoreBar({ score }: { score: number }) {
 const INSIGHT_TABS = [
   { key: "market",  label: "Market" },
   { key: "brokers", label: "Brokers" },
+  { key: "blog",    label: "Blog" },
 ];
 
 // Mock broker data
@@ -447,6 +448,88 @@ export default function InsightsClient() {
           <p style={{ fontSize: 11, color: T.text3, textAlign: "center" }}>
             * All figures are indicative estimates. Live GIS data coming soon.
           </p>
+        </div>
+      )}
+
+      {/* ── Blog tab ── */}
+      {tab === "blog" && (
+        <div style={{ flex: 1, overflowY: "auto", padding: "16px 16px 100px", display: "flex", flexDirection: "column", gap: 16 }}>
+          <p style={{ fontSize: 13, color: T.text2, margin: "0 0 4px" }}>Real estate insights for Addis Abeba</p>
+          {[
+            {
+              tag: "Market Analysis",
+              tagColor: T.primary,
+              date: "Apr 1, 2026",
+              title: "Bole Real Estate: Why Prices Are Rising 10% Per Year",
+              excerpt: "Bole remains the most sought-after district for both residential and commercial properties. We break down the key drivers behind the district's sustained price growth and what it means for investors.",
+              readTime: "4 min read",
+              img: "https://images.unsplash.com/photo-1486325212027-8081e485255e?w=400&h=220&fit=crop",
+            },
+            {
+              tag: "Investment Guide",
+              tagColor: "#FF9F0A",
+              date: "Mar 28, 2026",
+              title: "Buy-to-Let in Addis Abeba: A Complete Guide for 2026",
+              excerpt: "Gross rental yields of 3.8–4.6% make Addis Abeba one of East Africa's most attractive buy-to-let markets. Here's everything you need to know before investing.",
+              readTime: "7 min read",
+              img: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400&h=220&fit=crop",
+            },
+            {
+              tag: "Neighbourhood Guide",
+              tagColor: "#34C759",
+              date: "Mar 22, 2026",
+              title: "CMC vs Yeka: Which District is Best for Families?",
+              excerpt: "Both CMC and Yeka offer more green space and quieter streets compared to Bole. We compare schools, transport, amenities and property prices to help you decide.",
+              readTime: "5 min read",
+              img: "https://images.unsplash.com/photo-1605146769289-440113cc3d00?w=400&h=220&fit=crop",
+            },
+            {
+              tag: "Legal & Finance",
+              tagColor: "#6366f1",
+              date: "Mar 15, 2026",
+              title: "How to Finance a Property Purchase in Ethiopia",
+              excerpt: "Understanding the Ethiopian mortgage market, available loan products, and what foreign buyers need to know before purchasing real estate in Addis Abeba.",
+              readTime: "6 min read",
+              img: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=400&h=220&fit=crop",
+            },
+          ].map((article, i) => (
+            <div key={i} style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 18, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+              {/* Article image */}
+              <div style={{ position: "relative", height: 160, background: T.bgSoft2, overflow: "hidden" }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={article.img} alt={article.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <div style={{
+                  position: "absolute", top: 12, left: 12,
+                  padding: "3px 10px", borderRadius: 20,
+                  background: "rgba(255,255,255,0.92)", backdropFilter: "blur(8px)",
+                  fontSize: 11, fontWeight: 700, color: article.tagColor,
+                }}>
+                  {article.tag}
+                </div>
+              </div>
+              <div style={{ padding: "14px 16px 18px" }}>
+                <div style={{ display: "flex", gap: 8, marginBottom: 8, fontSize: 11, color: T.text3 }}>
+                  <span>{article.date}</span>
+                  <span>·</span>
+                  <span>{article.readTime}</span>
+                </div>
+                <h3 style={{ fontSize: 15, fontWeight: 700, color: T.text1, lineHeight: 1.4, marginBottom: 8 }}>
+                  {article.title}
+                </h3>
+                <p style={{ fontSize: 13, color: T.text2, lineHeight: 1.6, marginBottom: 14 }}>
+                  {article.excerpt}
+                </p>
+                <button style={{
+                  padding: "8px 16px", borderRadius: 10,
+                  border: `1.5px solid ${T.border2}`,
+                  background: "transparent", color: T.primary,
+                  fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: T.font,
+                }}>
+                  Read more →
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 

@@ -1,13 +1,7 @@
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
 import { ProfileClient } from "./ProfileClient";
 
+export const metadata = { title: "Profile — Habino" };
+
 export default function ProfilePage() {
-  return (
-    <>
-      <Header />
-      <ProfileClient />
-      <Footer />
-    </>
-  );
+  return <ProfileClient />;
 }

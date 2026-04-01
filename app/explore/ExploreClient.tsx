@@ -198,6 +198,33 @@ function PropCard({ p, saved, onSave }: { p: Property; saved: boolean; onSave: (
             ))}
           </div>
         )}
+
+        {/* Broker / agent row */}
+        {p.agent_name && (
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            marginTop: 10, paddingTop: 10, borderTop: `1px solid ${T.border}`,
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+              <div style={{
+                width: 24, height: 24, borderRadius: 7,
+                background: T.primaryL, color: T.primary,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 10, fontWeight: 700,
+              }}>
+                {p.agent_name.charAt(0).toUpperCase()}
+              </div>
+              <span style={{ fontSize: 12, color: T.text2, fontWeight: 500 }}>{p.agent_name}</span>
+            </div>
+            <a
+              href="/markt#brokers"
+              onClick={(e) => e.stopPropagation()}
+              style={{ fontSize: 11, fontWeight: 600, color: T.primary, textDecoration: "none" }}
+            >
+              View broker →
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -583,7 +610,31 @@ export default function ExploreClient() {
 
       {/* ── Map view ── */}
       {view === "map" && (
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 480 }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 480, position: "relative" }}>
+          {/* Habib hint banner */}
+          <a href="/" style={{
+            display: "flex", alignItems: "center", gap: 10,
+            margin: "0 16px 10px",
+            padding: "10px 14px", borderRadius: 14,
+            background: T.primaryL, border: `1px solid rgba(45,106,79,0.2)`,
+            textDecoration: "none",
+          }}>
+            <div style={{
+              width: 34, height: 34, borderRadius: 10, background: T.primary,
+              display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+            }}>
+              <svg width="16" height="16" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+              </svg>
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: T.primary }}>Chat with Habib to search</div>
+              <div style={{ fontSize: 11, color: T.text2 }}>Tell me what you're looking for and I'll find it on the map</div>
+            </div>
+            <svg width="14" height="14" fill="none" stroke={T.primary} strokeWidth="2.5" viewBox="0 0 24 24">
+              <path strokeLinecap="round" d="M9 18l6-6-6-6" />
+            </svg>
+          </a>
           <MapView properties={properties} />
         </div>
       )}

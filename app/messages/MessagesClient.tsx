@@ -3,16 +3,33 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { Conversation, Message } from "@/lib/types";
 
+// Light-mode tokens — forest green CI
+const T = {
+  bg:      "#FFFFFF",
+  bgSoft:  "#F7F7F7",
+  bgSoft2: "#F0F2F0",
+  border:  "rgba(0,0,0,0.07)",
+  border2: "rgba(0,0,0,0.11)",
+  text1:   "#1A1A2E",
+  text2:   "#6B7280",
+  text3:   "#9CA3AF",
+  primary: "#2D6A4F",
+  primaryL:"rgba(45,106,79,0.10)",
+  ok:      "#34C759",
+  err:     "#FF453A",
+  font:    "'Inter',-apple-system,sans-serif",
+};
+
 // ── Helpers ────────────────────────────────────────────────────────────────────
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
-  const mins  = Math.floor(diff / 60_000);
+  const mins = Math.floor(diff / 60_000);
   if (mins < 1)   return "just now";
-  if (mins < 60)  return `${mins}m ago`;
+  if (mins < 60)  return `${mins}m`;
   const hrs = Math.floor(mins / 60);
-  if (hrs  < 24)  return `${hrs}h ago`;
+  if (hrs  < 24)  return `${hrs}h`;
   const days = Math.floor(hrs / 24);
-  if (days < 7)   return `${days}d ago`;
+  if (days < 7)   return `${days}d`;
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
@@ -20,103 +37,66 @@ function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
 }
 
-// Derive display name from conversation (we don't have profile data in the list)
-function convTitle(conv: Conversation, userId: string): string {
-  if (conv.property?.title) return conv.property.title;
-  return conv.participant_a === userId ? "Conversation" : "Conversation";
-}
-
-// ── Empty state ────────────────────────────────────────────────────────────────
-function EmptyConversations() {
-  return (
-    <div style={{
-      display: "flex", flexDirection: "column", alignItems: "center",
-      justifyContent: "center", padding: "80px 24px", textAlign: "center",
-    }}>
-      <div style={{
-        width: 56, height: 56, borderRadius: 16,
-        background: "var(--surface2)", border: "1px solid var(--border)",
-        display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16,
-      }}>
-        <svg width="24" height="24" fill="none" stroke="var(--text-3)" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-          <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-        </svg>
-      </div>
-      <h3 style={{ fontSize: 15, fontWeight: 600, color: "var(--text-1)", marginBottom: 6 }}>No messages yet</h3>
-      <p style={{ fontSize: 13, color: "var(--text-2)", maxWidth: 260, lineHeight: 1.6 }}>
-        When you contact an agent or inquire about a property, your conversations will appear here.
-      </p>
-    </div>
-  );
-}
-
 // ── Conversation list item ─────────────────────────────────────────────────────
-function ConvItem({
-  conv, userId, isActive, onClick,
-}: {
-  conv: Conversation;
-  userId: string;
-  isActive: boolean;
-  onClick: () => void;
+function ConvItem({ conv, userId, isActive, onClick }: {
+  conv: Conversation; userId: string; isActive: boolean; onClick: () => void;
 }) {
   const unread = conv.participant_a === userId ? conv.unread_a : conv.unread_b;
   const title  = conv.property?.title ?? "Property Inquiry";
   const sub    = conv.property
     ? `${conv.property.neighbourhood ?? conv.property.city ?? "Addis Abeba"}`
     : "General inquiry";
+  const initial = title.charAt(0).toUpperCase();
 
   return (
-    <button
-      onClick={onClick}
-      style={{
-        width: "100%", textAlign: "left",
-        padding: "14px 20px",
-        background: isActive ? "rgba(124,110,242,0.08)" : "transparent",
-        borderBottom: "1px solid var(--border)",
-        borderLeft: isActive ? "3px solid var(--color-primary)" : "3px solid transparent",
-        cursor: "pointer", transition: "background 0.12s",
-        display: "flex", gap: 12, alignItems: "flex-start",
-        border: "none",
-      }}
-    >
-      {/* Avatar placeholder */}
+    <button onClick={onClick} style={{
+      width: "100%", textAlign: "left",
+      padding: "14px 18px",
+      background: isActive ? T.primaryL : "transparent",
+      borderBottom: `1px solid ${T.border}`,
+      borderLeft: `3px solid ${isActive ? T.primary : "transparent"}`,
+      cursor: "pointer", transition: "background 0.12s",
+      display: "flex", gap: 12, alignItems: "flex-start",
+      border: "none",
+    }}>
+      {/* Avatar */}
       <div style={{
-        width: 44, height: 44, borderRadius: "50%", flexShrink: 0,
-        background: "linear-gradient(135deg, var(--color-primary) 0%, #6366f1 100%)",
+        width: 44, height: 44, borderRadius: 14, flexShrink: 0,
+        background: isActive ? T.primary : T.bgSoft2,
         display: "flex", alignItems: "center", justifyContent: "center",
-        fontSize: 16, fontWeight: 700, color: "#fff",
+        fontSize: 17, fontWeight: 700, color: isActive ? "#fff" : T.primary,
       }}>
-        {title.charAt(0).toUpperCase()}
+        {initial}
       </div>
 
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 2 }}>
           <span style={{
-            fontSize: 14, fontWeight: unread > 0 ? 700 : 500,
-            color: "var(--text-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            fontSize: 14, fontWeight: unread > 0 ? 700 : 600,
+            color: T.text1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
           }}>
             {title}
           </span>
-          <span style={{ fontSize: 11, color: "var(--text-3)", flexShrink: 0 }}>
+          <span style={{ fontSize: 11, color: T.text3, flexShrink: 0 }}>
             {conv.last_message_at ? timeAgo(conv.last_message_at) : ""}
           </span>
         </div>
-        <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2 }}>{sub}</div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
+        <div style={{ fontSize: 12, color: T.text3, marginBottom: 3 }}>{sub}</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span style={{
-            fontSize: 13, color: "var(--text-2)",
+            fontSize: 13, color: T.text2,
             overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-            fontWeight: unread > 0 ? 500 : 400,
+            fontWeight: unread > 0 ? 600 : 400,
           }}>
             {conv.last_message ?? "No messages yet"}
           </span>
           {unread > 0 && (
             <span style={{
               minWidth: 18, height: 18, borderRadius: 9, flexShrink: 0,
-              background: "var(--color-primary)", color: "#fff",
+              background: T.primary, color: "#fff",
               fontSize: 10, fontWeight: 700,
               display: "flex", alignItems: "center", justifyContent: "center",
-              padding: "0 4px",
+              padding: "0 4px", marginLeft: 6,
             }}>
               {unread > 9 ? "9+" : unread}
             </span>
@@ -127,15 +107,11 @@ function ConvItem({
   );
 }
 
-// ── Chat thread ────────────────────────────────────────────────────────────────
-function ChatThread({
-  conv, messages, userId, onSend, sending,
-}: {
-  conv: Conversation;
-  messages: Message[];
-  userId: string;
-  onSend: (text: string) => Promise<void>;
-  sending: boolean;
+// ── Chat Thread ────────────────────────────────────────────────────────────────
+function ChatThread({ conv, messages, userId, onSend, sending, onBack }: {
+  conv: Conversation; messages: Message[];
+  userId: string; onSend: (text: string) => Promise<void>;
+  sending: boolean; onBack: () => void;
 }) {
   const [draft, setDraft] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
@@ -153,60 +129,62 @@ function ChatThread({
 
   const title = conv.property?.title ?? "Property Inquiry";
   const sub   = conv.property
-    ? `${conv.property.city ?? "Addis Abeba"} · ${conv.property.neighbourhood ?? ""}`
+    ? `${conv.property.neighbourhood ?? conv.property.city ?? "Addis Abeba"}`
     : "General";
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      {/* Chat header */}
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", background: T.bg, minHeight: 0 }}>
+      {/* Thread header */}
       <div style={{
-        padding: "16px 24px", borderBottom: "1px solid var(--border)",
         display: "flex", alignItems: "center", gap: 12,
-        background: "var(--surface2)",
+        padding: "14px 18px", background: T.bg,
+        borderBottom: `1px solid ${T.border}`, flexShrink: 0,
       }}>
-        <div style={{
-          width: 40, height: 40, borderRadius: "50%", flexShrink: 0,
-          background: "linear-gradient(135deg, var(--color-primary) 0%, #6366f1 100%)",
+        <button onClick={onBack} style={{
+          width: 36, height: 36, borderRadius: 10,
+          background: T.bgSoft, border: "none", cursor: "pointer",
           display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 16, fontWeight: 700, color: "#fff",
+          color: T.text1, flexShrink: 0,
         }}>
+          <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24">
+            <path d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <div style={{ width: 40, height: 40, borderRadius: 12, background: T.primaryL, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700, color: T.primary, flexShrink: 0 }}>
           {title.charAt(0).toUpperCase()}
         </div>
-        <div>
-          <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text-1)" }}>{title}</div>
-          <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 1 }}>{sub}</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: T.text1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{title}</div>
+          <div style={{ fontSize: 11, color: T.text3 }}>{sub}</div>
         </div>
+        <div style={{ width: 8, height: 8, borderRadius: "50%", background: T.ok, flexShrink: 0 }} />
       </div>
 
       {/* Messages */}
-      <div style={{
-        flex: 1, overflowY: "auto", padding: "16px 24px",
-        display: "flex", flexDirection: "column", gap: 8,
-      }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10 }}>
         {messages.length === 0 ? (
           <div style={{ textAlign: "center", padding: "40px 0" }}>
-            <p style={{ fontSize: 13, color: "var(--text-3)" }}>Start the conversation…</p>
+            <div style={{ width: 48, height: 48, borderRadius: 14, background: T.bgSoft, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
+              <svg width="22" height="22" fill="none" stroke={T.text3} strokeWidth="1.8" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+              </svg>
+            </div>
+            <p style={{ fontSize: 13, color: T.text3 }}>Start the conversation…</p>
           </div>
         ) : (
           messages.map((msg) => {
             const isOwn = msg.sender_id === userId;
             return (
-              <div key={msg.id} style={{
-                display: "flex",
-                justifyContent: isOwn ? "flex-end" : "flex-start",
-              }}>
+              <div key={msg.id} style={{ display: "flex", justifyContent: isOwn ? "flex-end" : "flex-start" }}>
                 <div style={{
-                  maxWidth: "70%", padding: "10px 14px", borderRadius: isOwn ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
-                  background: isOwn ? "var(--color-primary)" : "var(--surface2)",
-                  color: isOwn ? "#fff" : "var(--text-1)",
+                  maxWidth: "75%", padding: "10px 14px",
+                  borderRadius: isOwn ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
+                  background: isOwn ? T.primary : T.bgSoft,
+                  color: isOwn ? "#fff" : T.text1,
                   fontSize: 14, lineHeight: 1.5,
-                  boxShadow: "0 1px 2px rgba(0,0,0,0.15)",
                 }}>
                   <p style={{ margin: 0 }}>{msg.body}</p>
-                  <p style={{
-                    margin: "4px 0 0",
-                    fontSize: 10, opacity: 0.65, textAlign: "right",
-                  }}>
+                  <p style={{ margin: "4px 0 0", fontSize: 10, opacity: 0.6, textAlign: "right" }}>
                     {formatTime(msg.created_at)}
                   </p>
                 </div>
@@ -217,11 +195,10 @@ function ChatThread({
         <div ref={endRef} />
       </div>
 
-      {/* Input */}
+      {/* Input bar */}
       <div style={{
-        padding: "12px 16px", borderTop: "1px solid var(--border)",
-        background: "var(--surface2)",
-        display: "flex", gap: 10, alignItems: "flex-end",
+        padding: "10px 14px", borderTop: `1px solid ${T.border}`, background: T.bg,
+        display: "flex", gap: 10, alignItems: "flex-end", flexShrink: 0,
       }}>
         <textarea
           value={draft}
@@ -230,25 +207,21 @@ function ChatThread({
           placeholder="Type a message…"
           rows={1}
           style={{
-            flex: 1, resize: "none",
-            padding: "10px 14px", borderRadius: 20,
-            background: "var(--surface3)", border: "1px solid var(--border2)",
-            color: "var(--text-1)", fontSize: 14,
-            outline: "none", lineHeight: 1.5, maxHeight: 120, overflowY: "auto",
+            flex: 1, resize: "none", padding: "10px 14px", borderRadius: 20,
+            background: T.bgSoft, border: `1px solid ${T.border2}`,
+            color: T.text1, fontSize: 14, outline: "none",
+            lineHeight: 1.5, maxHeight: 120, overflowY: "auto",
+            fontFamily: T.font,
           }}
         />
-        <button
-          onClick={handleSend}
-          disabled={!draft.trim() || sending}
-          style={{
-            width: 40, height: 40, borderRadius: "50%", flexShrink: 0,
-            background: draft.trim() ? "var(--color-primary)" : "var(--surface3)",
-            border: "none", cursor: draft.trim() ? "pointer" : "default",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            transition: "background 0.15s",
-          }}
-        >
-          <svg width="18" height="18" fill="none" stroke={draft.trim() ? "#fff" : "var(--text-3)"} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+        <button onClick={handleSend} disabled={!draft.trim() || sending} style={{
+          width: 40, height: 40, borderRadius: "50%", flexShrink: 0,
+          background: draft.trim() ? T.primary : T.bgSoft2,
+          border: "none", cursor: draft.trim() ? "pointer" : "default",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          transition: "background 0.15s",
+        }}>
+          <svg width="18" height="18" fill="none" stroke={draft.trim() ? "#fff" : T.text3} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
             <line x1="22" y1="2" x2="11" y2="13" />
             <polygon points="22 2 15 22 11 13 2 9 22 2" />
           </svg>
@@ -258,20 +231,15 @@ function ChatThread({
   );
 }
 
-// ── Main component ─────────────────────────────────────────────────────────────
+// ── Main ──────────────────────────────────────────────────────────────────────
 export default function MessagesClient() {
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [activeConvId, setActiveConvId]   = useState<string | null>(null);
-  const [messages, setMessages]           = useState<Message[]>([]);
-  const [loading, setLoading]             = useState(true);
-  const [sending, setSending]             = useState(false);
-  const [error, setError]                 = useState<string | null>(null);
+  const [conversations,  setConversations]  = useState<Conversation[]>([]);
+  const [activeConvId,   setActiveConvId]   = useState<string | null>(null);
+  const [messages,       setMessages]       = useState<Message[]>([]);
+  const [loading,        setLoading]        = useState(true);
+  const [sending,        setSending]        = useState(false);
+  const [userId,         setUserId]         = useState("");
 
-  // Fake userId — in production this would come from Supabase auth context
-  // The component works without it; messages sent will 401 if not auth'd
-  const [userId, setUserId] = useState<string>("");
-
-  // Fetch user id from session
   useEffect(() => {
     fetch("/api/auth/session")
       .then((r) => r.ok ? r.json() : null)
@@ -279,28 +247,21 @@ export default function MessagesClient() {
       .catch(() => {});
   }, []);
 
-  // Fetch conversation list
   const fetchConversations = useCallback(async () => {
     setLoading(true);
     try {
       const res  = await fetch("/api/messages");
       const data = await res.json();
       if (res.ok) setConversations(data.conversations ?? []);
-      else setError(data.error ?? "Failed to load conversations");
-    } catch {
-      setError("Network error");
-    } finally {
-      setLoading(false);
-    }
+    } catch { /* ok */ }
+    finally { setLoading(false); }
   }, []);
 
   useEffect(() => { fetchConversations(); }, [fetchConversations]);
 
-  // Fetch messages when conversation changes
   useEffect(() => {
     if (!activeConvId) return;
     setMessages([]);
-
     fetch(`/api/messages/${activeConvId}`)
       .then((r) => r.ok ? r.json() : Promise.reject(r))
       .then((d) => setMessages(d.messages ?? []))
@@ -321,63 +282,114 @@ export default function MessagesClient() {
       const data = await res.json();
       if (res.ok && data.message) {
         setMessages((prev) => [...prev, data.message]);
-        // Update last_message in conv list
         setConversations((prev) => prev.map((c) =>
           c.id === activeConvId
             ? { ...c, last_message: text, last_message_at: new Date().toISOString() }
             : c
         ));
       }
-    } finally {
-      setSending(false);
-    }
+    } finally { setSending(false); }
   };
 
-  return (
-    <div style={{ display: "flex", height: "calc(100vh - 56px)", overflow: "hidden" }}>
-      {/* Sidebar — conversation list */}
-      <div style={{
-        width: 340, flexShrink: 0,
-        borderRight: "1px solid var(--border)",
-        display: "flex", flexDirection: "column",
-        background: "var(--surface)",
-        overflowY: "auto",
-      }}>
-        {/* Header */}
-        <div style={{
-          padding: "20px 20px 16px",
-          borderBottom: "1px solid var(--border)",
-          background: "var(--surface2)",
-        }}>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-1)", margin: 0, letterSpacing: "-0.02em" }}>
-            Messages
-          </h1>
-          <p style={{ fontSize: 12, color: "var(--text-3)", marginTop: 3 }}>
-            {conversations.length} conversation{conversations.length !== 1 ? "s" : ""}
-          </p>
-        </div>
+  // Mobile: show thread if active, otherwise show list
+  if (activeConv && userId) {
+    return (
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+        <ChatThread
+          conv={activeConv}
+          messages={messages}
+          userId={userId}
+          onSend={handleSend}
+          sending={sending}
+          onBack={() => setActiveConvId(null)}
+        />
+      </div>
+    );
+  }
 
-        {/* List */}
+  return (
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", background: T.bg, fontFamily: T.font }}>
+
+      {/* Header */}
+      <div style={{ padding: "52px 20px 16px", background: T.bg, borderBottom: `1px solid ${T.border}` }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+          <svg width="24" height="24" viewBox="0 0 32 32" fill="none">
+            <rect width="32" height="32" rx="9" fill={T.primary} />
+            <path d="M8 24V8h4v6.5h8V8h4v16h-4v-7h-8v7z" fill="#fff" />
+          </svg>
+          <span style={{ fontSize: 18, fontWeight: 800, color: T.primary, letterSpacing: -0.5 }}>habino</span>
+        </div>
+        <h1 style={{ fontSize: 24, fontWeight: 800, color: T.text1, letterSpacing: -0.6 }}>Messages</h1>
+        <p style={{ fontSize: 13, color: T.text3, marginTop: 2 }}>
+          {loading ? "Loading…" : `${conversations.length} conversation${conversations.length !== 1 ? "s" : ""}`}
+        </p>
+      </div>
+
+      {/* Habib pinned AI conversation */}
+      <div style={{
+        margin: "14px 16px 0",
+        background: T.primaryL,
+        border: `1.5px solid rgba(45,106,79,0.2)`,
+        borderRadius: 16, padding: 14,
+        display: "flex", gap: 12, alignItems: "center",
+        cursor: "pointer",
+      }}>
+        <div style={{
+          width: 44, height: 44, borderRadius: 14, flexShrink: 0,
+          background: T.primary,
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          <svg width="20" height="20" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+          </svg>
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: T.primary }}>Habib — AI Assistant</div>
+          <div style={{ fontSize: 12, color: T.text2, marginTop: 2 }}>Ask me anything about properties in Addis Abeba</div>
+        </div>
+        <a href="/" style={{
+          padding: "7px 12px", borderRadius: 10,
+          background: T.primary, color: "#fff",
+          fontSize: 12, fontWeight: 700, textDecoration: "none", flexShrink: 0,
+          whiteSpace: "nowrap",
+        }}>
+          Chat
+        </a>
+      </div>
+
+      <div style={{ padding: "14px 18px 8px", borderBottom: `1px solid ${T.border}` }}>
+        <span style={{ fontSize: 11, fontWeight: 600, color: T.text3, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+          Agent conversations
+        </span>
+      </div>
+
+      {/* Conversation list */}
+      <div style={{ flex: 1, overflowY: "auto" }}>
         {loading ? (
-          <div style={{ padding: 24 }}>
+          <div style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10 }}>
             {[1, 2, 3].map((i) => (
-              <div key={i} style={{
-                height: 72, borderRadius: 10, marginBottom: 8,
-                background: "var(--surface2)", animation: "pulse 1.5s infinite",
-              }} />
+              <div key={i} style={{ height: 72, borderRadius: 14, background: T.bgSoft }} />
             ))}
           </div>
-        ) : error ? (
-          <div style={{ padding: 24, textAlign: "center" }}>
-            <p style={{ fontSize: 13, color: "var(--err)" }}>{error}</p>
-            <button onClick={fetchConversations} style={{
-              marginTop: 12, padding: "8px 16px", borderRadius: 8,
-              background: "var(--color-primary)", color: "#fff", border: "none",
-              fontSize: 13, cursor: "pointer",
-            }}>Retry</button>
-          </div>
         ) : conversations.length === 0 ? (
-          <EmptyConversations />
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 24px", textAlign: "center" }}>
+            <div style={{ width: 56, height: 56, borderRadius: 18, background: T.bgSoft2, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+              <svg width="24" height="24" fill="none" stroke={T.text3} strokeWidth="1.8" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+              </svg>
+            </div>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: T.text1, marginBottom: 6 }}>No agent messages yet</h3>
+            <p style={{ fontSize: 13, color: T.text2, maxWidth: 260, lineHeight: 1.6, marginBottom: 20 }}>
+              When you contact a broker or inquire about a property, your conversations will appear here.
+            </p>
+            <a href="/explore" style={{
+              padding: "10px 22px", borderRadius: 12,
+              background: T.primary, color: "#fff",
+              fontSize: 13, fontWeight: 700, textDecoration: "none",
+            }}>
+              Browse properties
+            </a>
+          </div>
         ) : (
           conversations.map((conv) => (
             <ConvItem
@@ -388,41 +400,6 @@ export default function MessagesClient() {
               onClick={() => setActiveConvId(conv.id)}
             />
           ))
-        )}
-      </div>
-
-      {/* Chat panel */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "var(--surface)", minWidth: 0 }}>
-        {activeConv && userId ? (
-          <ChatThread
-            conv={activeConv}
-            messages={messages}
-            userId={userId}
-            onSend={handleSend}
-            sending={sending}
-          />
-        ) : (
-          <div style={{
-            flex: 1, display: "flex", flexDirection: "column",
-            alignItems: "center", justifyContent: "center",
-            padding: 48, textAlign: "center",
-          }}>
-            <div style={{
-              width: 64, height: 64, borderRadius: 20,
-              background: "var(--surface2)", border: "1px solid var(--border)",
-              display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 20,
-            }}>
-              <svg width="28" height="28" fill="none" stroke="var(--text-3)" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-              </svg>
-            </div>
-            <h2 style={{ fontSize: 17, fontWeight: 600, color: "var(--text-1)", marginBottom: 8 }}>
-              Select a conversation
-            </h2>
-            <p style={{ fontSize: 14, color: "var(--text-2)", maxWidth: 280, lineHeight: 1.6 }}>
-              Choose a conversation from the list to read your messages and continue the discussion.
-            </p>
-          </div>
         )}
       </div>
     </div>

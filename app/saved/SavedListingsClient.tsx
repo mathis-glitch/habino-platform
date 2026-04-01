@@ -627,32 +627,107 @@ export function SavedListingsClient() {
     );
   }
 
+  // Mock examples shown when saved list is empty
+  const MOCK_EXAMPLES = [
+    {
+      id: "mock-1",
+      title: "Modern 3-Bedroom Apartment in Bole",
+      city: "Addis Abeba",
+      neighbourhood: "Bole",
+      price: 8500000,
+      currency: "ETB",
+      listing_type: "buy",
+      property_type: "apartment",
+      bedrooms: 3,
+      bathrooms: 2,
+      area_sqm: 145,
+      images: [{ id: "m1", url: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&h=400&fit=crop", sort_order: 0 }],
+    },
+    {
+      id: "mock-2",
+      title: "Furnished Villa for Rent — CMC Road",
+      city: "Addis Abeba",
+      neighbourhood: "CMC",
+      price: 95000,
+      currency: "ETB",
+      listing_type: "rent",
+      property_type: "villa",
+      bedrooms: 4,
+      bathrooms: 3,
+      area_sqm: 280,
+      images: [{ id: "m2", url: "https://images.unsplash.com/photo-1613977257363-707ba9348227?w=600&h=400&fit=crop", sort_order: 0 }],
+    },
+  ] as unknown as Property[];
+
   if (properties.length === 0) {
     return (
-      <main style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "80px 20px", minHeight: "calc(100vh - 124px)" }}>
-        <div style={{
-          width: 60, height: 60, borderRadius: 16,
-          background: "var(--surface2)", border: "1px solid var(--border)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          marginBottom: 20, color: "var(--text-3)",
-        }}>
-          <svg width="26" height="26" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-          </svg>
+      <main style={{ background: "#F7F7F7", minHeight: "100%", fontFamily: "'Inter',-apple-system,sans-serif" }}>
+        {/* Header */}
+        <div style={{ background: "#fff", padding: "52px 20px 16px", borderBottom: "1px solid rgba(0,0,0,0.07)" }}>
+          <h1 style={{ fontSize: 24, fontWeight: 800, color: "#1A1A2E", letterSpacing: -0.6, marginBottom: 4 }}>Saved</h1>
+          <p style={{ fontSize: 13, color: "#9CA3AF" }}>Save properties you love to compare them later</p>
         </div>
-        <h2 style={{ fontSize: 18, fontWeight: 600, color: "var(--text-1)", marginBottom: 8 }}>No saved properties yet</h2>
-        <p style={{ fontSize: 13, color: "var(--text-2)", maxWidth: 280, marginBottom: 28, lineHeight: 1.6 }}>
-          Ask the AI agent for properties and save them using the heart icon.
-        </p>
-        <Link href="/" style={{
-          padding: "10px 22px", borderRadius: 10,
-          background: "var(--color-primary)", color: "white",
-          fontSize: 13, fontWeight: 600, textDecoration: "none",
-          boxShadow: "0 0 0 1px rgba(124,110,242,0.3), 0 4px 16px rgba(124,110,242,0.2)",
-        }}>
-          Objekte entdecken
-        </Link>
+
+        {/* Empty state callout */}
+        <div style={{ margin: "16px 16px 20px", padding: "14px 16px", borderRadius: 16, background: "rgba(45,106,79,0.08)", border: "1px solid rgba(45,106,79,0.2)", display: "flex", gap: 12, alignItems: "center" }}>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: "#2D6A4F", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <svg width="16" height="16" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
+            </svg>
+          </div>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#2D6A4F", marginBottom: 2 }}>No saved listings yet</div>
+            <div style={{ fontSize: 12, color: "#6B7280" }}>Tap ♥ on any listing to save it here</div>
+          </div>
+          <Link href="/explore" style={{ marginLeft: "auto", padding: "7px 12px", borderRadius: 10, background: "#2D6A4F", color: "#fff", fontSize: 12, fontWeight: 700, textDecoration: "none", flexShrink: 0, whiteSpace: "nowrap" }}>
+            Explore
+          </Link>
+        </div>
+
+        {/* Layout preview with mock examples */}
+        <div style={{ padding: "0 16px 8px" }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 12 }}>
+            Example layout
+          </div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, padding: "0 16px 100px" }}>
+          {MOCK_EXAMPLES.map((p) => (
+            <div key={p.id} style={{
+              background: "#fff", borderRadius: 18, overflow: "hidden",
+              border: "1px solid rgba(0,0,0,0.07)",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+              opacity: 0.8,
+              position: "relative",
+            }}>
+              <div style={{ position: "absolute", top: 8, right: 8, zIndex: 10, background: "rgba(255,255,255,0.9)", borderRadius: 8, padding: "3px 6px", fontSize: 10, fontWeight: 600, color: "#9CA3AF" }}>
+                Example
+              </div>
+              <div style={{ position: "relative", height: 130, background: "#E5E7EB", overflow: "hidden" }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={p.images![0].url} alt={p.title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <div style={{
+                  position: "absolute", bottom: 8, left: 8,
+                  padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 700,
+                  background: p.listing_type === "rent" ? "rgba(45,106,79,0.88)" : "rgba(52,199,89,0.88)",
+                  color: "#fff",
+                }}>
+                  {p.listing_type === "rent" ? "Rent" : "Buy"}
+                </div>
+              </div>
+              <div style={{ padding: "10px 12px 14px" }}>
+                <div style={{ fontSize: 14, fontWeight: 800, color: "#1A1A2E", letterSpacing: -0.3 }}>
+                  {p.currency} {p.price >= 1_000_000 ? `${(p.price / 1_000_000).toFixed(1)}M` : `${(p.price / 1_000).toFixed(0)}K`}
+                </div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "#1A1A2E", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {p.neighbourhood}, {p.city}
+                </div>
+                <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 2 }}>
+                  {p.property_type} · {p.bedrooms}bd · {p.area_sqm}m²
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </main>
     );
   }
@@ -660,23 +735,21 @@ export function SavedListingsClient() {
   const selectedArr = Array.from(selected);
 
   return (
-    <main style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 20px 100px" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
-        <div>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-1)", letterSpacing: "-0.02em" }}>
-            Saved
-            <span style={{ fontSize: 16, fontWeight: 400, color: "var(--text-3)", marginLeft: 8 }}>· {properties.length}</span>
-          </h1>
-          {properties.length >= 2 && (
-            <p style={{ fontSize: 12, color: "var(--text-3)", marginTop: 4 }}>Open a card for details · select 2–4 to compare</p>
-          )}
-        </div>
-        <Link href="/" style={{ fontSize: 13, fontWeight: 500, color: "var(--color-primary)", textDecoration: "none" }}>
-          Mehr entdecken →
+    <main style={{ background: "#F7F7F7", minHeight: "100%", fontFamily: "'Inter',-apple-system,sans-serif" }}>
+      <div style={{ background: "#fff", padding: "52px 20px 16px", borderBottom: "1px solid rgba(0,0,0,0.07)", marginBottom: 16 }}>
+        <h1 style={{ fontSize: 24, fontWeight: 800, color: "#1A1A2E", letterSpacing: -0.6, marginBottom: 4 }}>
+          Saved
+          <span style={{ fontSize: 16, fontWeight: 400, color: "#9CA3AF", marginLeft: 8 }}>· {properties.length}</span>
+        </h1>
+        {properties.length >= 2 && (
+          <p style={{ fontSize: 12, color: "#9CA3AF" }}>Tap a card for details · select 2–4 to compare</p>
+        )}
+        <Link href="/explore" style={{ fontSize: 13, fontWeight: 600, color: "#2D6A4F", textDecoration: "none" }}>
+          Explore more →
         </Link>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 18 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, padding: "0 16px 100px" }}>
         {properties.map((p) => (
           <SavedCard
             key={p.id}
