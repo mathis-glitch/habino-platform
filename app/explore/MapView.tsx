@@ -3,21 +3,18 @@
 import { useEffect, useRef, useState } from "react";
 import type { Property } from "@/lib/types";
 
-// Design tokens (shared with ExploreClient)
 const T = {
   bg:      "#FFFFFF",
   bgSoft:  "#F7F7F7",
   text1:   "#1A1A2E",
   text2:   "#717171",
   text3:   "#AFAFAF",
-  primary: "#7C6EF2",
-  primaryD:"#6459D4",
-  primaryL:"rgba(124,110,242,0.10)",
+  primary: "#2D6A4F",
+  primaryL:"rgba(45,106,79,0.10)",
   err:     "#FF453A",
   shadowMd:"0 6px 24px rgba(0,0,0,0.09),0 1px 4px rgba(0,0,0,0.05)",
   shadowLg:"0 14px 48px rgba(0,0,0,0.12),0 2px 8px rgba(0,0,0,0.07)",
   r2xl:    28,
-  rLg:     16,
   rFull:   9999,
   font:    "'Inter',-apple-system,sans-serif",
 };
@@ -33,8 +30,28 @@ function getHero(images?: Property["images"]): string | null {
   return [...images].sort((a, b) => a.sort_order - b.sort_order)[0].url;
 }
 
-// Addis Abeba center
+// Property type emoji indicators
+function getPropEmoji(type: string): string {
+  const map: Record<string, string> = {
+    apartment:  "🏢",
+    house:      "🏠",
+    villa:      "🏡",
+    commercial: "🏪",
+    office:     "🏬",
+    land:       "🌿",
+    plot:       "🌿",
+    hall:       "🏭",
+    production: "🏭",
+  };
+  return map[type] ?? "🏠";
+}
+
+// Addis Ababa center and bounds
 const ADDIS_CENTER: [number, number] = [9.005, 38.763];
+const ADDIS_BOUNDS: [[number, number], [number, number]] = [
+  [8.75, 38.55],  // south-west
+  [9.25, 39.00],  // north-east
+];
 
 interface Props {
   properties: Property[];
@@ -42,8 +59,8 @@ interface Props {
 }
 
 export default function MapView({ properties, onSelectProperty }: Props) {
-  const mapRef    = useRef<HTMLDivElement>(null);
-  const leafletRef = useRef<any>(null);
+  const mapRef      = useRef<HTMLDivElement>(null);
+  const leafletRef  = useRef<any>(null);
   const mapInstance = useRef<any>(null);
   const markersRef  = useRef<any[]>([]);
   const [selected, setSelected] = useState<Property | null>(null);
@@ -52,10 +69,9 @@ export default function MapView({ properties, onSelectProperty }: Props) {
   useEffect(() => {
     if (!mapRef.current || mapInstance.current) return;
 
-    // Dynamic import to avoid SSR issues
     Promise.all([
       import("leaflet"),
-      // @ts-expect-error — no types needed for CSS side-effect
+      // @ts-expect-error — CSS side-effect
       import("leaflet/dist/leaflet.css"),
     ]).then(([L]) => {
       leafletRef.current = L.default ?? L;
@@ -64,21 +80,25 @@ export default function MapView({ properties, onSelectProperty }: Props) {
       const map = Lf.map(mapRef.current!, {
         center: ADDIS_CENTER,
         zoom: 13,
+        minZoom: 11,
+        maxZoom: 18,
         zoomControl: false,
         attributionControl: false,
+        maxBounds: ADDIS_BOUNDS,
+        maxBoundsViscosity: 0.85,
       });
 
       mapInstance.current = map;
 
-      // Clean tile layer (CartoDB light)
       Lf.tileLayer(
         "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
         { subdomains: "abcd", maxZoom: 19 }
       ).addTo(map);
 
-      // Attribution (bottom right, small)
-      Lf.control.attribution({ position: "bottomright", prefix: false })
-        .addTo(map);
+      // Custom zoom control (top-right)
+      Lf.control.zoom({ position: "topright" }).addTo(map);
+
+      Lf.control.attribution({ position: "bottomright", prefix: false }).addTo(map);
 
       renderMarkers(Lf, map, properties, setSelected, setImgErr);
     });
@@ -95,20 +115,13 @@ export default function MapView({ properties, onSelectProperty }: Props) {
   // Re-render markers when properties change
   useEffect(() => {
     if (!mapInstance.current || !leafletRef.current) return;
-    const Lf  = leafletRef.current;
-    const map = mapInstance.current;
-
-    // Remove old markers
     markersRef.current.forEach(m => m.remove());
     markersRef.current = [];
-
-    renderMarkers(Lf, map, properties, setSelected, setImgErr);
+    renderMarkers(leafletRef.current, mapInstance.current, properties, setSelected, setImgErr);
   }, [properties]);
 
   function renderMarkers(
-    Lf: any,
-    map: any,
-    props: Property[],
+    Lf: any, map: any, props: Property[],
     onSelect: (p: Property) => void,
     _setImgErr: (v: boolean) => void,
   ) {
@@ -116,26 +129,33 @@ export default function MapView({ properties, onSelectProperty }: Props) {
 
     withCoords.forEach(p => {
       const label  = fmtPrice(p.price, p.currency);
+      const emoji  = getPropEmoji(p.property_type);
       const isRent = p.listing_type === "rent";
+      const color  = isRent ? T.primary : "#34C759";
 
       const icon = Lf.divIcon({
         className: "",
         html: `
           <div style="
-            padding:5px 11px;
+            display:inline-flex;
+            align-items:center;
+            gap:3px;
+            padding:4px 10px;
             border-radius:999px;
-            background:${isRent ? T.primary : "#34C759"};
+            background:${color};
             color:#fff;
-            font-size:12px;
+            font-size:11px;
             font-weight:700;
             font-family:${T.font};
             white-space:nowrap;
-            box-shadow:0 2px 8px rgba(0,0,0,0.18);
+            box-shadow:0 2px 10px rgba(0,0,0,0.22);
             cursor:pointer;
             border:2px solid #fff;
             transform:translateX(-50%);
-            display:inline-block;
-          ">${label}</div>
+          ">
+            <span style="font-size:12px">${emoji}</span>
+            ${label}
+          </div>
         `,
         iconAnchor: [0, 0],
       });
@@ -149,9 +169,9 @@ export default function MapView({ properties, onSelectProperty }: Props) {
       markersRef.current.push(marker);
     });
 
-    // Auto-fit bounds if we have markers
     if (withCoords.length > 0) {
       const bounds = Lf.latLngBounds(withCoords.map(p => [p.lat!, p.lng!]));
+      // clamp to Addis bounds
       map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
     }
   }
@@ -163,7 +183,7 @@ export default function MapView({ properties, onSelectProperty }: Props) {
       {/* Map */}
       <div ref={mapRef} style={{ flex: 1, minHeight: 0, height: "100%" }} />
 
-      {/* Bottom property card — slides up on selection */}
+      {/* Bottom property card */}
       {selected && (
         <div
           style={{
@@ -185,11 +205,7 @@ export default function MapView({ properties, onSelectProperty }: Props) {
           `}</style>
 
           {/* Drag handle */}
-          <div style={{
-            width: 36, height: 4, borderRadius: 2,
-            background: "rgba(0,0,0,0.12)",
-            margin: "0 auto 14px",
-          }} />
+          <div style={{ width: 36, height: 4, borderRadius: 2, background: "rgba(0,0,0,0.12)", margin: "0 auto 14px" }} />
 
           {/* Close */}
           <button
@@ -213,7 +229,7 @@ export default function MapView({ properties, onSelectProperty }: Props) {
             {/* Thumbnail */}
             <div style={{
               width: 90, height: 90, borderRadius: 16, overflow: "hidden",
-              background: "linear-gradient(135deg, rgba(124,110,242,0.18) 0%, rgba(192,132,252,0.12) 100%)",
+              background: `linear-gradient(135deg, ${T.primaryL} 0%, rgba(64,145,108,0.12) 100%)`,
               flexShrink: 0,
             }}>
               {hero && !imgErr ? (

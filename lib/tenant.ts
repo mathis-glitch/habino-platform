@@ -51,8 +51,8 @@ export function isCustomDomain(hostname: string): boolean {
  */
 export function tenantCssVars(tenant: Tenant): string {
   return [
-    `--color-primary: ${tenant.primary_color || "#00A884"}`,
-    `--color-secondary: ${tenant.secondary_color || "#0F1F3D"}`,
+    `--color-primary: ${tenant.primary_color || "#2D6A4F"}`,
+    `--color-secondary: ${tenant.secondary_color || "#40916C"}`,
   ].join("; ");
 }
 

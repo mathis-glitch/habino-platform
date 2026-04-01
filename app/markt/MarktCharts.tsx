@@ -88,9 +88,9 @@ export function PriceTrendChart({ usageType }: { usageType: string }) {
         <Tooltip content={<ChartTooltip prefix="ETB " suffix="/m²" />} />
         <Legend wrapperStyle={{ fontSize: 11 }} />
         <Line yAxisId="buy" type="monotone" dataKey="buy" name="Sale ETB/m²"
-          stroke="var(--color-primary, #7C6EF2)" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+          stroke="var(--color-primary, #2D6A4F)" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
         {showRent && <Line yAxisId="rent" type="monotone" dataKey="rent" name="Rent ETB/m²"
-          stroke="#6366f1" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />}
+          stroke="#40916C" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />}
       </LineChart>
     </ResponsiveContainer>
   );
@@ -143,8 +143,8 @@ export function DistrictChart({ usageType }: { usageType: string }) {
           tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
         <Tooltip content={<ChartTooltip prefix="ETB " suffix="/m²" />} />
         <Legend wrapperStyle={{ fontSize: 11 }} />
-        <Bar dataKey="buy" name="Sale ETB/m²" fill="var(--color-primary, #7C6EF2)" radius={[4, 4, 0, 0]} maxBarSize={28} />
-        {showRent && <Bar dataKey="rent" name="Rent ETB/m²" fill="#6366f1" radius={[4, 4, 0, 0]} maxBarSize={28} />}
+        <Bar dataKey="buy" name="Sale ETB/m²" fill="var(--color-primary, #2D6A4F)" radius={[4, 4, 0, 0]} maxBarSize={28} />
+        {showRent && <Bar dataKey="rent" name="Rent ETB/m²" fill="#40916C" radius={[4, 4, 0, 0]} maxBarSize={28} />}
       </BarChart>
     </ResponsiveContainer>
   );

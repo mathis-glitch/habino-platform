@@ -34,7 +34,7 @@ export function StickyContactBar({ agentPhone, agentEmail, propertyTitle, proper
 
   return (
     <div
-      className="fixed bottom-[58px] md:bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-100 px-4 py-3 flex gap-2"
+      className="fixed bottom-[64px] md:bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-100 px-4 py-3 flex gap-2"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       {/* WhatsApp — primary CTA */}

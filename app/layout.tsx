@@ -51,7 +51,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   const cssVars = tenant
     ? tenantCssVars(tenant)
-    : "--color-primary:#7C6EF2;--color-secondary:#9B8BF5;--color-primary-dark:#6255D4;--color-primary-light:rgba(124,110,242,0.12)";
+    : "--color-primary:#2D6A4F;--color-secondary:#40916C;--color-primary-dark:#1B4332;--color-primary-light:rgba(45,106,79,0.10)";
 
   return (
     <html lang="en" style={{ cssText: cssVars } as React.CSSProperties}>
@@ -61,7 +61,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Habino" />
-        <meta name="theme-color" content="#EEE9FF" />
+        <meta name="theme-color" content="#F0F7F4" />
         <meta name="mobile-web-app-capable" content="yes" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="icon" href="/favicon.ico" sizes="32x32" />
@@ -77,7 +77,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           */}
           <div style={{
             minHeight: "100dvh",
-            background: "linear-gradient(145deg,#EEE9FF 0%,#F0EEF8 40%,#E8F0FF 100%)",
+            background: "linear-gradient(145deg,#E8F4EE 0%,#F0F7F4 40%,#EAF2F0 100%)",
             display: "flex",
             justifyContent: "center",
             alignItems: "flex-start",

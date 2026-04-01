@@ -3,6 +3,25 @@
 import { useState } from "react";
 import { PriceTrendChart, DistrictChart } from "./MarktCharts";
 
+// ── Light-mode design tokens (hardcoded — no CSS vars) ────────────────────────
+const T = {
+  bg:       "#FFFFFF",
+  bgSoft:   "#F7F7F7",
+  bgSoft2:  "#F0F2F0",
+  border:   "rgba(0,0,0,0.07)",
+  border2:  "rgba(0,0,0,0.10)",
+  text1:    "#1A1A2E",
+  text2:    "#6B7280",
+  text3:    "#9CA3AF",
+  primary:  "#2D6A4F",
+  primaryD: "#1B4332",
+  primaryL: "rgba(45,106,79,0.09)",
+  ok:       "#34C759",
+  warn:     "#FF9F0A",
+  err:      "#FF453A",
+  font:     "'Inter',-apple-system,sans-serif",
+};
+
 // ── Addis Abeba Districts ──────────────────────────────────────────────────────
 const DISTRICTS = [
   "All Districts",
@@ -51,7 +70,7 @@ const STATS: Record<string, Record<string, { buy: string; rent: string | null; y
     "Yeka":             { buy: "ETB 38,000",  rent: "ETB 145",  yield: "4.6%", trend: "+3.2%", up: true  },
   },
   land: {
-    "All Districts":    { buy: "ETB 21,000",  rent: null, yield: "—", trend: "+8.2%", up: true  },
+    "All Districts":    { buy: "ETB 21,000",  rent: null, yield: "—", trend: "+8.2%",  up: true },
     "Bole":             { buy: "ETB 38,000",  rent: null, yield: "—", trend: "+10.5%", up: true },
     "Kazanchis":        { buy: "ETB 32,000",  rent: null, yield: "—", trend: "+9.8%",  up: true },
     "Sarbet":           { buy: "ETB 28,000",  rent: null, yield: "—", trend: "+8.9%",  up: true },
@@ -118,255 +137,326 @@ function getMicro(district: string) {
 }
 
 function ScoreBar({ score }: { score: number }) {
-  const color = score >= 85 ? "var(--ok)" : score >= 65 ? "var(--warn)" : "var(--err)";
+  const color = score >= 85 ? T.ok : score >= 65 ? T.warn : T.err;
   return (
-    <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "var(--surface3)" }}>
-      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${score}%`, background: color }} />
+    <div style={{ flex: 1, height: 6, borderRadius: 3, overflow: "hidden", background: T.bgSoft2 }}>
+      <div style={{ width: `${score}%`, height: "100%", borderRadius: 3, background: color, transition: "width 0.5s" }} />
     </div>
   );
 }
 
-const selectStyle: React.CSSProperties = {
-  padding: "8px 12px",
-  borderRadius: 9,
-  border: "1px solid var(--border2)",
-  fontSize: 13,
-  fontWeight: 500,
-  color: "var(--text-1)",
-  background: "var(--surface2)",
-  outline: "none",
-  cursor: "pointer",
-};
+const INSIGHT_TABS = [
+  { key: "market",  label: "Market" },
+  { key: "brokers", label: "Brokers" },
+];
 
-export default function MarketClient() {
+// Mock broker data
+const BROKERS = [
+  { id: "1", name: "Selam Tadesse", region: "Bole, Kazanchis", phone: "+251 91 234 5678", website: "habino.et/selam", specialty: "Luxury Residential", deals: 48, photo: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=160&h=160&fit=crop&crop=face" },
+  { id: "2", name: "Dawit Bekele",  region: "CMC, Yeka",        phone: "+251 92 345 6789", website: "habino.et/dawit",  specialty: "Commercial & Office",  deals: 36, photo: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=160&h=160&fit=crop&crop=face" },
+  { id: "3", name: "Hana Girma",    region: "Sarbet, Lideta",   phone: "+251 93 456 7890", website: "habino.et/hana",  specialty: "Buy & Investment",     deals: 29, photo: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=160&h=160&fit=crop&crop=face" },
+  { id: "4", name: "Abel Mekonnen", region: "Piassa, Arada",    phone: "+251 94 567 8901", website: "habino.et/abel",  specialty: "Land & Plots",         deals: 54, photo: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=160&h=160&fit=crop&crop=face" },
+  { id: "5", name: "Tigist Haile",  region: "Megenagna, Bole",  phone: "+251 95 678 9012", website: "habino.et/tigist", specialty: "Expat & NGO Rentals", deals: 41, photo: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=160&h=160&fit=crop&crop=face" },
+  { id: "6", name: "Yonas Alemu",   region: "Nifas Silk-Lafto", phone: "+251 96 789 0123", website: "habino.et/yonas",  specialty: "New Developments",     deals: 22, photo: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=160&h=160&fit=crop&crop=face" },
+];
+
+function BrokerCard({ broker }: { broker: typeof BROKERS[0] }) {
+  const [imgErr, setImgErr] = useState(false);
+  return (
+    <div style={{
+      background: T.bg,
+      border: `1px solid ${T.border}`,
+      borderRadius: 16,
+      padding: 16,
+      display: "flex",
+      gap: 14,
+      alignItems: "flex-start",
+      boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
+    }}>
+      {/* Avatar */}
+      <div style={{ width: 56, height: 56, borderRadius: 14, overflow: "hidden", flexShrink: 0, background: T.bgSoft2 }}>
+        {!imgErr ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={broker.photo} alt={broker.name} onError={() => setImgErr(true)}
+            style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+        ) : (
+          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center",
+            background: T.primaryL, color: T.primary, fontSize: 20, fontWeight: 700 }}>
+            {broker.name[0]}
+          </div>
+        )}
+      </div>
+
+      {/* Info */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontWeight: 700, fontSize: 15, color: T.text1, marginBottom: 2 }}>{broker.name}</div>
+        <div style={{ fontSize: 12, color: T.text3, marginBottom: 6 }}>{broker.region}</div>
+        <div style={{
+          display: "inline-block", padding: "2px 8px", borderRadius: 6,
+          background: T.primaryL, color: T.primary, fontSize: 11, fontWeight: 600, marginBottom: 8,
+        }}>
+          {broker.specialty}
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <a href={`tel:${broker.phone}`}
+            style={{
+              flex: 1, padding: "8px 0", borderRadius: 10, border: `1.5px solid ${T.border2}`,
+              fontSize: 12, fontWeight: 600, color: T.text1, textAlign: "center", textDecoration: "none",
+            }}>
+            📞 Call
+          </a>
+          <div style={{
+            display: "flex", alignItems: "center", gap: 4,
+            padding: "8px 12px", borderRadius: 10, background: T.primaryL,
+            fontSize: 12, fontWeight: 600, color: T.primary,
+          }}>
+            <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
+            {broker.deals} deals
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function InsightsClient() {
   const [district, setDistrict] = useState("All Districts");
   const [usage,    setUsage]    = useState("residential");
+  const [tab,      setTab]      = useState("market");
 
   const stats = getStats(usage, district);
   const micro = getMicro(district);
 
   return (
-    <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 20px 80px", display: "flex", flexDirection: "column", gap: 24 }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", background: T.bgSoft, fontFamily: T.font, minHeight: 0 }}>
 
-      {/* Header */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", justifyContent: "space-between", gap: 16 }}>
-          <div>
-            <div style={{
-              display: "inline-flex", alignItems: "center", gap: 6,
-              padding: "4px 12px", borderRadius: 20,
-              background: "rgba(255,159,10,0.1)", border: "1px solid rgba(255,159,10,0.2)",
-              color: "var(--warn)", fontSize: 11, fontWeight: 600, marginBottom: 10,
-            }}>
-              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--warn)", display: "inline-block" }} />
-              Indicative data · Live GIS integration coming soon
-            </div>
-            <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--text-1)", letterSpacing: "-0.02em", margin: 0 }}>
-              Addis Abeba Market Report
-            </h1>
-            <p style={{ fontSize: 13, color: "var(--text-2)", marginTop: 4 }}>
-              Real estate market data by district &amp; usage type · Prices in ETB
-            </p>
-          </div>
-
-          {/* District selector */}
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <select value={district} onChange={(e) => setDistrict(e.target.value)} style={selectStyle}>
-              {DISTRICTS.map((d) => <option key={d}>{d}</option>)}
-            </select>
+      {/* ── Header ── */}
+      <div style={{ padding: "52px 20px 0", background: T.bg }}>
+        <div style={{ marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ fontSize: 24, fontWeight: 800, color: T.text1, letterSpacing: -0.6 }}>Insights</div>
+          <div style={{
+            padding: "3px 10px", borderRadius: 20, marginBottom: 2,
+            background: "rgba(255,159,10,0.1)", border: "1px solid rgba(255,159,10,0.2)",
+            color: T.warn, fontSize: 10, fontWeight: 600,
+          }}>
+            Addis Abeba
           </div>
         </div>
+        <p style={{ fontSize: 13, color: T.text3, marginBottom: 16 }}>Real estate market data &amp; broker directory</p>
 
-        {/* Usage type tabs */}
-        <div style={{
-          display: "flex", gap: 2,
-          background: "var(--surface2)", border: "1px solid var(--border)",
-          borderRadius: 10, padding: 3, width: "fit-content",
-        }}>
-          {USAGE_TYPES.map((u) => (
-            <button key={u.key} onClick={() => setUsage(u.key)} style={{
-              padding: "6px 16px", borderRadius: 7,
-              fontSize: 13, fontWeight: 600,
-              background: usage === u.key ? "var(--surface3)" : "transparent",
-              color: usage === u.key ? "var(--text-1)" : "var(--text-2)",
-              boxShadow: usage === u.key ? "0 1px 3px rgba(0,0,0,0.3)" : "none",
-              border: "none", cursor: "pointer", transition: "all 0.12s",
+        {/* Sub-tabs */}
+        <div style={{ display: "flex", gap: 0, borderBottom: `1px solid ${T.border}` }}>
+          {INSIGHT_TABS.map((t) => (
+            <button key={t.key} onClick={() => setTab(t.key)} style={{
+              padding: "10px 20px", border: "none", background: "transparent",
+              fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: T.font,
+              color: tab === t.key ? T.primary : T.text2,
+              borderBottom: `2px solid ${tab === t.key ? T.primary : "transparent"}`,
+              transition: "all 0.15s",
             }}>
-              {u.label}
+              {t.label}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Stat cards */}
-      {stats && (
-        <div style={{ display: "grid", gridTemplateColumns: `repeat(${usage === "land" ? 3 : 4}, 1fr)`, gap: 12 }}>
-          {[
-            { label: "Avg. Sale Price/m²", value: stats.buy,   up: undefined },
-            ...(stats.rent ? [{ label: "Avg. Rent/m²/mo",   value: stats.rent,  up: undefined }] : []),
-            { label: "Gross Yield",         value: stats.yield, up: undefined },
-            { label: "Price Trend (YoY)",   value: stats.trend, up: stats.up },
-          ].map(({ label, value, up }) => (
-            <div key={label} style={{
-              background: "var(--surface2)", border: "1px solid var(--border)",
-              borderRadius: 12, padding: "18px 20px",
-            }}>
-              <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>
-                {label}
-              </p>
-              <p style={{
-                fontSize: 22, fontWeight: 800, letterSpacing: "-0.02em",
-                color: up !== undefined ? (up ? "var(--ok)" : "var(--err)") : "var(--text-1)",
+      {/* ── Market tab ── */}
+      {tab === "market" && (
+        <div style={{ flex: 1, overflowY: "auto", padding: "16px 16px 100px", display: "flex", flexDirection: "column", gap: 14 }}>
+
+          {/* Controls */}
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <select value={district} onChange={(e) => setDistrict(e.target.value)}
+              style={{
+                flex: 1, minWidth: 140, padding: "9px 12px", borderRadius: 10,
+                border: `1.5px solid ${T.border2}`, fontSize: 13, fontWeight: 500,
+                color: T.text1, background: T.bg, outline: "none", cursor: "pointer",
               }}>
-                {value}
+              {DISTRICTS.map((d) => <option key={d}>{d}</option>)}
+            </select>
+
+            {/* Usage type pills */}
+            <div style={{ display: "flex", background: T.bgSoft2, borderRadius: 10, padding: 3, gap: 2 }}>
+              {USAGE_TYPES.map((u) => (
+                <button key={u.key} onClick={() => setUsage(u.key)} style={{
+                  padding: "6px 12px", borderRadius: 7,
+                  fontSize: 12, fontWeight: 600,
+                  background: usage === u.key ? T.bg : "transparent",
+                  color: usage === u.key ? T.text1 : T.text2,
+                  boxShadow: usage === u.key ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                  border: "none", cursor: "pointer", transition: "all 0.12s", fontFamily: T.font,
+                }}>
+                  {u.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Stat cards */}
+          {stats && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              {[
+                { label: "Avg. Sale/m²",     value: stats.buy,   up: undefined },
+                ...(stats.rent ? [{ label: "Avg. Rent/m²/mo", value: stats.rent, up: undefined }] : []),
+                { label: "Gross Yield",       value: stats.yield, up: undefined },
+                { label: "Price Trend (YoY)", value: stats.trend, up: stats.up },
+              ].map(({ label, value, up }) => (
+                <div key={label} style={{
+                  background: T.bg, border: `1px solid ${T.border}`,
+                  borderRadius: 14, padding: "14px 16px",
+                  boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+                }}>
+                  <p style={{ fontSize: 10, fontWeight: 600, color: T.text3, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>
+                    {label}
+                  </p>
+                  <p style={{
+                    fontSize: 18, fontWeight: 800, letterSpacing: "-0.02em",
+                    color: up !== undefined ? (up ? T.ok : T.err) : T.text1,
+                  }}>
+                    {value}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Charts */}
+          <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 14, padding: 16 }}>
+            <h2 style={{ fontSize: 13, fontWeight: 700, color: T.text1, margin: "0 0 4px" }}>Price Trend — 12 months</h2>
+            <p style={{ fontSize: 11, color: T.text3, marginBottom: 12 }}>Addis Abeba · {district}</p>
+            <PriceTrendChart usageType={usage} />
+          </div>
+
+          <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 14, padding: 16 }}>
+            <h2 style={{ fontSize: 13, fontWeight: 700, color: T.text1, margin: "0 0 4px" }}>Price by District</h2>
+            <p style={{ fontSize: 11, color: T.text3, marginBottom: 12 }}>
+              {USAGE_TYPES.find(u => u.key === usage)?.label} · ETB/m²
+            </p>
+            <DistrictChart usageType={usage} />
+          </div>
+
+          {/* Micro-Location Score */}
+          <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 14, padding: 16 }}>
+            <h2 style={{ fontSize: 13, fontWeight: 700, color: T.text1, margin: "0 0 4px" }}>Micro-Location Score</h2>
+            <p style={{ fontSize: 11, color: T.text3, marginBottom: 14 }}>{district} · Addis Abeba</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {micro.map(({ score, label }) => (
+                <div key={label} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontSize: 12, color: T.text2, width: 120, flexShrink: 0 }}>{label}</span>
+                  <ScoreBar score={score} />
+                  <span style={{
+                    fontSize: 12, fontWeight: 700, width: 26, textAlign: "right", flexShrink: 0,
+                    color: score >= 85 ? T.ok : score >= 65 ? T.warn : T.err,
+                  }}>{score}</span>
+                </div>
+              ))}
+            </div>
+            <p style={{ fontSize: 10, color: T.text3, marginTop: 12 }}>* Scores 0–100 based on OpenStreetMap data</p>
+          </div>
+
+          {/* District table */}
+          <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 14, overflow: "hidden" }}>
+            <div style={{ padding: "14px 16px 12px", borderBottom: `1px solid ${T.border}` }}>
+              <h2 style={{ fontSize: 13, fontWeight: 700, color: T.text1, margin: 0 }}>District Overview</h2>
+              <p style={{ fontSize: 11, color: T.text3, marginTop: 2 }}>
+                {USAGE_TYPES.find(u => u.key === usage)?.label} · ETB/m²
               </p>
             </div>
-          ))}
-        </div>
-      )}
-
-      {/* Charts */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-        {[
-          {
-            title: "Price Trend — 12 months",
-            subtitle: `Addis Abeba · ${district}`,
-            chart: <PriceTrendChart usageType={usage} />,
-          },
-          {
-            title: "Price by District",
-            subtitle: `Addis Abeba · ${USAGE_TYPES.find(u => u.key === usage)?.label}`,
-            chart: <DistrictChart usageType={usage} />,
-          },
-        ].map(({ title, subtitle, chart }) => (
-          <div key={title} style={{
-            background: "var(--surface2)", border: "1px solid var(--border)",
-            borderRadius: 12, padding: 24,
-          }}>
-            <h2 style={{ fontSize: 14, fontWeight: 600, color: "var(--text-1)", margin: 0 }}>{title}</h2>
-            <p style={{ fontSize: 12, color: "var(--text-3)", marginTop: 3, marginBottom: 16 }}>{subtitle}</p>
-            {chart}
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontFamily: T.font }}>
+                <thead>
+                  <tr style={{ background: T.bgSoft }}>
+                    {["District", "Sale/m²", ...(usage !== "land" ? ["Rent/m²"] : []), "Trend"].map((h) => (
+                      <th key={h} style={{
+                        padding: "8px 12px", textAlign: h === "District" ? "left" : "right",
+                        fontSize: 10, fontWeight: 600, color: T.text3,
+                        textTransform: "uppercase", letterSpacing: "0.04em",
+                      }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {DISTRICTS.filter(d => d !== "All Districts").map((d) => {
+                    const s = getStats(usage, d);
+                    if (!s) return null;
+                    const isActive = district === d;
+                    return (
+                      <tr key={d}
+                        onClick={() => setDistrict(d)}
+                        style={{
+                          cursor: "pointer",
+                          background: isActive ? T.primaryL : "transparent",
+                          borderBottom: `1px solid ${T.border}`,
+                        }}>
+                        <td style={{ padding: "10px 12px", fontWeight: isActive ? 700 : 400, color: isActive ? T.primary : T.text1 }}>
+                          {isActive && <span style={{ display: "inline-block", width: 5, height: 5, borderRadius: "50%", background: T.primary, marginRight: 6, verticalAlign: "middle" }} />}
+                          {d}
+                        </td>
+                        <td style={{ padding: "10px 12px", textAlign: "right", color: T.text2, fontSize: 12 }}>{s.buy}</td>
+                        {usage !== "land" && <td style={{ padding: "10px 12px", textAlign: "right", color: T.text2, fontSize: 12 }}>{s.rent}</td>}
+                        <td style={{ padding: "10px 12px", textAlign: "right" }}>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: s.up ? T.ok : T.err }}>{s.trend}</span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
-        ))}
-      </div>
 
-      {/* Micro-location + District table */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-
-        {/* Micro-Location Score */}
-        <div style={{
-          background: "var(--surface2)", border: "1px solid var(--border)",
-          borderRadius: 12, padding: 24,
-        }}>
-          <h2 style={{ fontSize: 14, fontWeight: 600, color: "var(--text-1)", margin: 0 }}>Micro-Location Score</h2>
-          <p style={{ fontSize: 12, color: "var(--text-3)", marginTop: 3, marginBottom: 20 }}>{district} · Addis Abeba</p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {micro.map(({ score, label }) => (
-              <div key={label} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 12, color: "var(--text-2)", width: 130, flexShrink: 0 }}>{label}</span>
-                <ScoreBar score={score} />
+          {/* Market Insights cards */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {[
+              {
+                tag: "Market Dynamics",
+                tagBg: T.primaryL, tagColor: T.primary, tagBorder: "rgba(45,106,79,0.2)",
+                title: "Strong Demand",
+                body: "Demand for residential and commercial properties in Bole, Kazanchis, and Sarbet far exceeds supply. Prime listings sell within 3–4 weeks on average.",
+              },
+              {
+                tag: "Price Outlook",
+                tagBg: "rgba(52,199,89,0.1)", tagColor: T.ok, tagBorder: "rgba(52,199,89,0.2)",
+                title: "Rapid Appreciation",
+                body: "Property prices have grown 6–10% YoY in 2025–26, driven by urbanisation, infrastructure investment, and a growing middle class.",
+              },
+              {
+                tag: "Rental Market",
+                tagBg: "rgba(255,159,10,0.1)", tagColor: T.warn, tagBorder: "rgba(255,159,10,0.2)",
+                title: "Expat & Corporate Demand",
+                body: "Bole and Kazanchis command the highest rental premiums, fuelled by expat and NGO demand. Gross yields of 3.8–4.6% make Addis attractive for buy-to-let.",
+              },
+            ].map(({ tag, tagBg, tagColor, tagBorder, title, body }) => (
+              <div key={title} style={{
+                background: T.bg, border: `1px solid ${T.border}`,
+                borderRadius: 14, padding: 16,
+              }}>
                 <span style={{
-                  fontSize: 12, fontWeight: 700, width: 28, textAlign: "right", flexShrink: 0,
-                  color: score >= 85 ? "var(--ok)" : score >= 65 ? "var(--warn)" : "var(--err)",
-                }}>{score}</span>
+                  display: "inline-block", padding: "3px 10px", borderRadius: 20, marginBottom: 10,
+                  fontSize: 11, fontWeight: 600,
+                  background: tagBg, color: tagColor, border: `1px solid ${tagBorder}`,
+                }}>{tag}</span>
+                <h3 style={{ fontSize: 14, fontWeight: 700, color: T.text1, marginBottom: 6 }}>{title}</h3>
+                <p style={{ fontSize: 13, color: T.text2, lineHeight: 1.6 }}>{body}</p>
               </div>
             ))}
           </div>
-          <p style={{ fontSize: 11, color: "var(--text-3)", marginTop: 16 }}>* Scores 0–100 based on OpenStreetMap data</p>
+
+          <p style={{ fontSize: 11, color: T.text3, textAlign: "center" }}>
+            * All figures are indicative estimates. Live GIS data coming soon.
+          </p>
         </div>
+      )}
 
-        {/* District table */}
-        <div style={{
-          background: "var(--surface2)", border: "1px solid var(--border)",
-          borderRadius: 12, overflow: "hidden",
-        }}>
-          <div style={{ padding: "18px 20px 16px", borderBottom: "1px solid var(--border)" }}>
-            <h2 style={{ fontSize: 14, fontWeight: 600, color: "var(--text-1)", margin: 0 }}>District Overview</h2>
-            <p style={{ fontSize: 12, color: "var(--text-3)", marginTop: 3 }}>
-              Addis Abeba · {USAGE_TYPES.find(u => u.key === usage)?.label} · ETB/m²
-            </p>
-          </div>
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-              <thead>
-                <tr style={{ background: "var(--surface3)" }}>
-                  <th style={{ padding: "8px 16px", textAlign: "left", fontSize: 11, fontWeight: 600, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.04em" }}>District</th>
-                  <th style={{ padding: "8px 12px", textAlign: "right", fontSize: 11, fontWeight: 600, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.04em" }}>Sale/m²</th>
-                  {usage !== "land" && <th style={{ padding: "8px 12px", textAlign: "right", fontSize: 11, fontWeight: 600, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.04em" }}>Rent/m²</th>}
-                  <th style={{ padding: "8px 16px 8px 12px", textAlign: "right", fontSize: 11, fontWeight: 600, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.04em" }}>Trend</th>
-                </tr>
-              </thead>
-              <tbody>
-                {DISTRICTS.filter(d => d !== "All Districts").map((d) => {
-                  const s = getStats(usage, d);
-                  if (!s) return null;
-                  const isActive = district === d;
-                  return (
-                    <tr key={d}
-                      onClick={() => setDistrict(d)}
-                      style={{
-                        cursor: "pointer",
-                        background: isActive ? "var(--color-primary-light)" : "transparent",
-                        borderBottom: "1px solid var(--border)",
-                        transition: "background 0.12s",
-                      }}>
-                      <td style={{ padding: "10px 16px", fontWeight: isActive ? 600 : 400, color: isActive ? "var(--color-primary)" : "var(--text-1)" }}>
-                        {isActive && (
-                          <span style={{ display: "inline-block", width: 5, height: 5, borderRadius: "50%", background: "var(--color-primary)", marginRight: 6, marginBottom: 1 }} />
-                        )}
-                        {d}
-                      </td>
-                      <td style={{ padding: "10px 12px", textAlign: "right", color: "var(--text-2)" }}>{s.buy}</td>
-                      {usage !== "land" && <td style={{ padding: "10px 12px", textAlign: "right", color: "var(--text-2)" }}>{s.rent}</td>}
-                      <td style={{ padding: "10px 16px 10px 12px", textAlign: "right" }}>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: s.up ? "var(--ok)" : "var(--err)" }}>{s.trend}</span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+      {/* ── Brokers tab ── */}
+      {tab === "brokers" && (
+        <div style={{ flex: 1, overflowY: "auto", padding: "16px 16px 100px", display: "flex", flexDirection: "column", gap: 12 }}>
+          <p style={{ fontSize: 13, color: T.text2, margin: "0 0 4px" }}>Verified brokers in Addis Abeba</p>
+          {BROKERS.map((b) => <BrokerCard key={b.id} broker={b} />)}
         </div>
-      </div>
-
-      {/* Market Insights */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
-        {[
-          {
-            tag: "Market Dynamics", tagColor: { bg: "rgba(124,110,242,0.1)", text: "var(--color-primary)", border: "rgba(124,110,242,0.2)" },
-            title: "Strong Demand",
-            body: "Demand for residential and commercial properties in Bole, Kazanchis, and Sarbet far exceeds supply. Prime listings in these districts sell within 3–4 weeks on average.",
-          },
-          {
-            tag: "Price Outlook", tagColor: { bg: "rgba(48,209,88,0.1)", text: "var(--ok)", border: "rgba(48,209,88,0.2)" },
-            title: "Rapid Appreciation",
-            body: "Property prices in Addis Abeba have grown 6–10% year-over-year in 2025–26, driven by rapid urbanisation, infrastructure investment, and a growing middle class.",
-          },
-          {
-            tag: "Rental Market", tagColor: { bg: "rgba(255,159,10,0.1)", text: "var(--warn)", border: "rgba(255,159,10,0.2)" },
-            title: "Expat & Corporate Demand",
-            body: "Bole and Kazanchis command the highest rental premiums, fuelled by expat and NGO demand. Gross rental yields of 3.8–4.6% make Addis Abeba attractive for buy-to-let investors.",
-          },
-        ].map(({ tag, tagColor, title, body }) => (
-          <div key={title} style={{
-            background: "var(--surface2)", border: "1px solid var(--border)",
-            borderRadius: 12, padding: 20,
-          }}>
-            <span style={{
-              display: "inline-block", padding: "3px 10px", borderRadius: 20, marginBottom: 12,
-              fontSize: 11, fontWeight: 600,
-              background: tagColor.bg, color: tagColor.text, border: `1px solid ${tagColor.border}`,
-            }}>{tag}</span>
-            <h3 style={{ fontSize: 14, fontWeight: 600, color: "var(--text-1)", marginBottom: 8 }}>{title}</h3>
-            <p style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.6 }}>{body}</p>
-          </div>
-        ))}
-      </div>
-
-      <p style={{ fontSize: 11, color: "var(--text-3)", textAlign: "center" }}>
-        * All figures are indicative estimates for demonstration purposes. Live market data will be integrated via Supabase GIS.
-      </p>
+      )}
     </div>
   );
 }

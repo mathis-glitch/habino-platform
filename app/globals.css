@@ -6,11 +6,11 @@
 @import "leaflet/dist/leaflet.css";
 
 :root {
-  /* ── Brand (violet-purple, premium SaaS) ── */
-  --color-primary:       #7C6EF2;
-  --color-primary-dark:  #6255D4;
-  --color-primary-light: rgba(124,110,242,0.12);
-  --color-secondary:     #9B8BF5;
+  /* ── Brand (forest green) ── */
+  --color-primary:       #2D6A4F;
+  --color-primary-dark:  #1B4332;
+  --color-primary-light: rgba(45,106,79,0.10);
+  --color-secondary:     #40916C;
 
   /* ── App surface palette (dark-mode first) ── */
   --bg:       #09090E;
@@ -38,7 +38,7 @@
   --shadow-lg:     0 8px 32px rgba(0,0,0,0.5),  0 4px 8px rgba(0,0,0,0.35);
   --shadow-xl:     0 20px 60px rgba(0,0,0,0.6), 0 8px 16px rgba(0,0,0,0.4);
   --shadow-header: 0 1px 0 rgba(255,255,255,0.04);
-  --shadow-glow:   0 0 0 1px rgba(124,110,242,0.35), 0 4px 20px rgba(124,110,242,0.2);
+  --shadow-glow:   0 0 0 1px rgba(45,106,79,0.35), 0 4px 20px rgba(45,106,79,0.2);
 
   /* ── Radius ── */
   --radius-sm:  8px;
