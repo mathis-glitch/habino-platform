@@ -10,7 +10,7 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function fmt(price: number, currency: string) {
-  return new Intl.NumberFormat("de-DE", {
+  return new Intl.NumberFormat("en-US", {
     style: "currency", currency, maximumFractionDigits: 0,
   }).format(price);
 }
@@ -20,21 +20,21 @@ function thumb(property: Property) {
 }
 
 const STATUS_STYLE: Record<ContractStatus, { bg: string; color: string; border: string; label: string }> = {
-  draft:               { bg: "rgba(255,255,255,0.04)", color: "var(--text-2)",   border: "var(--border)",                    label: "Entwurf"          },
-  pending_review:      { bg: "rgba(255,159,10,0.08)",  color: "var(--warn)",     border: "rgba(255,159,10,0.2)",              label: "In Prüfung"       },
-  pending_signature:   { bg: "rgba(124,110,242,0.10)", color: "var(--color-primary)", border: "rgba(124,110,242,0.2)",        label: "Signatur ausstehend" },
-  signed:              { bg: "rgba(48,209,88,0.08)",   color: "var(--ok)",       border: "rgba(48,209,88,0.2)",               label: "Unterzeichnet"    },
-  active:              { bg: "rgba(48,209,88,0.08)",   color: "var(--ok)",       border: "rgba(48,209,88,0.2)",               label: "Aktiv"            },
-  expired:             { bg: "rgba(255,255,255,0.04)", color: "var(--text-3)",   border: "var(--border)",                    label: "Abgelaufen"       },
-  terminated:          { bg: "rgba(255,69,58,0.08)",   color: "var(--err)",      border: "rgba(255,69,58,0.2)",               label: "Beendet"          },
+  draft:               { bg: "rgba(255,255,255,0.04)", color: "var(--text-2)",        border: "var(--border)",               label: "Draft"              },
+  pending_review:      { bg: "rgba(255,159,10,0.08)",  color: "var(--warn)",          border: "rgba(255,159,10,0.2)",         label: "Under Review"       },
+  pending_signature:   { bg: "rgba(124,110,242,0.10)", color: "var(--color-primary)", border: "rgba(124,110,242,0.2)",        label: "Awaiting Signature" },
+  signed:              { bg: "rgba(48,209,88,0.08)",   color: "var(--ok)",            border: "rgba(48,209,88,0.2)",          label: "Signed"             },
+  active:              { bg: "rgba(48,209,88,0.08)",   color: "var(--ok)",            border: "rgba(48,209,88,0.2)",          label: "Active"             },
+  expired:             { bg: "rgba(255,255,255,0.04)", color: "var(--text-3)",        border: "var(--border)",               label: "Expired"            },
+  terminated:          { bg: "rgba(255,69,58,0.08)",   color: "var(--err)",           border: "rgba(255,69,58,0.2)",          label: "Terminated"         },
 };
 
 const CONTRACT_TYPE_LABELS: Record<ContractType, string> = {
-  residential_rental:  "Wohnraummiete",
-  commercial_rental:   "Gewerbemiete",
-  purchase:            "Kaufvertrag",
-  option_to_purchase:  "Kaufoption",
-  short_term_rental:   "Kurzzeitmiete",
+  residential_rental:  "Residential Rental",
+  commercial_rental:   "Commercial Rental",
+  purchase:            "Purchase Agreement",
+  option_to_purchase:  "Option to Purchase",
+  short_term_rental:   "Short-term Rental",
 };
 
 type Tab = "saved" | "properties" | "contracts";
@@ -81,8 +81,8 @@ function ContractModal({ contract, onClose, onGenerate, generating }: {
           {/* Parties */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             {[
-              { label: "Vermieter / Verkäufer", name: contract.landlord_name, email: contract.landlord_email, addr: contract.landlord_address },
-              { label: "Mieter / Käufer", name: contract.tenant_name, email: contract.tenant_email, addr: contract.tenant_address },
+              { label: "Landlord / Seller", name: contract.landlord_name, email: contract.landlord_email, addr: contract.landlord_address },
+              { label: "Tenant / Buyer", name: contract.tenant_name, email: contract.tenant_email, addr: contract.tenant_address },
             ].map(p => (
               <div key={p.label} style={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 12, padding: "14px 16px" }}>
                 <p style={{ fontSize: 10, fontWeight: 600, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 8 }}>{p.label}</p>
@@ -96,12 +96,12 @@ function ContractModal({ contract, onClose, onGenerate, generating }: {
           {/* Key terms */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
             {[
-              contract.monthly_rent  && { label: "Monatliche Miete",  val: fmt(contract.monthly_rent, contract.currency) },
-              contract.purchase_price && { label: "Kaufpreis",          val: fmt(contract.purchase_price, contract.currency) },
-              contract.deposit_amount && { label: "Kaution",            val: fmt(contract.deposit_amount, contract.currency) },
-              { label: "Beginn",       val: new Date(contract.start_date).toLocaleDateString("de-DE") },
-              contract.end_date && { label: "Ende", val: new Date(contract.end_date).toLocaleDateString("de-DE") },
-              { label: "Rechtslage",   val: contract.governing_law ?? contract.country_code },
+              contract.monthly_rent   && { label: "Monthly Rent",    val: fmt(contract.monthly_rent, contract.currency) },
+              contract.purchase_price && { label: "Purchase Price",  val: fmt(contract.purchase_price, contract.currency) },
+              contract.deposit_amount && { label: "Deposit",         val: fmt(contract.deposit_amount, contract.currency) },
+              { label: "Start",         val: new Date(contract.start_date).toLocaleDateString("en-US") },
+              contract.end_date && { label: "End", val: new Date(contract.end_date).toLocaleDateString("en-US") },
+              { label: "Jurisdiction",  val: contract.governing_law ?? contract.country_code },
             ].filter(Boolean).map((item: { label: string; val: string } | null | false, i) => item && (
               <div key={i} style={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 10, padding: "12px 14px" }}>
                 <p style={{ fontSize: 10, color: "var(--text-3)" }}>{item.label}</p>
@@ -116,9 +116,9 @@ function ContractModal({ contract, onClose, onGenerate, generating }: {
               <div style={{ width: 40, height: 40, borderRadius: 10, background: "rgba(124,110,242,0.15)", border: "1px solid rgba(124,110,242,0.2)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
                 <svg width="18" height="18" fill="none" stroke="var(--color-primary)" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
               </div>
-              <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text-1)", marginBottom: 6 }}>KI-Vertrag generieren</p>
+              <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text-1)", marginBottom: 6 }}>Generate AI Contract</p>
               <p style={{ fontSize: 13, color: "var(--text-2)", marginBottom: 16, lineHeight: 1.6 }}>
-                Claude erstellt einen vollständigen, rechtskonformen Vertrag auf Basis der obigen Daten. Dauer: ca. 15–30 Sekunden.
+                Claude generates a complete, legally-compliant contract from the above data. Est. 15–30 seconds.
               </p>
               <button
                 onClick={() => onGenerate(contract.id)}
@@ -126,7 +126,7 @@ function ContractModal({ contract, onClose, onGenerate, generating }: {
                 style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "9px 20px", borderRadius: 9, background: "var(--color-primary)", color: "white", fontSize: 13, fontWeight: 600, border: "none", cursor: generating ? "not-allowed" : "pointer", opacity: generating ? 0.65 : 1 }}
               >
                 {generating && <LoadingSpinner className="h-4 w-4" />}
-                {generating ? "Generiere…" : "Vertrag generieren"}
+                {generating ? "Generating…" : "Generate contract"}
               </button>
             </div>
           )}
@@ -134,14 +134,14 @@ function ContractModal({ contract, onClose, onGenerate, generating }: {
           {/* Clauses */}
           {clauses.length > 0 && (
             <div>
-              <h3 style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)", marginBottom: 12 }}>Vertragsklauseln</h3>
+              <h3 style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)", marginBottom: 12 }}>Contract Clauses</h3>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {clauses.map((clause, i) => (
                   <div key={i} style={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 12, padding: "14px 16px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
                       <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)" }}>{clause.title}</p>
                       {clause.type === "jurisdiction_specific" && (
-                        <span style={{ fontSize: 10, background: "rgba(255,159,10,0.1)", color: "var(--warn)", border: "1px solid rgba(255,159,10,0.2)", borderRadius: 4, padding: "2px 6px", fontWeight: 600 }}>Jurisdiktionsspezifisch</span>
+                        <span style={{ fontSize: 10, background: "rgba(255,159,10,0.1)", color: "var(--warn)", border: "1px solid rgba(255,159,10,0.2)", borderRadius: 4, padding: "2px 6px", fontWeight: 600 }}>Jurisdiction-specific</span>
                       )}
                     </div>
                     <p style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{clause.body}</p>
@@ -154,7 +154,7 @@ function ContractModal({ contract, onClose, onGenerate, generating }: {
           {/* Legal note */}
           {contract.contract_data?.jurisdiction_notes && (
             <div style={{ background: "rgba(255,159,10,0.06)", border: "1px solid rgba(255,159,10,0.18)", borderRadius: 12, padding: "14px 16px", fontSize: 12.5, color: "var(--warn)", lineHeight: 1.6 }}>
-              <strong>Rechtlicher Hinweis:</strong> {contract.contract_data.jurisdiction_notes}
+              <strong>Legal Note:</strong> {contract.contract_data.jurisdiction_notes}
             </div>
           )}
 
@@ -162,12 +162,12 @@ function ContractModal({ contract, onClose, onGenerate, generating }: {
           {(contract.signatures?.landlord || contract.signatures?.tenant) && (
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               {[
-                contract.signatures?.landlord && { label: "Vermieter unterzeichnet", date: contract.signatures.landlord.signed_at },
-                contract.signatures?.tenant   && { label: "Mieter unterzeichnet",    date: contract.signatures.tenant.signed_at },
+                contract.signatures?.landlord && { label: "Landlord signed", date: contract.signatures.landlord.signed_at },
+                contract.signatures?.tenant   && { label: "Tenant signed",   date: contract.signatures.tenant.signed_at },
               ].filter(Boolean).map((sig: { label: string; date: string } | null | false, i) => sig && (
                 <div key={i} style={{ background: "rgba(48,209,88,0.06)", border: "1px solid rgba(48,209,88,0.15)", borderRadius: 10, padding: "12px 14px" }}>
                   <p style={{ fontSize: 12, fontWeight: 600, color: "var(--ok)" }}>{sig.label}</p>
-                  <p style={{ fontSize: 11, color: "var(--text-2)", marginTop: 3 }}>{new Date(sig.date).toLocaleString("de-DE")}</p>
+                  <p style={{ fontSize: 11, color: "var(--text-2)", marginTop: 3 }}>{new Date(sig.date).toLocaleString("en-US")}</p>
                 </div>
               ))}
             </div>
@@ -240,12 +240,12 @@ export function HomeClient() {
   );
 
   const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Guten Morgen" : hour < 18 ? "Guten Tag" : "Guten Abend";
+  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
   const TABS: { id: Tab; label: string; count: number }[] = [
-    { id: "saved",      label: "Gespeichert",  count: savedProps.length  },
-    { id: "properties", label: "Meine Objekte", count: activeProps.length },
-    { id: "contracts",  label: "Verträge",      count: contracts.length   },
+    { id: "saved",      label: "Saved",         count: savedProps.length  },
+    { id: "properties", label: "My Properties", count: activeProps.length },
+    { id: "contracts",  label: "Contracts",     count: contracts.length   },
   ];
 
   return (
@@ -259,9 +259,9 @@ export function HomeClient() {
               <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-1)", letterSpacing: "-0.02em", marginBottom: 4 }}>
                 {greeting} 👋
               </h1>
-              <p style={{ fontSize: 13.5, color: "var(--text-2)" }}>Dein persönliches Immobilien-Dashboard</p>
+              <p style={{ fontSize: 13.5, color: "var(--text-2)" }}>Your personal real estate dashboard</p>
             </div>
-            <Link href="/?q=Immobilie+inserieren" style={{
+            <Link href="/?q=List+a+property" style={{
               display: "inline-flex", alignItems: "center", gap: 7,
               padding: "9px 16px", borderRadius: 9,
               background: "var(--color-primary)", color: "white",
@@ -269,16 +269,16 @@ export function HomeClient() {
               boxShadow: "0 0 0 1px rgba(124,110,242,0.3), 0 3px 12px rgba(124,110,242,0.2)",
             }}>
               <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Objekt inserieren
+              List a property
             </Link>
           </div>
 
           {/* Stats row */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginTop: 20 }}>
             {[
-              { label: "Gespeichert",  value: savedProps.length,  icon: "M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" },
-              { label: "Verträge",    value: contracts.length,   icon: "M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z M14 2v6h6" },
-              { label: "Aktiv",       value: activeProps.length,  icon: "M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z M9 22V12h6v10" },
+              { label: "Saved",      value: savedProps.length,  icon: "M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" },
+              { label: "Contracts", value: contracts.length,   icon: "M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z M14 2v6h6" },
+              { label: "Active",    value: activeProps.length, icon: "M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z M9 22V12h6v10" },
             ].map(s => (
               <div key={s.label} style={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 12, padding: "16px" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
@@ -298,7 +298,7 @@ export function HomeClient() {
 
         {/* Quick actions */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 24 }}>
-          <Link href="/?q=Immobilie+inserieren" style={{
+          <Link href="/?q=List+a+property" style={{
             display: "flex", alignItems: "center", gap: 14, padding: "16px 18px",
             background: "var(--color-primary-light)", border: "1px solid rgba(124,110,242,0.2)",
             borderRadius: 12, textDecoration: "none", transition: "all 0.14s",
@@ -310,11 +310,11 @@ export function HomeClient() {
               <svg width="16" height="16" fill="none" stroke="white" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             </div>
             <div>
-              <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)" }}>Objekt inserieren</p>
-              <p style={{ fontSize: 12, color: "var(--text-2)", marginTop: 2 }}>Neues Inserat anlegen</p>
+              <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)" }}>List a property</p>
+              <p style={{ fontSize: 12, color: "var(--text-2)", marginTop: 2 }}>Create a new listing</p>
             </div>
           </Link>
-          <Link href="/?q=Vertrag+erstellen" style={{
+          <Link href="/?q=Create+contract" style={{
             display: "flex", alignItems: "center", gap: 14, padding: "16px 18px",
             background: "var(--surface2)", border: "1px solid var(--border)",
             borderRadius: 12, textDecoration: "none", transition: "all 0.14s",
@@ -326,8 +326,8 @@ export function HomeClient() {
               <svg width="16" height="16" fill="none" stroke="var(--color-primary)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><path strokeLinecap="round" d="M13 10V3"/></svg>
             </div>
             <div>
-              <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)" }}>Vertrag mit KI erstellen</p>
-              <p style={{ fontSize: 12, color: "var(--text-2)", marginTop: 2 }}>Claude generiert den Vertrag</p>
+              <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)" }}>Create contract with AI</p>
+              <p style={{ fontSize: 12, color: "var(--text-2)", marginTop: 2 }}>Claude generates the contract</p>
             </div>
           </Link>
         </div>
@@ -358,40 +358,40 @@ export function HomeClient() {
           ))}
         </div>
 
-        {/* TAB: Gespeichert */}
+        {/* TAB: Saved */}
         {tab === "saved" && (
           savedProps.length === 0
-            ? <EmptyState icon={<HeartIcon />} title="Noch keine Inserate gespeichert" text="Tippe auf das Herz-Symbol bei einem Inserat, um es hier zu speichern." action={{ label: "Inserate entdecken", href: "/search" }} />
+            ? <EmptyState icon={<HeartIcon />} title="No saved listings yet" text="Tap the heart icon on a listing to save it here." action={{ label: "Discover listings", href: "/search" }} />
             : <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14 }}>
                 {savedProps.map(p => <HomePropertyCard key={p.id} property={p} onUnsave={() => unsave(p.id)} onClick={() => router.push(`/properties/${p.id}`)} />)}
               </div>
         )}
 
-        {/* TAB: Meine Objekte */}
+        {/* TAB: My Properties */}
         {tab === "properties" && (
           activeProps.length === 0
-            ? <EmptyState icon={<HomeIcon />} title="Keine aktiven Objekte" text="Objekte mit aktiven oder unterzeichneten Miet- oder Kaufverträgen erscheinen hier." action={{ label: "Vertrag erstellen", href: "/?q=Vertrag+erstellen" }} />
+            ? <EmptyState icon={<HomeIcon />} title="No active properties" text="Properties with active or signed rental or purchase contracts will appear here." action={{ label: "Create contract", href: "/?q=Create+contract" }} />
             : <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14 }}>
                 {activeProps.map(p => <HomePropertyCard key={p.id} property={p} showActiveBadge onClick={() => router.push(`/properties/${p.id}`)} />)}
               </div>
         )}
 
-        {/* TAB: Verträge */}
+        {/* TAB: Contracts */}
         {tab === "contracts" && (
           <div>
             <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
-              <Link href="/?q=Vertrag+erstellen" style={{
+              <Link href="/?q=Create+contract" style={{
                 display: "inline-flex", alignItems: "center", gap: 7,
                 padding: "8px 14px", borderRadius: 8,
                 background: "var(--color-primary)", color: "white",
                 fontSize: 13, fontWeight: 600, textDecoration: "none",
               }}>
                 <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                Neuer KI-Vertrag
+                New AI Contract
               </Link>
             </div>
             {contracts.length === 0
-              ? <EmptyState icon={<DocIcon />} title="Noch keine Verträge" text="Lass den KI-Assistenten einen Miet- oder Kaufvertrag für dich erstellen." action={{ label: "Vertrag mit KI erstellen", href: "/?q=Vertrag+erstellen" }} />
+              ? <EmptyState icon={<DocIcon />} title="No contracts yet" text="Let the AI assistant create a rental or purchase contract for you." action={{ label: "Create contract with AI", href: "/?q=Create+contract" }} />
               : <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {contracts.map(c => <ContractRow key={c.id} contract={c} onClick={() => setSelectedContract(c)} />)}
                 </div>
@@ -446,11 +446,11 @@ function HomePropertyCard({ property: p, onUnsave, showActiveBadge, onClick }: {
         }
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.4), transparent)" }} />
         {showActiveBadge && (
-          <div style={{ position: "absolute", top: 8, left: 8, fontSize: 10.5, fontWeight: 600, padding: "3px 8px", borderRadius: 6, background: "rgba(48,209,88,0.15)", color: "var(--ok)", border: "1px solid rgba(48,209,88,0.2)", backdropFilter: "blur(6px)" }}>Aktiv</div>
+          <div style={{ position: "absolute", top: 8, left: 8, fontSize: 10.5, fontWeight: 600, padding: "3px 8px", borderRadius: 6, background: "rgba(48,209,88,0.15)", color: "var(--ok)", border: "1px solid rgba(48,209,88,0.2)", backdropFilter: "blur(6px)" }}>Active</div>
         )}
         {!showActiveBadge && (
           <div style={{ position: "absolute", top: 8, left: 8, fontSize: 10.5, fontWeight: 600, padding: "3px 8px", borderRadius: 6, background: p.listing_type === "rent" ? "var(--color-primary-light)" : "rgba(48,209,88,0.12)", color: p.listing_type === "rent" ? "var(--color-primary)" : "var(--ok)", border: `1px solid ${p.listing_type === "rent" ? "rgba(124,110,242,0.25)" : "rgba(48,209,88,0.2)"}`, backdropFilter: "blur(6px)" }}>
-            {p.listing_type === "rent" ? "Miete" : "Kauf"}
+            {p.listing_type === "rent" ? "Rent" : "Buy"}
           </div>
         )}
         {onUnsave && (
@@ -461,14 +461,14 @@ function HomePropertyCard({ property: p, onUnsave, showActiveBadge, onClick }: {
       </div>
       <div style={{ padding: "12px 14px" }}>
         <p style={{ fontSize: 16, fontWeight: 800, color: "var(--text-1)", letterSpacing: "-0.02em" }}>
-          {fmt(p.price, p.currency)}{p.listing_type === "rent" && <span style={{ fontSize: 11, fontWeight: 400, color: "var(--text-2)", marginLeft: 3 }}>/Mo</span>}
+          {fmt(p.price, p.currency)}{p.listing_type === "rent" && <span style={{ fontSize: 11, fontWeight: 400, color: "var(--text-2)", marginLeft: 3 }}>/mo</span>}
         </p>
         <p style={{ fontSize: 13, fontWeight: 500, color: "var(--text-1)", marginTop: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.title}</p>
         <p style={{ fontSize: 12, color: "var(--text-2)", marginTop: 2 }}>{p.city}{p.neighbourhood ? ` · ${p.neighbourhood}` : ""}</p>
         {(p.bedrooms || p.bathrooms || p.area_sqm) && (
           <div style={{ display: "flex", gap: 10, marginTop: 8, paddingTop: 8, borderTop: "1px solid var(--border)", fontSize: 12, color: "var(--text-3)" }}>
-            {p.bedrooms  && <span>{p.bedrooms} Zi</span>}
-            {p.bathrooms && <span>{p.bathrooms} Bad</span>}
+            {p.bedrooms  && <span>{p.bedrooms} bd</span>}
+            {p.bathrooms && <span>{p.bathrooms} ba</span>}
             {p.area_sqm  && <span>{p.area_sqm} m²</span>}
           </div>
         )}
@@ -505,13 +505,13 @@ function ContractRow({ contract: c, onClick }: { contract: Contract; onClick: ()
             <span style={{ fontSize: 10.5, fontWeight: 600, padding: "2px 7px", borderRadius: 5, background: st.bg, color: st.color, border: `1px solid ${st.border}` }}>{st.label}</span>
             <span style={{ fontSize: 11, color: "var(--text-3)" }}>{CONTRACT_TYPE_LABELS[c.contract_type]}</span>
           </div>
-          <p style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{prop?.title ?? `Vertrag ${c.id.slice(0,8)}`}</p>
+          <p style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{prop?.title ?? `Contract ${c.id.slice(0,8)}`}</p>
           <p style={{ fontSize: 12, color: "var(--text-2)", marginTop: 2 }}>
-            {new Date(c.start_date).toLocaleDateString("de-DE")}{c.end_date ? ` → ${new Date(c.end_date).toLocaleDateString("de-DE")}` : " · Unbefristet"}
+            {new Date(c.start_date).toLocaleDateString("en-US")}{c.end_date ? ` → ${new Date(c.end_date).toLocaleDateString("en-US")}` : " · Open-ended"}
           </p>
         </div>
         <div style={{ textAlign: "right", flexShrink: 0 }}>
-          {c.monthly_rent && <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)" }}>{fmt(c.monthly_rent, c.currency)}<span style={{ fontSize: 11, fontWeight: 400, color: "var(--text-3)" }}>/Mo</span></p>}
+          {c.monthly_rent && <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)" }}>{fmt(c.monthly_rent, c.currency)}<span style={{ fontSize: 11, fontWeight: 400, color: "var(--text-3)" }}>/mo</span></p>}
           {c.purchase_price && <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)" }}>{fmt(c.purchase_price, c.currency)}</p>}
           <p style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>{c.country_code}</p>
         </div>
@@ -519,8 +519,8 @@ function ContractRow({ contract: c, onClick }: { contract: Contract; onClick: ()
       {progress !== null && (
         <div style={{ padding: "0 16px 14px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
-            <span style={{ fontSize: 11, color: "var(--text-3)" }}>{progress}% abgelaufen</span>
-            <span style={{ fontSize: 11, color: "var(--text-3)" }}>{100 - progress}% verbleibend</span>
+            <span style={{ fontSize: 11, color: "var(--text-3)" }}>{progress}% elapsed</span>
+            <span style={{ fontSize: 11, color: "var(--text-3)" }}>{100 - progress}% remaining</span>
           </div>
           <div style={{ height: 4, background: "var(--surface3)", borderRadius: 99, overflow: "hidden" }}>
             <div style={{ height: "100%", borderRadius: 99, width: `${progress}%`, background: "var(--color-primary)" }} />

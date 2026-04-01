@@ -78,7 +78,7 @@ export function LandingLoginPage() {
         setDone(true);
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Etwas ist schiefgelaufen");
+      setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -95,19 +95,19 @@ export function LandingLoginPage() {
   }
 
   const titles: Record<Mode, string> = {
-    signin: "Willkommen zurück",
-    signup: "Konto erstellen",
-    forgot: "Passwort zurücksetzen",
+    signin: "Welcome back",
+    signup: "Create account",
+    forgot: "Reset password",
   };
   const subtitles: Record<Mode, string> = {
-    signin: "Melde dich an, um fortzufahren.",
-    signup: "Finde dein nächstes Zuhause — mit KI.",
-    forgot: "Wir senden dir einen Reset-Link.",
+    signin: "Sign in to continue.",
+    signup: "Find your next home — with AI.",
+    forgot: "We'll send you a reset link.",
   };
-  const submitLabel = loading ? "Bitte warten…"
-    : mode === "signin" ? "Anmelden"
-    : mode === "signup" ? "Konto erstellen"
-    : "Reset-Link senden";
+  const submitLabel = loading ? "Please wait…"
+    : mode === "signin" ? "Sign in"
+    : mode === "signup" ? "Create account"
+    : "Send reset link";
 
   // ── Done state ───────────────────────────────────────────────────────────────
   if (done) {
@@ -126,18 +126,18 @@ export function LandingLoginPage() {
               </svg>
             </div>
             <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-1)", marginBottom: 8, letterSpacing: "-0.02em" }}>
-              {mode === "forgot" ? "E-Mail gesendet" : "E-Mail bestätigen"}
+              {mode === "forgot" ? "Email sent" : "Confirm your email"}
             </h2>
             <p style={{ fontSize: 13.5, color: "var(--text-2)", lineHeight: 1.6, marginBottom: 24 }}>
               {mode === "forgot"
-                ? `Wir haben einen Reset-Link an ${email} gesendet.`
-                : `Wir haben einen Bestätigungslink an ${email} gesendet.`}
+                ? `We sent a reset link to ${email}.`
+                : `We sent a confirmation link to ${email}.`}
             </p>
             <button onClick={() => switchMode("signin")} style={{
               fontSize: 13, color: "var(--color-primary)", background: "none",
               border: "none", cursor: "pointer", fontWeight: 600,
             }}>
-              ← Zurück zum Login
+              ← Back to sign in
             </button>
           </div>
         </AuthCard>
@@ -179,10 +179,10 @@ export function LandingLoginPage() {
         {mode !== "forgot" && (
           <>
             <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
-              <OAuthBtn label="Mit Google anmelden" onClick={() => handleOAuth("google")}>
+              <OAuthBtn label="Continue with Google" onClick={() => handleOAuth("google")}>
                 <GoogleIcon />
               </OAuthBtn>
-              <OAuthBtn label="Mit Facebook anmelden" onClick={() => handleOAuth("facebook")}>
+              <OAuthBtn label="Continue with Facebook" onClick={() => handleOAuth("facebook")}>
                 <FacebookIcon />
               </OAuthBtn>
             </div>
@@ -192,11 +192,11 @@ export function LandingLoginPage() {
 
         {/* Form */}
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <Field label="E-Mail">
+          <Field label="Email">
             <input
               type="email" required value={email}
               onChange={e => setEmail(e.target.value)}
-              placeholder="name@beispiel.de"
+              placeholder="name@example.com"
               autoComplete="email"
               style={inputStyle}
               onFocus={e => { e.currentTarget.style.borderColor = "rgba(124,110,242,0.5)"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(124,110,242,0.1)"; }}
@@ -205,10 +205,10 @@ export function LandingLoginPage() {
           </Field>
 
           {mode !== "forgot" && (
-            <Field label="Passwort" action={mode === "signin"
+            <Field label="Password" action={mode === "signin"
               ? <button type="button" onClick={() => switchMode("forgot")}
                   style={{ fontSize: 12, color: "var(--color-primary)", background: "none", border: "none", cursor: "pointer", fontWeight: 500, padding: 0 }}>
-                  Vergessen?
+                  Forgot?
                 </button>
               : undefined
             }>
@@ -269,23 +269,23 @@ export function LandingLoginPage() {
         <div style={{ marginTop: 20, textAlign: "center" }}>
           {mode === "signin" && (
             <p style={{ fontSize: 13, color: "var(--text-2)" }}>
-              Noch kein Konto?{" "}
+              Don&apos;t have an account?{" "}
               <button onClick={() => switchMode("signup")} style={{ color: "var(--color-primary)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontSize: 13 }}>
-                Registrieren
+                Sign up
               </button>
             </p>
           )}
           {mode === "signup" && (
             <p style={{ fontSize: 13, color: "var(--text-2)" }}>
-              Bereits registriert?{" "}
+              Already have an account?{" "}
               <button onClick={() => switchMode("signin")} style={{ color: "var(--color-primary)", fontWeight: 600, background: "none", border: "none", cursor: "pointer", fontSize: 13 }}>
-                Anmelden
+                Sign in
               </button>
             </p>
           )}
           {mode === "forgot" && (
             <button onClick={() => switchMode("signin")} style={{ fontSize: 13, color: "var(--text-2)", background: "none", border: "none", cursor: "pointer" }}>
-              ← Zurück zum Login
+              ← Back to sign in
             </button>
           )}
         </div>
@@ -364,7 +364,7 @@ function Divider() {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
       <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
-      <span style={{ fontSize: 12, color: "var(--text-3)", fontWeight: 500 }}>oder</span>
+      <span style={{ fontSize: 12, color: "var(--text-3)", fontWeight: 500 }}>or</span>
       <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
     </div>
   );

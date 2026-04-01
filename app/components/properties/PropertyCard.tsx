@@ -116,7 +116,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
               border: `1px solid ${isRent ? "rgba(124,110,242,0.25)" : "rgba(48,209,88,0.2)"}`,
               backdropFilter: "blur(8px)",
             }}>
-              {isRent ? "Miete" : "Kauf"}
+              {isRent ? "Rent" : "Buy"}
             </span>
           </div>
         </div>
@@ -125,7 +125,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
         <div style={{ padding: "14px 16px" }}>
           <p style={{ fontSize: 18, fontWeight: 800, color: "var(--text-1)", letterSpacing: "-0.02em", lineHeight: 1 }}>
             {formatPrice(property.price, property.currency)}
-            {isRent && <span style={{ fontSize: 12, fontWeight: 400, color: "var(--text-2)", marginLeft: 3 }}>/Mo</span>}
+            {isRent && <span style={{ fontSize: 12, fontWeight: 400, color: "var(--text-2)", marginLeft: 3 }}>/mo</span>}
           </p>
 
           <p style={{ fontSize: 13, fontWeight: 500, color: "var(--text-1)", marginTop: 5, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical" }}>
@@ -150,7 +150,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
                 <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M3 10V7a1 1 0 011-1h16a1 1 0 011 1v3M3 10v7a1 1 0 001 1h16a1 1 0 001-1v-7M8 10V8m8 2V8" />
                 </svg>
-                {property.bedrooms} Zi
+                {property.bedrooms} bd
               </span>
             )}
             {property.bathrooms > 0 && (
@@ -158,7 +158,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
                 <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 12h16M4 12a2 2 0 01-2-2V7a2 2 0 012-2h3m13 7a2 2 0 01-2 2H4m16 0v3a2 2 0 01-2 2H6a2 2 0 01-2-2v-3" />
                 </svg>
-                {property.bathrooms} Bad
+                {property.bathrooms} ba
               </span>
             )}
             {property.area_sqm && (

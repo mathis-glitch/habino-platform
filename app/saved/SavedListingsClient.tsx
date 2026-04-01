@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function fmt(price: number, currency: string) {
-  return new Intl.NumberFormat("de-DE", {
+  return new Intl.NumberFormat("en-US", {
     style: "currency", currency, maximumFractionDigits: 0,
   }).format(price);
 }
@@ -19,11 +19,11 @@ function pricePerSqm(p: Property) {
 }
 
 function propTypeLabel(t: string) {
-  return { apartment: "Wohnung", house: "Haus", commercial: "Gewerbe", land: "Grundstück" }[t] ?? t;
+  return { apartment: "Apartment", house: "House", commercial: "Commercial", land: "Land" }[t] ?? t;
 }
 
 function listingLabel(t: string) {
-  return t === "buy" ? "Kauf" : "Miete";
+  return t === "buy" ? "Buy" : "Rent";
 }
 
 // ── Detail Drawer ─────────────────────────────────────────────────────────────
@@ -48,15 +48,15 @@ function DetailDrawer({ property: initialProperty, onClose }: { property: Proper
   }, []);
 
   const stats = [
-    property.bedrooms  > 0 && { label: "Zimmer",    value: String(property.bedrooms) },
-    property.bathrooms > 0 && { label: "Bäder",     value: String(property.bathrooms) },
-    property.area_sqm      && { label: "Fläche",    value: `${property.area_sqm} m²` },
-    true                    && { label: "Typ",       value: propTypeLabel(property.property_type) },
-    property.area_sqm      && { label: "Preis/m²",  value: pricePerSqm(property) },
+    property.bedrooms  > 0 && { label: "Beds",       value: String(property.bedrooms) },
+    property.bathrooms > 0 && { label: "Baths",      value: String(property.bathrooms) },
+    property.area_sqm      && { label: "Area",        value: `${property.area_sqm} m²` },
+    true                    && { label: "Type",        value: propTypeLabel(property.property_type) },
+    property.area_sqm      && { label: "Price/m²",    value: pricePerSqm(property) },
   ].filter(Boolean) as { label: string; value: string }[];
 
   function bookViewing() {
-    const q = encodeURIComponent(`Ich möchte eine Besichtigung für "${property.title}" in ${property.city} vereinbaren`);
+    const q = encodeURIComponent(`I would like to book a viewing for "${property.title}" in ${property.city}`);
     router.push(`/?q=${q}`);
   }
 
@@ -70,7 +70,7 @@ function DetailDrawer({ property: initialProperty, onClose }: { property: Proper
     try {
       const res = await fetch(`/api/properties/${property.id}/images`, { method: "POST", body: form });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Upload fehlgeschlagen");
+      if (!res.ok) throw new Error(data.error || "Upload failed");
       const newImages = data.images ?? [];
       setProperty((prev) => {
         const merged = [...(prev.images ?? []), ...newImages];
@@ -78,7 +78,7 @@ function DetailDrawer({ property: initialProperty, onClose }: { property: Proper
         return { ...prev, images: merged };
       });
     } catch (err) {
-      setUploadErr(err instanceof Error ? err.message : "Upload fehlgeschlagen");
+      setUploadErr(err instanceof Error ? err.message : "Upload failed");
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -125,7 +125,7 @@ function DetailDrawer({ property: initialProperty, onClose }: { property: Proper
           {uploadErr && (
             <div style={{ margin: "12px 16px", padding: "10px 14px", borderRadius: 10, background: "rgba(255,69,58,0.1)", border: "1px solid rgba(255,69,58,0.2)", fontSize: 12, color: "var(--err)" }}>
               {uploadErr}
-              <button onClick={() => setUploadErr(null)} style={{ marginLeft: 8, textDecoration: "underline", background: "none", border: "none", cursor: "pointer", color: "var(--err)", fontSize: 12 }}>Schließen</button>
+              <button onClick={() => setUploadErr(null)} style={{ marginLeft: 8, textDecoration: "underline", background: "none", border: "none", cursor: "pointer", color: "var(--err)", fontSize: 12 }}>Close</button>
             </div>
           )}
 
@@ -194,7 +194,7 @@ function DetailDrawer({ property: initialProperty, onClose }: { property: Proper
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
                         </svg>
                       </div>
-                      <span style={{ fontSize: 13, fontWeight: 500 }}>Fotos hinzufügen</span>
+                      <span style={{ fontSize: 13, fontWeight: 500 }}>Add photos</span>
                       <span style={{ fontSize: 11, color: "var(--text-3)" }}>JPG, PNG, WebP · max. 8 MB</span>
                     </>
                 }
@@ -238,7 +238,7 @@ function DetailDrawer({ property: initialProperty, onClose }: { property: Proper
             <p style={{ fontSize: 28, fontWeight: 800, color: "var(--text-1)", letterSpacing: "-0.02em" }}>
               {fmt(property.price, property.currency)}
               {property.listing_type === "rent" && (
-                <span style={{ fontSize: 14, fontWeight: 400, color: "var(--text-2)", marginLeft: 4 }}>/Mo</span>
+                <span style={{ fontSize: 14, fontWeight: 400, color: "var(--text-2)", marginLeft: 4 }}>/mo</span>
               )}
             </p>
             <h2 style={{ fontSize: 16, fontWeight: 600, color: "var(--text-1)", marginTop: 6, lineHeight: 1.3 }}>{property.title}</h2>
@@ -271,7 +271,7 @@ function DetailDrawer({ property: initialProperty, onClose }: { property: Proper
           {/* Description */}
           {property.description && (
             <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)" }}>
-              <h3 style={{ fontSize: 11, fontWeight: 600, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>Beschreibung</h3>
+              <h3 style={{ fontSize: 11, fontWeight: 600, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>Description</h3>
               <p style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.7, whiteSpace: "pre-line" }}>{property.description}</p>
             </div>
           )}
@@ -279,7 +279,7 @@ function DetailDrawer({ property: initialProperty, onClose }: { property: Proper
           {/* Agent contact */}
           {(property.agent_name || property.agent_email || property.agent_phone) && (
             <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)" }}>
-              <h3 style={{ fontSize: 11, fontWeight: 600, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 12 }}>Kontakt</h3>
+              <h3 style={{ fontSize: 11, fontWeight: 600, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 12 }}>Contact</h3>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <div style={{
                   width: 40, height: 40, borderRadius: 10,
@@ -315,7 +315,7 @@ function DetailDrawer({ property: initialProperty, onClose }: { property: Proper
             background: "var(--color-primary)",
             boxShadow: "0 0 0 1px rgba(124,110,242,0.3), 0 4px 16px rgba(124,110,242,0.2)",
           }}>
-            Besichtigung anfragen
+            Book a viewing
           </button>
           <Link href="/" style={{
             display: "flex", alignItems: "center", justifyContent: "center",
@@ -323,7 +323,7 @@ function DetailDrawer({ property: initialProperty, onClose }: { property: Proper
             border: "1px solid var(--border2)", background: "var(--surface2)",
             fontSize: 13, fontWeight: 500, color: "var(--text-2)", textDecoration: "none",
           }}>
-            KI fragen
+            Ask AI
           </Link>
         </div>
       </div>
@@ -354,7 +354,7 @@ function SavedCard({
       {/* Checkbox */}
       <button
         onClick={(e) => { e.stopPropagation(); onToggle(); }}
-        aria-label="Zum Vergleich auswählen"
+        aria-label="Select for comparison"
         style={{
           position: "absolute", top: 10, left: 10, zIndex: 10,
           width: 24, height: 24, borderRadius: 7,
@@ -372,7 +372,7 @@ function SavedCard({
       {/* Remove */}
       <button
         onClick={(e) => { e.stopPropagation(); onRemove(); }}
-        aria-label="Aus Gespeichert entfernen"
+        aria-label="Remove from saved"
         style={{
           position: "absolute", top: 10, right: 10, zIndex: 10,
           width: 24, height: 24, borderRadius: 7,
@@ -423,8 +423,8 @@ function SavedCard({
           {[property.neighbourhood, property.city].filter(Boolean).join(", ")}
         </p>
         <div style={{ display: "flex", gap: 12, marginTop: 10, borderTop: "1px solid var(--border)", paddingTop: 10 }}>
-          {property.bedrooms  > 0 && <span style={{ fontSize: 12, color: "var(--text-3)" }}>{property.bedrooms} Zi</span>}
-          {property.bathrooms > 0 && <span style={{ fontSize: 12, color: "var(--text-3)" }}>{property.bathrooms} Bad</span>}
+          {property.bedrooms  > 0 && <span style={{ fontSize: 12, color: "var(--text-3)" }}>{property.bedrooms} bd</span>}
+          {property.bathrooms > 0 && <span style={{ fontSize: 12, color: "var(--text-3)" }}>{property.bathrooms} ba</span>}
           {property.area_sqm      && <span style={{ fontSize: 12, color: "var(--text-3)" }}>{property.area_sqm} m²</span>}
         </div>
       </div>
@@ -435,21 +435,21 @@ function SavedCard({
 // ── Vergleichsansicht ─────────────────────────────────────────────────────────
 function CompareView({ properties, onClose }: { properties: Property[]; onClose: () => void }) {
   const rows: { label: string; getValue: (p: Property) => string }[] = [
-    { label: "Preis",        getValue: (p) => fmt(p.price, p.currency) },
-    { label: "Art",          getValue: (p) => listingLabel(p.listing_type) },
-    { label: "Typ",          getValue: (p) => propTypeLabel(p.property_type) },
-    { label: "Zimmer",       getValue: (p) => p.bedrooms  > 0 ? String(p.bedrooms) : "—" },
-    { label: "Bäder",        getValue: (p) => p.bathrooms > 0 ? String(p.bathrooms) : "—" },
-    { label: "Fläche",       getValue: (p) => p.area_sqm ? `${p.area_sqm} m²` : "—" },
-    { label: "Preis/m²",     getValue: (p) => pricePerSqm(p) },
-    { label: "Stadt",        getValue: (p) => p.city },
-    { label: "Stadtteil",    getValue: (p) => p.neighbourhood ?? "—" },
+    { label: "Price",        getValue: (p) => fmt(p.price, p.currency) },
+    { label: "Listing",          getValue: (p) => listingLabel(p.listing_type) },
+    { label: "Type",          getValue: (p) => propTypeLabel(p.property_type) },
+    { label: "Beds",       getValue: (p) => p.bedrooms  > 0 ? String(p.bedrooms) : "—" },
+    { label: "Baths",        getValue: (p) => p.bathrooms > 0 ? String(p.bathrooms) : "—" },
+    { label: "Area",       getValue: (p) => p.area_sqm ? `${p.area_sqm} m²` : "—" },
+    { label: "Price/m²",     getValue: (p) => pricePerSqm(p) },
+    { label: "City",        getValue: (p) => p.city },
+    { label: "District",    getValue: (p) => p.neighbourhood ?? "—" },
   ];
 
   function isBest(row: typeof rows[0], p: Property, all: Property[]) {
-    if (row.label === "Preis") return p.price === Math.min(...all.map((x) => x.price));
-    if (row.label === "Fläche") return (p.area_sqm ?? 0) === Math.max(...all.map((x) => x.area_sqm ?? 0)) && (p.area_sqm ?? 0) > 0;
-    if (row.label === "Preis/m²") {
+    if (row.label === "Price") return p.price === Math.min(...all.map((x) => x.price));
+    if (row.label === "Area") return (p.area_sqm ?? 0) === Math.max(...all.map((x) => x.area_sqm ?? 0)) && (p.area_sqm ?? 0) > 0;
+    if (row.label === "Price/m²") {
       const vals = all.map((x) => x.area_sqm ? x.price / x.area_sqm : Infinity);
       const mine = p.area_sqm ? p.price / p.area_sqm : Infinity;
       return mine === Math.min(...vals) && mine < Infinity;
@@ -472,7 +472,7 @@ function CompareView({ properties, onClose }: { properties: Property[]; onClose:
         </button>
         <span style={{ color: "var(--border2)" }}>/</span>
         <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-1)", letterSpacing: "-0.02em" }}>
-          {properties.length} Objekte im Vergleich
+          {properties.length} properties compared
         </h1>
       </div>
 
@@ -532,7 +532,7 @@ function CompareView({ properties, onClose }: { properties: Property[]; onClose:
         </table>
       </div>
       <p style={{ fontSize: 11, color: "var(--text-3)", textAlign: "center", marginTop: 12 }}>
-        Grüner Punkt = bester Wert in der Kategorie
+        Green dot = best value in the category
       </p>
     </div>
   );
@@ -641,9 +641,9 @@ export function SavedListingsClient() {
               d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
           </svg>
         </div>
-        <h2 style={{ fontSize: 18, fontWeight: 600, color: "var(--text-1)", marginBottom: 8 }}>Noch keine gespeicherten Objekte</h2>
+        <h2 style={{ fontSize: 18, fontWeight: 600, color: "var(--text-1)", marginBottom: 8 }}>No saved properties yet</h2>
         <p style={{ fontSize: 13, color: "var(--text-2)", maxWidth: 280, marginBottom: 28, lineHeight: 1.6 }}>
-          Frag den KI-Agenten nach Immobilien und speichere sie mit dem Herz-Symbol.
+          Ask the AI agent for properties and save them using the heart icon.
         </p>
         <Link href="/" style={{
           padding: "10px 22px", borderRadius: 10,
@@ -664,11 +664,11 @@ export function SavedListingsClient() {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-1)", letterSpacing: "-0.02em" }}>
-            Gespeichert
+            Saved
             <span style={{ fontSize: 16, fontWeight: 400, color: "var(--text-3)", marginLeft: 8 }}>· {properties.length}</span>
           </h1>
           {properties.length >= 2 && (
-            <p style={{ fontSize: 12, color: "var(--text-3)", marginTop: 4 }}>Karte öffnen für Details · 2–4 auswählen zum Vergleich</p>
+            <p style={{ fontSize: 12, color: "var(--text-3)", marginTop: 4 }}>Open a card for details · select 2–4 to compare</p>
           )}
         </div>
         <Link href="/" style={{ fontSize: 13, fontWeight: 500, color: "var(--color-primary)", textDecoration: "none" }}>
@@ -716,19 +716,19 @@ export function SavedListingsClient() {
             })}
           </div>
           <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-1)", paddingLeft: 10 }}>
-            {selectedArr.length} ausgewählt
+            {selectedArr.length} selected
           </span>
           <button onClick={() => setComparing(true)} style={{
             padding: "7px 16px", borderRadius: 9,
             background: "var(--color-primary)", color: "white",
             fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer",
           }}>
-            Vergleichen →
+            Compare →
           </button>
           <button onClick={() => setSelected(new Set())} style={{
             background: "none", border: "none", cursor: "pointer",
             color: "var(--text-3)", display: "flex", alignItems: "center",
-          }} aria-label="Auswahl aufheben">
+          }} aria-label="Clear selection">
             <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>

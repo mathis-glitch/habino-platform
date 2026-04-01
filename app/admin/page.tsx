@@ -45,7 +45,7 @@ export default async function AdminDashboard() {
   const onboardingComplete = hasListings && hasContact;
 
   function statusLabel(s: string) {
-    return s === "active" ? "Aktiv" : s === "draft" ? "Entwurf" : s;
+    return s === "active" ? "Active" : s === "draft" ? "Draft" : s;
   }
 
   function statusStyle(s: string): React.CSSProperties {
@@ -66,7 +66,7 @@ export default async function AdminDashboard() {
         {/* Page header */}
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 32 }}>
           <div>
-            <p style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 4 }}>Willkommen zurück</p>
+            <p style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 4 }}>Welcome back</p>
             <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--text-1)", letterSpacing: "-0.02em" }}>
               Admin Dashboard
             </h1>
@@ -81,7 +81,7 @@ export default async function AdminDashboard() {
             <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
               <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
             </svg>
-            Inserat erstellen
+            Add listing
           </Link>
         </div>
 
@@ -100,10 +100,10 @@ export default async function AdminDashboard() {
             </h2>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {[
-                { done: true,        label: "Account erstellt",        desc: "Du bist angemeldet und startklar.", href: undefined,             action: undefined },
-                { done: hasListings, label: "Erstes Inserat anlegen",  desc: "Veröffentliche deine erste Immobilie.", href: "/admin/listings/new", action: "Jetzt erstellen →" },
-                { done: hasContact,  label: "Kontaktdaten hinterlegen",desc: "E-Mail & Telefon für Anfragen.", href: "/admin/settings",     action: "Einstellungen öffnen →" },
-                { done: hasColor,    label: "Marke anpassen",          desc: "Logo, Farben und Plattformname.", href: "/admin/settings",     action: "Brand einrichten →" },
+                { done: true,        label: "Account created",       desc: "You are signed in and ready to go.", href: undefined,             action: undefined },
+                { done: hasListings, label: "Add first listing",      desc: "Publish your first property.", href: "/admin/listings/new", action: "Create now →" },
+                { done: hasContact,  label: "Add contact details",   desc: "Email & phone for enquiries.", href: "/admin/settings",     action: "Open settings →" },
+                { done: hasColor,    label: "Customize brand",       desc: "Logo, colors and platform name.", href: "/admin/settings",     action: "Set up brand →" },
               ].map(({ done, label, desc, href, action }) => (
                 <div key={label} style={{
                   display: "flex", alignItems: "center", gap: 14,
@@ -148,10 +148,10 @@ export default async function AdminDashboard() {
         {/* Stats */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 28 }}>
           {[
-            { label: "Inserate gesamt", value: total,  color: "var(--text-1)"  },
-            { label: "Aktiv",           value: active, color: "var(--ok)"      },
-            { label: "Entwürfe",        value: draft,  color: "var(--text-3)"  },
-            { label: "Offene Termine",  value: appts,  color: "var(--warn)"    },
+            { label: "Total listings",    value: total,  color: "var(--text-1)"  },
+            { label: "Active",            value: active, color: "var(--ok)"      },
+            { label: "Drafts",            value: draft,  color: "var(--text-3)"  },
+            { label: "Pending viewings",  value: appts,  color: "var(--warn)"    },
           ].map(({ label, value, color }) => (
             <div key={label} style={{
               background: "var(--surface2)", border: "1px solid var(--border)",
@@ -172,7 +172,7 @@ export default async function AdminDashboard() {
             padding: "16px 20px", borderBottom: "1px solid var(--border)",
             display: "flex", alignItems: "center", justifyContent: "space-between",
           }}>
-            <h2 style={{ fontSize: 14, fontWeight: 600, color: "var(--text-1)" }}>Aktuelle Inserate</h2>
+            <h2 style={{ fontSize: 14, fontWeight: 600, color: "var(--text-1)" }}>Recent listings</h2>
             <Link href="/admin/listings" style={{ fontSize: 12, fontWeight: 500, color: "var(--color-primary)", textDecoration: "none" }}>
               Alle anzeigen →
             </Link>
@@ -190,14 +190,14 @@ export default async function AdminDashboard() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
                 </svg>
               </div>
-              <p style={{ fontSize: 14, fontWeight: 500, color: "var(--text-1)", marginBottom: 6 }}>Noch keine Inserate</p>
-              <p style={{ fontSize: 13, color: "var(--text-3)", marginBottom: 20 }}>Erstelle dein erstes Inserat.</p>
+              <p style={{ fontSize: 14, fontWeight: 500, color: "var(--text-1)", marginBottom: 6 }}>No listings yet</p>
+              <p style={{ fontSize: 13, color: "var(--text-3)", marginBottom: 20 }}>Create your first listing.</p>
               <Link href="/admin/listings/new" style={{
                 display: "inline-block", padding: "9px 20px", borderRadius: 9,
                 background: "var(--color-primary)", color: "white",
                 fontSize: 13, fontWeight: 600, textDecoration: "none",
               }}>
-                + Inserat erstellen
+                + Add listing
               </Link>
             </div>
           ) : (
@@ -205,7 +205,7 @@ export default async function AdminDashboard() {
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                 <thead>
                   <tr style={{ background: "var(--surface3)" }}>
-                    {["Objekt", "Preis", "Typ", "Status", "Aktion"].map((h) => (
+                    {["Property", "Price", "Type", "Status", "Action"].map((h) => (
                       <th key={h} style={{
                         padding: "10px 16px", textAlign: "left",
                         fontSize: 11, fontWeight: 600, color: "var(--text-3)",
@@ -225,7 +225,7 @@ export default async function AdminDashboard() {
                       </td>
                       <td style={{ padding: "14px 16px", color: "var(--text-2)" }}>{formatPrice(p.price, p.currency)}</td>
                       <td style={{ padding: "14px 16px", color: "var(--text-2)" }}>
-                        {p.listing_type === "buy" ? "Kauf" : "Miete"}
+                        {p.listing_type === "buy" ? "For Sale" : "For Rent"}
                       </td>
                       <td style={{ padding: "14px 16px" }}>
                         <span style={{
@@ -253,8 +253,8 @@ export default async function AdminDashboard() {
           {[
             {
               href: "/admin/settings",
-              title: "Marke & Einstellungen",
-              desc: "Logo, Farben, Kontakt",
+              title: "Brand & Settings",
+              desc: "Logo, colors, contact",
               icon: (
                 <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
@@ -264,8 +264,8 @@ export default async function AdminDashboard() {
             },
             {
               href: "/admin/appointments",
-              title: "Besichtigungsanfragen",
-              desc: appts > 0 ? `${appts} offen` : "Alle Anfragen",
+              title: "Viewing requests",
+              desc: appts > 0 ? `${appts} open` : "All requests",
               icon: (
                 <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>

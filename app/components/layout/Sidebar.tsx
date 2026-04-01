@@ -7,10 +7,10 @@ import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState } from "react";
 
 const HISTORY = [
-  { text: "3-Zi Wohnung Berlin unter 2.000 €", time: "Heute, 14:32" },
-  { text: "Mietpreise München Q1 2026",          time: "Gestern" },
-  { text: "Kaufpreis Entwicklung Frankfurt",      time: "25. März" },
-  { text: "Penthouse Westend Frankfurt",          time: "22. März" },
+  { text: "3-room apartment Berlin under €2,000", time: "Today, 14:32" },
+  { text: "Rental prices Munich Q1 2026",          time: "Yesterday" },
+  { text: "Price trends Frankfurt",                time: "Mar 25" },
+  { text: "Penthouse Westend Frankfurt",           time: "Mar 22" },
 ];
 
 function Icon({ path, filled }: { path: string; filled?: boolean }) {
@@ -26,13 +26,13 @@ function Icon({ path, filled }: { path: string; filled?: boolean }) {
 const NAV_MAIN = [
   {
     href: "/",
-    label: "KI Agent",
+    label: "AI Agent",
     path: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z",
     match: (p: string) => p === "/" || p.startsWith("/explore"),
   },
   {
     href: "/saved",
-    label: "Gespeichert",
+    label: "Saved",
     path: "M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z",
     badge: "4",
     match: (p: string) => p.startsWith("/saved"),
@@ -42,26 +42,26 @@ const NAV_MAIN = [
 const NAV_WORKSPACE = [
   {
     href: "/admin/listings",
-    label: "Objekte",
+    label: "Listings",
     path: "M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z",
     match: (p: string) => p.startsWith("/admin/listings"),
   },
   {
     href: "/home",
-    label: "Verträge",
+    label: "Contracts",
     path: "M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z M14 2v6h6",
     badge: "2",
     match: (p: string) => p.startsWith("/home"),
   },
   {
     href: "/markt",
-    label: "Markt",
+    label: "Market",
     path: "M18 20V10M12 20V4M6 20v-6",
     match: (p: string) => p.startsWith("/markt"),
   },
   {
     href: "/profile",
-    label: "Profil",
+    label: "Profile",
     path: "M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2 M12 11a4 4 0 100-8 4 4 0 000 8z",
     match: (p: string) => p.startsWith("/profile"),
   },
@@ -160,14 +160,14 @@ export default function Sidebar() {
           <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
           </svg>
-          Neuer Chat
+          New Chat
         </button>
       </div>
 
       {/* Main Nav */}
       <div style={{ padding: "0 10px" }}>
         <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--text-3)", padding: "0 8px", marginBottom: 4 }}>
-          Hauptmenü
+          Main Menu
         </div>
         {NAV_MAIN.map(item => {
           const active = item.match(pathname);
@@ -200,7 +200,7 @@ export default function Sidebar() {
       {/* Workspace Nav */}
       <div style={{ padding: "0 10px" }}>
         <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--text-3)", padding: "0 8px", marginBottom: 4 }}>
-          Verwaltung
+          Management
         </div>
         {NAV_WORKSPACE.map(item => {
           const active = item.match(pathname);
@@ -233,7 +233,7 @@ export default function Sidebar() {
       {/* Chat History */}
       <div style={{ padding: "0 10px 4px" }}>
         <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--text-3)", padding: "0 8px", marginBottom: 4 }}>
-          Verlauf
+          History
         </div>
       </div>
       <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 10px", overscrollBehavior: "contain" }}>

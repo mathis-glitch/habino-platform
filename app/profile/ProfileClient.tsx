@@ -19,10 +19,10 @@ interface Profile {
 }
 
 const COUNTRY_LABELS: Record<string, string> = {
-  DE: "Deutschland", AT: "Österreich", CH: "Schweiz",
-  KE: "Kenia", NG: "Nigeria", GH: "Ghana", ZA: "Südafrika",
-  AE: "VAE", GB: "Vereinigtes Königreich", FR: "Frankreich",
-  ES: "Spanien", US: "USA", BR: "Brasilien", IN: "Indien",
+  DE: "Germany", AT: "Austria", CH: "Switzerland",
+  KE: "Kenya", NG: "Nigeria", GH: "Ghana", ZA: "South Africa",
+  AE: "UAE", GB: "United Kingdom", FR: "France",
+  ES: "Spain", US: "USA", BR: "Brazil", IN: "India",
 };
 
 const LANG_LABELS: Record<string, string> = {
@@ -75,7 +75,7 @@ function FieldRow({ icon, label, value, action }: {
           fontSize: 13, lineHeight: "1.3", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
           color: has ? "var(--text-1)" : "var(--text-3)", fontStyle: has ? "normal" : "italic", fontWeight: has ? 500 : 400,
         }}>
-          {value || "Nicht gesetzt"}
+          {value || "Not set"}
         </p>
       </div>
       {action && <div style={{ flexShrink: 0 }}>{action}</div>}
@@ -179,7 +179,7 @@ export function ProfileClient() {
         <div style={{ maxWidth: 560, margin: "0 auto" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
             <h1 style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.12em" }}>
-              Mein Profil
+              My Profile
             </h1>
             <Link href="/?wizard=profile" style={{
               display: "flex", alignItems: "center", gap: 6, height: 32, padding: "0 14px",
@@ -187,7 +187,7 @@ export function ProfileClient() {
               background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
               color: "rgba(255,255,255,0.75)", textDecoration: "none", transition: "all 0.12s",
             }}>
-              ✨ {hasProfile ? "Mit KI bearbeiten" : "Einrichten"}
+              ✨ {hasProfile ? "Edit with AI" : "Set up"}
             </Link>
           </div>
 
@@ -219,10 +219,10 @@ export function ProfileClient() {
             {/* Name */}
             <div style={{ flex: 1, minWidth: 0 }}>
               <h2 style={{ fontSize: 20, fontWeight: 700, color: "white", lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {profile.full_name || "Dein Name"}
+                {profile.full_name || "Your Name"}
               </h2>
               <p style={{ fontSize: 13, color: "rgba(255,255,255,0.45)", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {profile.email || "Keine E-Mail gesetzt"}
+                {profile.email || "No email set"}
               </p>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
                 <span style={{
@@ -238,7 +238,7 @@ export function ProfileClient() {
                       width: 5, height: 5, borderRadius: "50%", flexShrink: 0,
                       background: completionPct >= 50 ? "var(--ok)" : "var(--warn)",
                     }} />
-                    {completionPct}% vollständig
+                    {completionPct}% complete
                   </span>
                 )}
               </div>
@@ -255,14 +255,14 @@ export function ProfileClient() {
               <div style={{ width: 3, borderRadius: 2, alignSelf: "stretch", background: "var(--warn)", minHeight: 36 }} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ fontSize: 12, fontWeight: 600, color: "var(--warn)", lineHeight: 1.3 }}>
-                  {FIELDS.length - completedCount} Felder fehlen noch
+                  {FIELDS.length - completedCount} fields missing
                 </p>
                 <p style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", marginTop: 2 }}>
-                  Vollständiges Profil beschleunigt die Vertragserstellung.
+                  A complete profile speeds up contract creation.
                 </p>
               </div>
               <Link href="/?wizard=profile" style={{ fontSize: 11, fontWeight: 600, color: "var(--warn)", textDecoration: "none", flexShrink: 0 }}>
-                Vervollständigen →
+                Vercompleteen →
               </Link>
             </div>
           )}
@@ -285,9 +285,9 @@ export function ProfileClient() {
                 </svg>
               </div>
               <div>
-                <h3 style={{ fontSize: 16, fontWeight: 600, color: "var(--text-1)" }}>Noch kein Profil angelegt</h3>
+                <h3 style={{ fontSize: 16, fontWeight: 600, color: "var(--text-1)" }}>No profile set up yet</h3>
                 <p style={{ fontSize: 13, color: "var(--text-2)", marginTop: 6, lineHeight: 1.6, maxWidth: 260 }}>
-                  Der KI-Agent befragt dich in ~60 Sekunden und füllt alles automatisch aus.
+                  The AI agent interviews you in ~60 seconds and fills everything in automatically.
                 </p>
               </div>
               <Link href="/?wizard=profile" style={{
@@ -305,18 +305,18 @@ export function ProfileClient() {
           <>
             {/* Persönliche Daten */}
             <Card>
-              <CardHeader label="Persönliche Daten" action={
+              <CardHeader label="Personal Information" action={
                 <Link href="/?wizard=profile" style={{ fontSize: 12, fontWeight: 600, color: "var(--color-primary)", textDecoration: "none", display: "flex", alignItems: "center", gap: 4 }}>
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                   </svg>
-                  Bearbeiten
+                  Edit
                 </Link>
               } />
               <div style={{ padding: "0 20px" }}>
-                <FieldRow icon={<IconUser />} label="Vollständiger Name" value={profile.full_name} />
-                <FieldRow icon={<IconMail />} label="E-Mail" value={profile.email}
+                <FieldRow icon={<IconUser />} label="Full Name" value={profile.full_name} />
+                <FieldRow icon={<IconMail />} label="Email" value={profile.email}
                   action={profile.email ? (
                     <span style={{
                       display: "inline-flex", alignItems: "center", gap: 4,
@@ -328,28 +328,28 @@ export function ProfileClient() {
                     </span>
                   ) : undefined}
                 />
-                <FieldRow icon={<IconPhone />} label="Telefon" value={profile.phone} />
+                <FieldRow icon={<IconPhone />} label="Phone" value={profile.phone} />
                 <FieldRow icon={<IconPhone />} label="WhatsApp" value={profile.whatsapp} />
               </div>
             </Card>
 
             {/* Standort */}
             <Card>
-              <CardHeader label="Standort" action={
-                <Link href="/?wizard=profile" style={{ fontSize: 12, fontWeight: 600, color: "var(--color-primary)", textDecoration: "none" }}>Bearbeiten</Link>
+              <CardHeader label="Location" action={
+                <Link href="/?wizard=profile" style={{ fontSize: 12, fontWeight: 600, color: "var(--color-primary)", textDecoration: "none" }}>Edit</Link>
               } />
               <div style={{ padding: "0 20px" }}>
-                <FieldRow icon={<IconMap />} label="Stadt" value={profile.city} />
-                <FieldRow icon={<IconGlobe />} label="Land"
+                <FieldRow icon={<IconMap />} label="City" value={profile.city} />
+                <FieldRow icon={<IconGlobe />} label="Country"
                   value={profile.country_code ? COUNTRY_LABELS[profile.country_code] ?? profile.country_code : undefined}
                 />
-                <FieldRow icon={<IconMap />} label="Adresse" value={profile.address} />
+                <FieldRow icon={<IconMap />} label="Address" value={profile.address} />
               </div>
             </Card>
 
             {/* Identität & Einstellungen */}
             <Card>
-              <CardHeader label="Identität & Einstellungen" />
+              <CardHeader label="Identity & Preferences" />
               <div style={{ padding: "12px 20px 0" }}>
                 <div style={{
                   display: "flex", alignItems: "flex-start", gap: 10,
@@ -360,24 +360,24 @@ export function ProfileClient() {
                     <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
                   </svg>
                   <p style={{ fontSize: 12, color: "var(--color-primary)", lineHeight: 1.5 }}>
-                    Ausweis und Spracheinstellungen werden für die Vertragserstellung verwendet.
+                    ID and language settings are used for contract generation.
                   </p>
                 </div>
               </div>
               <div style={{ padding: "0 20px" }}>
-                <FieldRow icon={<IconID />} label="Ausweis / Reisepass"
+                <FieldRow icon={<IconID />} label="ID / Passport"
                   value={profile.id_number ? `••••  ••••  ${profile.id_number.slice(-4)}` : undefined}
                 />
-                <FieldRow icon={<IconGlobe />} label="Bevorzugte Sprache"
-                  value={profile.preferred_lang ? LANG_LABELS[profile.preferred_lang] ?? profile.preferred_lang : "Deutsch"}
+                <FieldRow icon={<IconGlobe />} label="Preferred Language"
+                  value={profile.preferred_lang ? LANG_LABELS[profile.preferred_lang] ?? profile.preferred_lang : "English (US)"}
                 />
-                {profile.bio && <FieldRow icon={<IconUser />} label="Über mich" value={profile.bio} />}
+                {profile.bio && <FieldRow icon={<IconUser />} label="About me" value={profile.bio} />}
               </div>
             </Card>
 
             {/* Sicherheit */}
             <Card>
-              <CardHeader label="Sicherheit" />
+              <CardHeader label="Security" />
               <div style={{ padding: "0 20px" }}>
                 {/* Passwort */}
                 <div style={{
@@ -393,7 +393,7 @@ export function ProfileClient() {
                     <IconLock />
                   </div>
                   <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 10, fontWeight: 600, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>Passwort</p>
+                    <p style={{ fontSize: 10, fontWeight: 600, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>Password</p>
                     <p style={{ fontSize: 13, color: "var(--text-1)", letterSpacing: "0.18em" }}>••••••••••</p>
                   </div>
                   <Link href="/?wizard=profile" style={{ fontSize: 12, fontWeight: 600, color: "var(--color-primary)", textDecoration: "none" }}>
@@ -412,13 +412,13 @@ export function ProfileClient() {
                     <IconShield />
                   </div>
                   <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 10, fontWeight: 600, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>Zwei-Faktor-Auth</p>
-                    <p style={{ fontSize: 13, color: "var(--text-2)" }}>{twofa ? "Aktiviert" : "Deaktiviert — empfohlen"}</p>
+                    <p style={{ fontSize: 10, fontWeight: 600, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 3 }}>Two-Factor Auth</p>
+                    <p style={{ fontSize: 13, color: "var(--text-2)" }}>{twofa ? "Enabled" : "Disabled — recommended"}</p>
                   </div>
                   <button
                     onClick={() => setTwofa((v) => !v)}
                     role="switch" aria-checked={twofa}
-                    aria-label="Zwei-Faktor-Authentifizierung"
+                    aria-label="Two-factor authentication"
                     style={{
                       position: "relative", flexShrink: 0, width: 42, height: 24, borderRadius: 12,
                       background: twofa ? "var(--color-primary)" : "var(--surface3)",
@@ -441,7 +441,7 @@ export function ProfileClient() {
               <Card>
                 <div style={{ padding: "16px 20px" }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)" }}>Profil-Vollständigkeit</p>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)" }}>Profile completeness</p>
                     <span style={{ fontSize: 13, fontWeight: 700, color: "var(--color-primary)" }}>{completionPct}%</span>
                   </div>
                   <div style={{ height: 5, background: "var(--surface3)", borderRadius: 3, overflow: "hidden", marginBottom: 16 }}>
@@ -454,12 +454,12 @@ export function ProfileClient() {
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {FIELDS.filter((f) => !profile[f]).map((f) => {
                       const labels: Record<string, string> = {
-                        full_name: "Vollständigen Namen hinzufügen",
-                        email: "E-Mail verifizieren",
-                        phone: "Telefonnummer hinzufügen",
-                        city: "Stadt festlegen",
-                        id_number: "Ausweis-/Passnummer hinzufügen",
-                        avatar_url: "Profilfoto hochladen",
+                        full_name: "Add full name",
+                        email: "Verify email",
+                        phone: "Add phone number",
+                        city: "Set city",
+                        id_number: "Add ID / passport number",
+                        avatar_url: "Upload profile photo",
                       };
                       return (
                         <Link key={f} href="/?wizard=profile" style={{
@@ -488,12 +488,12 @@ export function ProfileClient() {
           background: "rgba(255,69,58,0.05)", padding: "16px 20px", marginTop: 4,
         }}>
           <p style={{ fontSize: 10, fontWeight: 700, color: "var(--err)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 16 }}>
-            Gefahrenzone
+            Danger Zone
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
             {[
-              { label: "Daten exportieren", desc: "Alle Daten als ZIP herunterladen.", action: "Exportieren", danger: false },
-              { label: "Account löschen", desc: "Löscht alle Daten unwiderruflich.", action: "Löschen", danger: true },
+              { label: "Download my data", desc: "Download all your data as a ZIP.", action: "Export", danger: false },
+              { label: "Delete account", desc: "Permanently deletes all your data.", action: "Delete", danger: true },
             ].map(({ label, desc, action, danger }, i) => (
               <div key={label} style={{
                 display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16,
