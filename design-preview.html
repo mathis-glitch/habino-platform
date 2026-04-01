@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Habino V2 — Interactive Design Preview</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:       #09090E;
+  --s1:       #111119;
+  --s2:       #18181F;
+  --s3:       #1F1F28;
+  --s4:       #26262F;
+  --border:   rgba(255,255,255,0.06);
+  --border2:  rgba(255,255,255,0.10);
+  --p:        #7C6EF2;
+  --p-d:      #6255D4;
+  --p-g:      rgba(124,110,242,0.12);
+  --t1:       #F0F0F5;
+  --t2:       #8A8A9C;
+  --t3:       #46465A;
+  --ok:       #30D158;
+  --warn:     #FF9F0A;
+  --err:      #FF453A;
+}
+
+body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--t1); -webkit-font-smoothing:antialiased; overflow:hidden; height:100vh; }
+
+/* ── SHELL ─────────────────────────────────────────── */
+.shell { display:flex; height:100vh; }
+
+/* ── SIDEBAR ────────────────────────────────────────── */
+.sidebar {
+  width:220px; min-width:220px; height:100vh;
+  background:var(--s1); border-right:1px solid var(--border);
+  display:flex; flex-direction:column; padding:16px 10px;
+  transition:width 300ms ease;
+}
+
+.logo { display:flex; align-items:center; gap:9px; padding:8px 8px 18px; }
+.logo-mark {
+  width:30px; height:30px; border-radius:9px; flex-shrink:0;
+  background:linear-gradient(135deg,#7C6EF2,#9B8BF5);
+  box-shadow:0 0 0 1px rgba(124,110,242,0.3),0 4px 12px rgba(124,110,242,0.25);
+  display:flex; align-items:center; justify-content:center;
+}
+.logo-mark svg { width:14px; height:14px; }
+.logo-text { font-size:15px; font-weight:700; letter-spacing:-0.02em; }
+.logo-text span { color:var(--p); }
+
+.new-chat-btn {
+  display:flex; align-items:center; gap:8px;
+  padding:9px 10px; border-radius:9px;
+  background:var(--p-g); border:1px solid rgba(124,110,242,0.2);
+  color:var(--p); font-size:13px; font-weight:600;
+  cursor:pointer; transition:all 140ms; margin-bottom:12px;
+  font-family:inherit;
+}
+.new-chat-btn:hover { background:rgba(124,110,242,0.18); }
+.new-chat-btn svg { width:14px; height:14px; }
+
+.nav-label {
+  font-size:10px; font-weight:600; color:var(--t3);
+  text-transform:uppercase; letter-spacing:0.07em;
+  padding:10px 8px 5px;
+}
+
+.nav-item {
+  display:flex; align-items:center; gap:9px;
+  padding:8px 10px; border-radius:8px;
+  font-size:13px; font-weight:500; color:var(--t2);
+  cursor:pointer; transition:all 120ms; position:relative;
+  border:none; background:none; font-family:inherit; width:100%; text-align:left;
+}
+.nav-item:hover { background:rgba(255,255,255,0.04); color:var(--t1); }
+.nav-item.active { background:var(--p-g); color:var(--t1); }
+.nav-item.active svg { color:var(--p); }
+.nav-item svg { width:15px; height:15px; color:var(--t3); flex-shrink:0; transition:color 120ms; }
+.nav-item:hover svg { color:var(--t2); }
+
+.nav-chip {
+  margin-left:auto; font-size:10px; font-weight:700;
+  background:rgba(124,110,242,0.15); color:var(--p);
+  border:1px solid rgba(124,110,242,0.2);
+  padding:1px 6px; border-radius:20px;
+}
+
+.chat-history { overflow-y:auto; flex:1; }
+.chat-history::-webkit-scrollbar { width:0; }
+
+.history-item {
+  display:flex; align-items:center; gap:8px;
+  padding:7px 10px; border-radius:8px;
+  font-size:12.5px; color:var(--t2); cursor:pointer;
+  transition:all 120ms; white-space:nowrap; overflow:hidden;
+}
+.history-item:hover { background:rgba(255,255,255,0.04); color:var(--t1); }
+.history-item svg { width:13px; height:13px; flex-shrink:0; }
+.history-item span { overflow:hidden; text-overflow:ellipsis; }
+
+.sidebar-bottom { border-top:1px solid var(--border); padding-top:12px; margin-top:8px; }
+
+.user-row {
+  display:flex; align-items:center; gap:9px;
+  padding:9px 10px; border-radius:9px;
+  cursor:pointer; transition:all 120ms;
+}
+.user-row:hover { background:var(--s2); }
+.avatar {
+  width:28px; height:28px; border-radius:7px; flex-shrink:0;
+  background:linear-gradient(135deg,#7C6EF2,#C084FC);
+  display:flex; align-items:center; justify-content:center;
+  font-size:11px; font-weight:700; color:white;
+}
+.user-name { font-size:12.5px; font-weight:600; color:var(--t1); }
+.user-plan { font-size:11px; color:var(--t2); }
+
+/* ── MAIN ───────────────────────────────────────────── */
+.main { flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; }
+
+/* ── TOPBAR ─────────────────────────────────────────── */
+.topbar {
+  height:52px; border-bottom:1px solid var(--border);
+  display:flex; align-items:center; padding:0 20px; gap:12px; flex-shrink:0;
+}
+.tb-title { font-size:14px; font-weight:600; color:var(--t1); }
+.tb-space { flex:1; }
+.tb-tabs { display:flex; gap:1px; background:var(--s2); border:1px solid var(--border); border-radius:9px; padding:3px; }
+.tb-tab {
+  padding:5px 14px; border-radius:6px; font-size:12.5px; font-weight:500;
+  color:var(--t2); cursor:pointer; transition:all 120ms; border:none; background:none; font-family:inherit;
+}
+.tb-tab:hover { color:var(--t1); }
+.tb-tab.active { background:var(--s3); color:var(--t1); box-shadow:0 1px 3px rgba(0,0,0,0.3); }
+
+.icon-btn {
+  width:32px; height:32px; border-radius:8px;
+  background:var(--s2); border:1px solid var(--border);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; transition:all 120ms; position:relative;
+}
+.icon-btn:hover { border-color:var(--border2); background:var(--s3); }
+.icon-btn svg { width:14px; height:14px; color:var(--t2); }
+.notif-dot {
+  position:absolute; top:6px; right:6px; width:6px; height:6px;
+  background:var(--p); border-radius:50%; border:1.5px solid var(--s1);
+}
+
+/* ── SCREENS ────────────────────────────────────────── */
+.screen { flex:1; overflow:hidden; display:none; }
+.screen.active { display:flex; }
+
+/* ── CHAT SCREEN ────────────────────────────────────── */
+.chat-screen { flex-direction:column; }
+
+.chat-empty {
+  flex:1; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; padding:40px;
+  gap:32px;
+}
+
+.chat-welcome { text-align:center; }
+.chat-welcome h2 { font-size:26px; font-weight:700; color:var(--t1); letter-spacing:-0.02em; margin-bottom:8px; }
+.chat-welcome p { font-size:15px; color:var(--t2); max-width:420px; line-height:1.6; }
+
+.suggestions {
+  display:grid; grid-template-columns:1fr 1fr; gap:10px; width:100%; max-width:600px;
+}
+
+.suggestion-card {
+  background:var(--s1); border:1px solid var(--border);
+  border-radius:12px; padding:14px 16px; cursor:pointer;
+  transition:all 160ms; text-align:left;
+}
+.suggestion-card:hover { border-color:rgba(124,110,242,0.3); background:var(--p-g); transform:translateY(-1px); }
+.suggestion-icon { font-size:18px; margin-bottom:8px; }
+.suggestion-title { font-size:13px; font-weight:600; color:var(--t1); margin-bottom:3px; }
+.suggestion-desc { font-size:12px; color:var(--t2); line-height:1.4; }
+
+/* messages area */
+.chat-messages {
+  flex:1; overflow-y:auto; padding:24px 20px;
+  display:flex; flex-direction:column; gap:20px;
+  scrollbar-width:thin; scrollbar-color:var(--s3) transparent;
+}
+.chat-messages::-webkit-scrollbar { width:4px; }
+.chat-messages::-webkit-scrollbar-thumb { background:var(--s3); border-radius:10px; }
+
+.msg { display:flex; gap:12px; max-width:80%; }
+.msg.user { align-self:flex-end; flex-direction:row-reverse; }
+
+.msg-avatar {
+  width:28px; height:28px; border-radius:8px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:11px; font-weight:700; margin-top:2px;
+}
+.msg-avatar.ai { background:linear-gradient(135deg,#7C6EF2,#9B8BF5); color:white; }
+.msg-avatar.user { background:linear-gradient(135deg,#3A3A5C,#4A4A6C); color:var(--t2); }
+
+.msg-bubble {
+  background:var(--s2); border:1px solid var(--border);
+  border-radius:14px; padding:12px 16px;
+  font-size:14px; line-height:1.6; color:var(--t1);
+}
+.msg.user .msg-bubble {
+  background:var(--p-g); border-color:rgba(124,110,242,0.2);
+}
+
+.msg-time { font-size:11px; color:var(--t3); margin-top:5px; padding:0 4px; }
+.msg.user .msg-time { text-align:right; }
+
+/* property results in chat */
+.prop-results {
+  display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:12px;
+}
+
+.prop-card {
+  background:var(--s1); border:1px solid var(--border);
+  border-radius:12px; overflow:hidden; cursor:pointer;
+  transition:all 160ms;
+}
+.prop-card:hover { border-color:var(--border2); transform:translateY(-1px); box-shadow:0 8px 24px rgba(0,0,0,0.35); }
+
+.prop-img {
+  height:90px; position:relative; overflow:hidden;
+}
+.prop-img-inner { width:100%; height:100%; }
+
+.prop-save {
+  position:absolute; top:8px; right:8px; width:26px; height:26px;
+  background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.1);
+  border-radius:6px; display:flex; align-items:center; justify-content:center;
+  cursor:pointer; backdrop-filter:blur(4px); transition:all 120ms;
+}
+.prop-save:hover { background:rgba(255,69,58,0.3); border-color:rgba(255,69,58,0.4); }
+.prop-save svg { width:12px; height:12px; }
+.prop-save.saved svg { fill:var(--err); color:var(--err); }
+
+.prop-body { padding:10px; }
+.prop-price { font-size:15px; font-weight:700; letter-spacing:-0.02em; }
+.prop-price small { font-size:11px; font-weight:400; color:var(--t2); }
+.prop-addr { font-size:11.5px; color:var(--t2); margin-top:2px; }
+.prop-specs { display:flex; gap:8px; margin-top:8px; padding-top:8px; border-top:1px solid var(--border); }
+.prop-spec { font-size:11px; color:var(--t3); display:flex; align-items:center; gap:3px; }
+.prop-spec svg { width:11px; height:11px; }
+
+.compare-hint {
+  display:flex; align-items:center; gap:8px;
+  background:rgba(124,110,242,0.08); border:1px solid rgba(124,110,242,0.18);
+  border-radius:10px; padding:10px 14px; margin-top:10px;
+  font-size:12.5px; color:var(--t2);
+}
+.compare-hint svg { width:14px; height:14px; color:var(--p); flex-shrink:0; }
+
+/* ── CHAT INPUT ─────────────────────────────────────── */
+.chat-input-wrap {
+  padding:16px 20px 20px; flex-shrink:0;
+  border-top:1px solid var(--border);
+  background:var(--bg);
+}
+
+.chat-input-box {
+  display:flex; align-items:flex-end; gap:10px;
+  background:var(--s1); border:1px solid var(--border);
+  border-radius:14px; padding:12px 14px;
+  transition:all 140ms;
+}
+.chat-input-box:focus-within { border-color:rgba(124,110,242,0.4); box-shadow:0 0 0 3px rgba(124,110,242,0.08); }
+
+.chat-input-box textarea {
+  flex:1; background:none; border:none; outline:none;
+  font-family:inherit; font-size:14px; color:var(--t1);
+  resize:none; min-height:20px; max-height:120px; line-height:1.5;
+}
+.chat-input-box textarea::placeholder { color:var(--t3); }
+
+.input-actions { display:flex; align-items:center; gap:6px; flex-shrink:0; }
+
+.input-btn {
+  width:30px; height:30px; border-radius:7px;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; transition:all 120ms; border:none; background:none;
+}
+.input-btn svg { width:15px; height:15px; color:var(--t3); }
+.input-btn:hover svg { color:var(--t2); }
+
+.send-btn {
+  width:34px; height:34px; border-radius:9px; flex-shrink:0;
+  background:var(--p); border:none; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition:all 140ms;
+  box-shadow:0 0 0 1px rgba(124,110,242,0.3),0 3px 12px rgba(124,110,242,0.2);
+}
+.send-btn:hover { background:#8B7EF5; transform:scale(1.05); }
+.send-btn svg { width:15px; height:15px; color:white; }
+
+.input-hint { display:flex; gap:12px; margin-top:8px; padding:0 2px; }
+.hint-chip {
+  font-size:11.5px; color:var(--t3); display:flex; align-items:center; gap:4px;
+  cursor:pointer; transition:color 120ms;
+}
+.hint-chip:hover { color:var(--t2); }
+.hint-chip svg { width:12px; height:12px; }
+
+/* ── SAVED SCREEN ──────────────────────────────────── */
+.saved-screen { flex-direction:column; overflow:hidden; }
+
+.saved-header {
+  padding:24px 24px 0; flex-shrink:0;
+}
+
+.saved-toolbar {
+  display:flex; align-items:center; gap:10px; margin-bottom:20px; flex-wrap:wrap;
+}
+
+.compare-bar {
+  background:linear-gradient(135deg, rgba(124,110,242,0.12), rgba(124,110,242,0.06));
+  border:1px solid rgba(124,110,242,0.2); border-radius:12px;
+  padding:12px 16px; margin-bottom:16px;
+  display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+}
+.compare-bar-label { font-size:13px; font-weight:600; color:var(--t1); flex:1; }
+.compare-bar-subs { font-size:12px; color:var(--t2); }
+
+.btn {
+  display:inline-flex; align-items:center; gap:7px;
+  padding:8px 14px; border-radius:8px; font-size:12.5px;
+  font-weight:600; font-family:inherit; cursor:pointer; border:none;
+  transition:all 130ms; white-space:nowrap;
+}
+.btn svg { width:13px; height:13px; }
+.btn-primary { background:var(--p); color:white; box-shadow:0 0 0 1px rgba(124,110,242,0.3),0 3px 12px rgba(124,110,242,0.2); }
+.btn-primary:hover { background:#8B7EF5; transform:translateY(-1px); }
+.btn-ghost { background:none; color:var(--t2); }
+.btn-ghost:hover { color:var(--t1); background:rgba(255,255,255,0.04); }
+.btn-secondary { background:var(--s2); color:var(--t1); border:1px solid var(--border); }
+.btn-secondary:hover { background:var(--s3); border-color:var(--border2); }
+.btn-danger { background:rgba(255,69,58,0.1); color:var(--err); border:1px solid rgba(255,69,58,0.2); }
+.btn-danger:hover { background:rgba(255,69,58,0.18); }
+
+.saved-grid { overflow-y:auto; padding:0 24px 24px; flex:1; scrollbar-width:thin; scrollbar-color:var(--s3) transparent; }
+
+.saved-list { display:flex; flex-direction:column; gap:10px; }
+
+.saved-item {
+  display:flex; align-items:center; gap:14px;
+  background:var(--s1); border:1px solid var(--border);
+  border-radius:14px; padding:14px 16px; cursor:pointer;
+  transition:all 160ms; position:relative;
+}
+.saved-item:hover { border-color:var(--border2); transform:translateX(2px); }
+.saved-item.selected { border-color:rgba(124,110,242,0.4); background:var(--p-g); }
+
+.saved-checkbox {
+  width:18px; height:18px; border-radius:5px;
+  border:1.5px solid var(--t3); flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  transition:all 120ms; background:none; cursor:pointer;
+}
+.saved-item.selected .saved-checkbox { background:var(--p); border-color:var(--p); }
+.saved-item.selected .saved-checkbox svg { display:block; }
+.saved-checkbox svg { display:none; width:11px; height:11px; color:white; }
+
+.saved-thumb {
+  width:72px; height:52px; border-radius:9px;
+  overflow:hidden; flex-shrink:0;
+}
+
+.saved-info { flex:1; min-width:0; }
+.saved-price { font-size:16px; font-weight:700; letter-spacing:-0.02em; color:var(--t1); }
+.saved-addr  { font-size:13px; color:var(--t2); margin-top:2px; }
+.saved-specs { display:flex; gap:12px; margin-top:6px; }
+.saved-spec  { font-size:12px; color:var(--t3); display:flex; align-items:center; gap:4px; }
+.saved-spec svg { width:12px; height:12px; }
+
+.saved-meta { display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex-shrink:0; }
+
+/* ── COMPARE SCREEN ─────────────────────────────────── */
+.compare-screen { flex-direction:column; overflow:hidden; }
+
+.compare-header { padding:20px 24px; flex-shrink:0; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:12px; }
+.compare-title { font-size:16px; font-weight:700; color:var(--t1); flex:1; }
+
+.compare-table-wrap { flex:1; overflow:auto; padding:24px; scrollbar-width:thin; scrollbar-color:var(--s3) transparent; }
+
+.compare-table { width:100%; border-collapse:separate; border-spacing:12px 0; }
+
+.ct-label-col { width:160px; }
+.ct-prop-col { min-width:200px; }
+
+.ct-prop-header {
+  background:var(--s1); border:1px solid var(--border);
+  border-radius:14px 14px 0 0; padding:16px; text-align:left;
+  position:relative; overflow:hidden;
+}
+.ct-prop-thumb { height:100px; border-radius:8px; margin-bottom:12px; overflow:hidden; }
+.ct-prop-price { font-size:17px; font-weight:800; letter-spacing:-0.02em; color:var(--t1); }
+.ct-prop-addr  { font-size:12px; color:var(--t2); margin-top:3px; }
+
+.ct-section-row td {
+  padding:10px 14px;
+  font-size:11px; font-weight:700; color:var(--t3);
+  text-transform:uppercase; letter-spacing:0.07em;
+  background:var(--bg);
+}
+
+.ct-row td { padding:12px 14px; font-size:13px; border-bottom:1px solid var(--border); }
+.ct-row td:first-child { color:var(--t2); background:transparent; border:none; }
+.ct-row td:not(:first-child) { background:var(--s1); color:var(--t1); font-weight:500; }
+.ct-row:last-child td { border-bottom:none; }
+.ct-row td:not(:first-child):last-child { border-radius:0 0 14px 14px; }
+
+.ct-win { color:var(--ok) !important; font-weight:700 !important; }
+.ct-badge {
+  display:inline-flex; align-items:center; gap:4px;
+  padding:3px 8px; border-radius:6px; font-size:11px; font-weight:600; border:1px solid;
+}
+.ct-badge.ok { background:rgba(48,209,88,0.08); color:var(--ok); border-color:rgba(48,209,88,0.18); }
+.ct-badge.warn { background:rgba(255,159,10,0.08); color:var(--warn); border-color:rgba(255,159,10,0.18); }
+.ct-badge.p  { background:var(--p-g); color:var(--p); border-color:rgba(124,110,242,0.2); }
+
+/* ── PROPERTY DETAIL PANEL ──────────────────────────── */
+.detail-panel {
+  width:0; overflow:hidden; border-left:1px solid var(--border);
+  background:var(--s1); transition:width 250ms ease;
+  flex-shrink:0;
+}
+.detail-panel.open { width:380px; overflow-y:auto; }
+
+.dp-header { padding:20px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; }
+.dp-close { width:28px; height:28px; background:var(--s2); border:1px solid var(--border); border-radius:7px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 120ms; margin-left:auto; }
+.dp-close:hover { background:var(--s3); border-color:var(--border2); }
+.dp-close svg { width:13px; height:13px; color:var(--t2); }
+
+.dp-img { height:180px; overflow:hidden; position:relative; }
+.dp-img-overlay { position:absolute; inset:0; background:linear-gradient(to top, rgba(0,0,0,0.5), transparent); }
+
+.dp-body { padding:20px; }
+.dp-price { font-size:22px; font-weight:800; letter-spacing:-0.03em; }
+.dp-addr  { font-size:14px; color:var(--t2); margin-top:4px; }
+
+.dp-specs { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:16px 0; }
+.dp-spec { background:var(--s2); border:1px solid var(--border); border-radius:10px; padding:12px; }
+.dp-spec-label { font-size:10px; font-weight:600; color:var(--t3); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:4px; }
+.dp-spec-value { font-size:15px; font-weight:700; color:var(--t1); }
+
+.dp-divider { height:1px; background:var(--border); margin:16px 0; }
+
+.dp-section-title { font-size:12px; font-weight:600; color:var(--t2); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:10px; }
+
+.dp-desc { font-size:13px; color:var(--t2); line-height:1.7; }
+
+.dp-tags { display:flex; flex-wrap:wrap; gap:6px; margin:12px 0; }
+.dp-tag {
+  font-size:12px; color:var(--t2); background:var(--s2);
+  border:1px solid var(--border); border-radius:20px; padding:4px 12px;
+}
+
+.dp-actions { display:flex; flex-direction:column; gap:8px; margin-top:16px; }
+.btn-full { width:100%; justify-content:center; }
+
+/* ── BADGE ─────────────────────────────────────────── */
+.badge {
+  display:inline-flex; align-items:center; gap:4px;
+  padding:3px 8px; border-radius:6px; font-size:11px; font-weight:600; border:1px solid;
+}
+.badge-p { background:var(--p-g); color:var(--p); border-color:rgba(124,110,242,0.2); }
+.badge-ok { background:rgba(48,209,88,0.08); color:var(--ok); border-color:rgba(48,209,88,0.18); }
+.badge-warn { background:rgba(255,159,10,0.08); color:var(--warn); border-color:rgba(255,159,10,0.18); }
+
+/* ── GRADIENT THUMBS ────────────────────────────────── */
+.g1 { background:linear-gradient(135deg,#1A1A2E,#2D2554,#3D2B7D); }
+.g2 { background:linear-gradient(135deg,#0D1B2A,#1B263B,#415A77); }
+.g3 { background:linear-gradient(135deg,#1F1A0D,#332B16,#5C4B1E); }
+.g4 { background:linear-gradient(135deg,#0D2A1A,#163B2A,#2E6B47); }
+.g5 { background:linear-gradient(135deg,#2A0D0D,#3B1616,#6B2E2E); }
+
+/* ── NAV INDICATOR ──────────────────────────────────── */
+.nav-indicator {
+  position:fixed; bottom:0; left:0; right:0;
+  padding:8px 16px 8px; background:rgba(9,9,14,0.9); backdrop-filter:blur(12px);
+  border-top:1px solid var(--border); display:flex; align-items:center; gap:8px;
+  font-size:12px; color:var(--t3); z-index:100;
+}
+.nav-indicator span { color:var(--p); font-weight:600; }
+.nav-indicator kbd {
+  background:var(--s2); border:1px solid var(--border); border-radius:5px;
+  padding:2px 7px; font-size:11px; font-family:inherit; color:var(--t2);
+}
+.nav-dot { width:6px; height:6px; border-radius:50%; background:var(--p); }
+
+/* scrollbar */
+::-webkit-scrollbar { width:4px; }
+::-webkit-scrollbar-thumb { background:var(--s3); border-radius:10px; }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- ═══ SIDEBAR ═══════════════════════════════════════ -->
+  <div class="sidebar">
+    <div class="logo">
+      <div class="logo-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      </div>
+      <span class="logo-text">habi<span>no</span></span>
+    </div>
+
+    <button class="new-chat-btn" onclick="showScreen('chat-empty')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Neuer Chat
+    </button>
+
+    <div class="nav-label">Navigation</div>
+
+    <button class="nav-item active" id="nav-chat" onclick="showScreen('chat-empty'); setNav(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+      KI Agent
+    </button>
+    <button class="nav-item" id="nav-saved" onclick="showScreen('saved'); setNav(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+      Gespeichert
+      <span class="nav-chip">4</span>
+    </button>
+
+    <div class="nav-label" style="margin-top:8px;">Verlauf</div>
+
+    <div class="chat-history">
+      <div class="history-item" onclick="showScreen('chat-results'); setNav(document.getElementById('nav-chat'))">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        <span>3-Zi Wohnung Berlin...</span>
+      </div>
+      <div class="history-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        <span>Mietpreise München Q1</span>
+      </div>
+      <div class="history-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        <span>Kaufpreis Entwicklung...</span>
+      </div>
+      <div class="history-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        <span>Penthouse Frankfurt</span>
+      </div>
+    </div>
+
+    <div class="sidebar-bottom">
+      <div class="user-row">
+        <div class="avatar">MB</div>
+        <div class="user-info">
+          <div class="user-name">Mathis Barthen</div>
+          <div class="user-plan">Pro Plan</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ MAIN ═══════════════════════════════════════════ -->
+  <div class="main">
+
+    <!-- Topbar -->
+    <div class="topbar">
+      <span class="tb-title" id="topbar-title">KI Agent</span>
+      <div class="tb-space"></div>
+      <div id="topbar-tabs" style="display:none;">
+        <div class="tb-tabs">
+          <button class="tb-tab active">Liste</button>
+          <button class="tb-tab" onclick="showScreen('compare')">Vergleichen (2)</button>
+        </div>
+      </div>
+      <div class="icon-btn" style="margin-left:8px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+        <div class="notif-dot"></div>
+      </div>
+    </div>
+
+    <!-- SCREEN WRAPPER -->
+    <div style="flex:1; display:flex; overflow:hidden;">
+
+      <!-- ── SCREEN: CHAT EMPTY ────────────────────────── -->
+      <div class="screen chat-screen active" id="screen-chat-empty">
+        <div class="chat-empty">
+          <div style="position:relative;">
+            <div style="width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,#7C6EF2,#9B8BF5);box-shadow:0 0 0 1px rgba(124,110,242,0.3),0 8px 32px rgba(124,110,242,0.3);display:flex;align-items:center;justify-content:center;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            </div>
+          </div>
+          <div class="chat-welcome">
+            <h2>Wie kann ich helfen?</h2>
+            <p>Frag mich nach Inseraten, Marktdaten oder Immobilienfragen — ich finde die passenden Antworten.</p>
+          </div>
+          <div class="suggestions">
+            <div class="suggestion-card" onclick="showScreen('chat-results'); setNav(document.getElementById('nav-chat'))">
+              <div class="suggestion-icon">🏙️</div>
+              <div class="suggestion-title">Wohnung in Berlin suchen</div>
+              <div class="suggestion-desc">3 Zimmer, unter 2.000 € Miete, gute Anbindung</div>
+            </div>
+            <div class="suggestion-card">
+              <div class="suggestion-icon">📊</div>
+              <div class="suggestion-title">Marktbericht München</div>
+              <div class="suggestion-desc">Preisentwicklung, Trends und Prognosen Q1 2026</div>
+            </div>
+            <div class="suggestion-card">
+              <div class="suggestion-icon">🏡</div>
+              <div class="suggestion-title">Haus kaufen Frankfurt</div>
+              <div class="suggestion-desc">Einfamilienhaus, max. 800.000 €, Garten</div>
+            </div>
+            <div class="suggestion-card">
+              <div class="suggestion-icon">⚖️</div>
+              <div class="suggestion-title">Miete vs. Kaufen</div>
+              <div class="suggestion-desc">Wirtschaftlichkeitsrechnung für meinen Fall</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Input -->
+        <div class="chat-input-wrap">
+          <div class="chat-input-box">
+            <textarea rows="1" placeholder="Stelle eine Frage oder beschreibe was du suchst..." oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
+            <div class="input-actions">
+              <button class="input-btn" title="Karte anzeigen">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              </button>
+              <button class="send-btn" onclick="showScreen('chat-results')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="input-hint">
+            <div class="hint-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Inserate suchen</div>
+            <div class="hint-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> Marktdaten</div>
+            <div class="hint-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/></svg> Nach Stadt filtern</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SCREEN: CHAT WITH RESULTS ─────────────────── -->
+      <div class="screen chat-screen" id="screen-chat-results">
+        <div class="chat-messages">
+
+          <!-- User message -->
+          <div class="msg user">
+            <div class="msg-avatar user">MB</div>
+            <div>
+              <div class="msg-bubble">Ich suche eine 3-Zimmer Wohnung in Berlin, max. 2.000 € Miete, gute ÖPNV-Anbindung und möglichst unter 90 m².</div>
+              <div class="msg-time">Heute 14:32</div>
+            </div>
+          </div>
+
+          <!-- AI response -->
+          <div class="msg" style="max-width:95%;">
+            <div class="msg-avatar ai">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            </div>
+            <div style="flex:1;">
+              <div class="msg-bubble" style="max-width:none;">
+                Ich habe <strong>12 passende Wohnungen</strong> für dich gefunden. Hier die besten 3 Treffer basierend auf deinen Kriterien:
+                <div class="prop-results">
+
+                  <!-- Prop 1 -->
+                  <div class="prop-card" onclick="openDetail()">
+                    <div class="prop-img g1">
+                      <div class="prop-save" id="save1" onclick="event.stopPropagation(); toggleSave('save1')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+                      </div>
+                    </div>
+                    <div class="prop-body">
+                      <div class="prop-price">1.850 € <small>/Mo</small></div>
+                      <div class="prop-addr">Schillerstraße 12, Mitte</div>
+                      <div class="prop-specs">
+                        <div class="prop-spec"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4h20v16H2z"/></svg>3 Zi</div>
+                        <div class="prop-spec"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12H19"/></svg>87 m²</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Prop 2 -->
+                  <div class="prop-card" onclick="openDetail()">
+                    <div class="prop-img g2">
+                      <div class="prop-save saved" id="save2" onclick="event.stopPropagation(); toggleSave('save2')">
+                        <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+                      </div>
+                    </div>
+                    <div class="prop-body">
+                      <div class="prop-price">1.690 € <small>/Mo</small></div>
+                      <div class="prop-addr">Kastanienallee 5, Prenzl.</div>
+                      <div class="prop-specs">
+                        <div class="prop-spec"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4h20v16H2z"/></svg>3 Zi</div>
+                        <div class="prop-spec"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12H19"/></svg>82 m²</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Prop 3 -->
+                  <div class="prop-card" onclick="openDetail()">
+                    <div class="prop-img g3">
+                      <div class="prop-save" id="save3" onclick="event.stopPropagation(); toggleSave('save3')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+                      </div>
+                    </div>
+                    <div class="prop-body">
+                      <div class="prop-price">1.950 € <small>/Mo</small></div>
+                      <div class="prop-addr">Greifswalder Str. 44, Pberg</div>
+                      <div class="prop-specs">
+                        <div class="prop-spec"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4h20v16H2z"/></svg>3 Zi</div>
+                        <div class="prop-spec"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12H19"/></svg>91 m²</div>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+                <div class="compare-hint">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+                  Speichere mehrere Inserate und vergleiche sie direkt — klicke auf ♡ zum Speichern.
+                </div>
+              </div>
+              <div class="msg-time">Heute 14:32</div>
+            </div>
+          </div>
+
+          <!-- Follow-up user -->
+          <div class="msg user">
+            <div class="msg-avatar user">MB</div>
+            <div>
+              <div class="msg-bubble">Wie ist die Anbindung der Kastanienallee an die U-Bahn?</div>
+              <div class="msg-time">Heute 14:35</div>
+            </div>
+          </div>
+
+          <!-- AI follow-up -->
+          <div class="msg">
+            <div class="msg-avatar ai">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            </div>
+            <div>
+              <div class="msg-bubble">
+                Die <strong>Kastanienallee 5</strong> in Prenzlauer Berg hat eine sehr gute ÖPNV-Anbindung:<br><br>
+                🚇 <strong>U2 Eberswalder Str.</strong> — 4 Minuten zu Fuß<br>
+                🚇 <strong>U8 Schönhauser Allee</strong> — 8 Minuten zu Fuß<br>
+                🚌 M1, M12 Straßenbahn — direkt vor der Tür<br><br>
+                Ins Zentrum (Alexanderplatz) ca. <strong>12 Minuten</strong> mit der U2.
+              </div>
+              <div class="msg-time">Heute 14:35</div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Input -->
+        <div class="chat-input-wrap">
+          <div class="chat-input-box">
+            <textarea rows="1" placeholder="Folgefrage stellen..." oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
+            <div class="input-actions">
+              <button class="input-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              </button>
+              <button class="send-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SCREEN: SAVED ───────────────────────────────── -->
+      <div class="screen saved-screen" id="screen-saved">
+        <div class="saved-header">
+          <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:16px;">
+            <div>
+              <div style="font-size:20px; font-weight:700; letter-spacing:-0.02em;">Gespeicherte Objekte</div>
+              <div style="font-size:13px; color:var(--t2); margin-top:4px;">4 Inserate · 2 ausgewählt zum Vergleich</div>
+            </div>
+          </div>
+          <div class="compare-bar">
+            <div>
+              <div class="compare-bar-label">2 Objekte ausgewählt</div>
+              <div class="compare-bar-subs">Wähle bis zu 4 Objekte zum Vergleichen</div>
+            </div>
+            <button class="btn btn-primary" onclick="showScreen('compare'); setNav(document.getElementById('nav-saved'))">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+              Jetzt vergleichen
+            </button>
+            <button class="btn btn-ghost">Auswahl löschen</button>
+          </div>
+          <div class="saved-toolbar">
+            <div style="display:flex; gap:2px; background:var(--s2); border:1px solid var(--border); border-radius:8px; padding:3px;">
+              <button class="tb-tab active">Alle (4)</button>
+              <button class="tb-tab">Miete</button>
+              <button class="tb-tab">Kauf</button>
+            </div>
+            <div style="flex:1;"></div>
+            <button class="btn btn-secondary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+              Sortieren
+            </button>
+          </div>
+        </div>
+
+        <div class="saved-grid">
+          <div class="saved-list">
+
+            <div class="saved-item selected" onclick="this.classList.toggle('selected')">
+              <div class="saved-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+              <div class="saved-thumb g1"></div>
+              <div class="saved-info">
+                <div class="saved-price">1.690 € <span style="font-size:12px;font-weight:400;color:var(--t2);">/Mo</span></div>
+                <div class="saved-addr">Kastanienallee 5, Prenzlauer Berg, Berlin</div>
+                <div class="saved-specs">
+                  <div class="saved-spec"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4h20v16H2z"/></svg>3 Zimmer</div>
+                  <div class="saved-spec"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12H19"/></svg>82 m²</div>
+                </div>
+              </div>
+              <div class="saved-meta">
+                <span class="badge badge-p">Miete</span>
+                <span style="font-size:11px; color:var(--t3);">Gespeichert heute</span>
+              </div>
+            </div>
+
+            <div class="saved-item selected" onclick="this.classList.toggle('selected')">
+              <div class="saved-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+              <div class="saved-thumb g2"></div>
+              <div class="saved-info">
+                <div class="saved-price">1.850 € <span style="font-size:12px;font-weight:400;color:var(--t2);">/Mo</span></div>
+                <div class="saved-addr">Schillerstraße 12, Mitte, Berlin</div>
+                <div class="saved-specs">
+                  <div class="saved-spec"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4h20v16H2z"/></svg>3 Zimmer</div>
+                  <div class="saved-spec"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12H19"/></svg>87 m²</div>
+                </div>
+              </div>
+              <div class="saved-meta">
+                <span class="badge badge-p">Miete</span>
+                <span style="font-size:11px; color:var(--t3);">Gespeichert heute</span>
+              </div>
+            </div>
+
+            <div class="saved-item" onclick="this.classList.toggle('selected')">
+              <div class="saved-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+              <div class="saved-thumb g4"></div>
+              <div class="saved-info">
+                <div class="saved-price">680.000 €</div>
+                <div class="saved-addr">Goethestraße 7, Schwabing, München</div>
+                <div class="saved-specs">
+                  <div class="saved-spec"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4h20v16H2z"/></svg>4 Zimmer</div>
+                  <div class="saved-spec"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12H19"/></svg>112 m²</div>
+                </div>
+              </div>
+              <div class="saved-meta">
+                <span class="badge badge-ok">Kauf</span>
+                <span style="font-size:11px; color:var(--t3);">Gestern</span>
+              </div>
+            </div>
+
+            <div class="saved-item" onclick="this.classList.toggle('selected')">
+              <div class="saved-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+              <div class="saved-thumb g5"></div>
+              <div class="saved-info">
+                <div class="saved-price">1.250.000 €</div>
+                <div class="saved-addr">Friedrichsplatz 2, Westend, Frankfurt</div>
+                <div class="saved-specs">
+                  <div class="saved-spec"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 4h20v16H2z"/></svg>5 Zimmer</div>
+                  <div class="saved-spec"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12H19"/></svg>155 m²</div>
+                </div>
+              </div>
+              <div class="saved-meta">
+                <span class="badge badge-ok">Kauf</span>
+                <span style="font-size:11px; color:var(--t3);">Vor 3 Tagen</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SCREEN: COMPARE ──────────────────────────────── -->
+      <div class="screen compare-screen" id="screen-compare">
+        <div class="compare-header">
+          <button class="btn btn-secondary" style="padding:6px 12px;" onclick="showScreen('saved'); setNav(document.getElementById('nav-saved'))">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+            Zurück
+          </button>
+          <span class="compare-title">Vergleich: 2 Objekte</span>
+          <button class="btn btn-primary" style="font-size:12px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Besichtigung anfragen
+          </button>
+        </div>
+
+        <div class="compare-table-wrap">
+          <table class="compare-table">
+            <colgroup>
+              <col class="ct-label-col">
+              <col class="ct-prop-col">
+              <col class="ct-prop-col">
+            </colgroup>
+            <thead>
+              <tr>
+                <th style="padding:0 14px 16px; color:var(--t3); font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.07em; text-align:left; vertical-align:bottom;">Kriterium</th>
+                <th style="padding:0 0 0 0; vertical-align:bottom;">
+                  <div class="ct-prop-header">
+                    <div class="ct-prop-thumb g1"></div>
+                    <div style="display:flex;align-items:center;gap:8px; margin-bottom:4px;">
+                      <div class="ct-prop-price">1.850 €<span style="font-size:12px;font-weight:400;color:var(--t2);"> /Mo</span></div>
+                      <span class="badge badge-ok" style="font-size:10px;">Günstiger</span>
+                    </div>
+                    <div class="ct-prop-addr">Schillerstraße 12, Mitte</div>
+                  </div>
+                </th>
+                <th style="padding:0 0 0 0; vertical-align:bottom;">
+                  <div class="ct-prop-header">
+                    <div class="ct-prop-thumb g2"></div>
+                    <div class="ct-prop-price">1.690 €<span style="font-size:12px;font-weight:400;color:var(--t2);"> /Mo</span></div>
+                    <div class="ct-prop-addr">Kastanienallee 5, Prenzlauer Berg</div>
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="ct-section-row"><td colspan="3">Grunddaten</td></tr>
+              <tr class="ct-row">
+                <td>Zimmer</td>
+                <td>3</td>
+                <td>3</td>
+              </tr>
+              <tr class="ct-row">
+                <td>Fläche</td>
+                <td class="ct-win">87 m² ↑</td>
+                <td>82 m²</td>
+              </tr>
+              <tr class="ct-row">
+                <td>Preis/m²</td>
+                <td>21,26 €</td>
+                <td class="ct-win">20,61 € ↑</td>
+              </tr>
+              <tr class="ct-row">
+                <td>Etage</td>
+                <td>2. OG</td>
+                <td>1. OG</td>
+              </tr>
+
+              <tr class="ct-section-row"><td colspan="3">Ausstattung</td></tr>
+              <tr class="ct-row">
+                <td>Balkon</td>
+                <td><span class="ct-badge ok">✓ Ja</span></td>
+                <td><span class="ct-badge warn">✗ Nein</span></td>
+              </tr>
+              <tr class="ct-row">
+                <td>Einbauküche</td>
+                <td><span class="ct-badge ok">✓ Ja</span></td>
+                <td><span class="ct-badge ok">✓ Ja</span></td>
+              </tr>
+              <tr class="ct-row">
+                <td>Aufzug</td>
+                <td><span class="ct-badge warn">✗ Nein</span></td>
+                <td><span class="ct-badge ok">✓ Ja</span></td>
+              </tr>
+              <tr class="ct-row">
+                <td>Keller</td>
+                <td><span class="ct-badge ok">✓ Ja</span></td>
+                <td><span class="ct-badge warn">✗ Nein</span></td>
+              </tr>
+
+              <tr class="ct-section-row"><td colspan="3">ÖPNV & Lage</td></tr>
+              <tr class="ct-row">
+                <td>Nächste U-Bahn</td>
+                <td>U6 Naturkundemuseum (6 min)</td>
+                <td class="ct-win">U2 Eberswalder Str. (4 min) ↑</td>
+              </tr>
+              <tr class="ct-row">
+                <td>Lage-Score</td>
+                <td><span class="ct-badge p">8.2 / 10</span></td>
+                <td class="ct-win"><span class="ct-badge ok">9.1 / 10 ↑</span></td>
+              </tr>
+
+              <tr class="ct-section-row"><td colspan="3">Aktionen</td></tr>
+              <tr class="ct-row">
+                <td></td>
+                <td style="padding-top:14px; padding-bottom:16px;">
+                  <div style="display:flex; flex-direction:column; gap:7px;">
+                    <button class="btn btn-primary" style="font-size:12px; justify-content:center;">Besichtigung anfragen</button>
+                    <button class="btn btn-secondary" style="font-size:12px; justify-content:center;" onclick="openDetail()">Details ansehen</button>
+                  </div>
+                </td>
+                <td style="padding-top:14px; padding-bottom:16px;">
+                  <div style="display:flex; flex-direction:column; gap:7px;">
+                    <button class="btn btn-primary" style="font-size:12px; justify-content:center;">Besichtigung anfragen</button>
+                    <button class="btn btn-secondary" style="font-size:12px; justify-content:center;" onclick="openDetail()">Details ansehen</button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /screen wrapper -->
+
+    <!-- ── DETAIL PANEL (slide-in) ───────────────────────── -->
+    <div class="detail-panel" id="detail-panel">
+      <div class="dp-header">
+        <span style="font-size:14px; font-weight:600;">Objekt-Details</span>
+        <button class="dp-close" onclick="closeDetail()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="dp-img g2">
+        <div class="dp-img-overlay"></div>
+        <div style="position:absolute; bottom:12px; left:14px;">
+          <span class="badge badge-p">Miete</span>
+        </div>
+      </div>
+      <div class="dp-body">
+        <div class="dp-price">1.690 € <span style="font-size:14px; font-weight:400; color:var(--t2);">/Monat</span></div>
+        <div class="dp-addr">Kastanienallee 5, Prenzlauer Berg, 10437 Berlin</div>
+
+        <div class="dp-specs">
+          <div class="dp-spec"><div class="dp-spec-label">Zimmer</div><div class="dp-spec-value">3</div></div>
+          <div class="dp-spec"><div class="dp-spec-label">Fläche</div><div class="dp-spec-value">82 m²</div></div>
+          <div class="dp-spec"><div class="dp-spec-label">Etage</div><div class="dp-spec-value">1. OG</div></div>
+          <div class="dp-spec"><div class="dp-spec-label">Baujahr</div><div class="dp-spec-value">1965</div></div>
+        </div>
+
+        <div class="dp-divider"></div>
+        <div class="dp-section-title">Beschreibung</div>
+        <div class="dp-desc">Helle 3-Zimmer-Wohnung im beliebten Prenzlauer Berg. Frisch renoviert, Einbauküche, Aufzug im Haus. Direkte U-Bahn-Anbindung U2.</div>
+
+        <div class="dp-divider"></div>
+        <div class="dp-section-title">Ausstattung</div>
+        <div class="dp-tags">
+          <span class="dp-tag">Einbauküche</span>
+          <span class="dp-tag">Aufzug</span>
+          <span class="dp-tag">Parkett</span>
+          <span class="dp-tag">Fernwärme</span>
+          <span class="dp-tag">Badewanne</span>
+          <span class="dp-tag">Doppelverglasung</span>
+        </div>
+
+        <div class="dp-divider"></div>
+        <div class="dp-actions">
+          <button class="btn btn-primary btn-full">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Besichtigung anfragen
+          </button>
+          <button class="btn btn-secondary btn-full">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+            Gespeichert ✓
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /shell -->
+
+<!-- ── NAV INDICATOR ───────────────────────────────────── -->
+<div class="nav-indicator">
+  <div class="nav-dot"></div>
+  <span>Screens:</span>
+  <kbd onclick="showScreen('chat-empty'); setNav(document.getElementById('nav-chat'))" style="cursor:pointer;">1 Start</kbd>
+  <kbd onclick="showScreen('chat-results'); setNav(document.getElementById('nav-chat'))" style="cursor:pointer;">2 Chat + Suche</kbd>
+  <kbd onclick="showScreen('saved'); setNav(document.getElementById('nav-saved'))" style="cursor:pointer;">3 Gespeichert</kbd>
+  <kbd onclick="showScreen('compare'); setNav(document.getElementById('nav-saved'))" style="cursor:pointer;">4 Vergleich</kbd>
+  <span style="margin-left:auto; color:var(--t3);">Klicke auf Inserate-Karten für Detail-Panel →</span>
+</div>
+
+<script>
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById('screen-' + name);
+  if (el) el.classList.add('active');
+
+  const titles = {
+    'chat-empty': 'KI Agent',
+    'chat-results': 'KI Agent',
+    'saved': 'Gespeichert',
+    'compare': 'Vergleich'
+  };
+  document.getElementById('topbar-title').textContent = titles[name] || '';
+
+  const showTabs = name === 'saved';
+  document.getElementById('topbar-tabs').style.display = showTabs ? 'block' : 'none';
+
+  // Close detail panel when switching screens
+  closeDetail();
+}
+
+function setNav(el) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (el) el.classList.add('active');
+}
+
+function toggleSave(id) {
+  const el = document.getElementById(id);
+  el.classList.toggle('saved');
+  if (el.classList.contains('saved')) {
+    el.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>';
+  } else {
+    el.classList.remove('saved');
+    el.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>';
+  }
+}
+
+function openDetail() {
+  document.getElementById('detail-panel').classList.add('open');
+}
+
+function closeDetail() {
+  document.getElementById('detail-panel').classList.remove('open');
+}
+</script>
+
+</body>
+</html>
