@@ -6,29 +6,50 @@
 @import "leaflet/dist/leaflet.css";
 
 :root {
-  --color-primary: #2E7D46;
-  --color-secondary: #0F1F3D;
-  --color-primary-dark: #235f35;
-  --color-primary-light: #e8f5ed;
+  /* ── Brand (violet-purple, premium SaaS) ── */
+  --color-primary:       #7C6EF2;
+  --color-primary-dark:  #6255D4;
+  --color-primary-light: rgba(124,110,242,0.12);
+  --color-secondary:     #9B8BF5;
 
-  /* Elevation / shadow scale — softer, more premium */
-  --shadow-xs: 0 1px 2px rgba(0,0,0,0.05);
-  --shadow-sm: 0 1px 4px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-md: 0 4px 16px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.04);
-  --shadow-lg: 0 8px 32px rgba(0,0,0,0.09), 0 4px 8px rgba(0,0,0,0.05);
-  --shadow-xl: 0 20px 60px rgba(0,0,0,0.11), 0 8px 16px rgba(0,0,0,0.05);
-  --shadow-header: 0 1px 0 rgba(0,0,0,0.06), 0 2px 12px rgba(0,0,0,0.04);
+  /* ── App surface palette (dark-mode first) ── */
+  --bg:       #09090E;
+  --surface:  #111119;
+  --surface2: #18181F;
+  --surface3: #1F1F28;
+  --surface4: #26262F;
+  --border:   rgba(255,255,255,0.06);
+  --border2:  rgba(255,255,255,0.10);
 
-  /* Radius scale — more generous */
-  --radius-sm: 10px;
-  --radius-md: 14px;
-  --radius-lg: 18px;
-  --radius-xl: 22px;
-  --radius-2xl: 28px;
+  /* ── Text ── */
+  --text-1: #F0F0F5;
+  --text-2: #8A8A9C;
+  --text-3: #46465A;
 
-  /* Animation */
+  /* ── Status ── */
+  --ok:   #30D158;
+  --warn: #FF9F0A;
+  --err:  #FF453A;
+
+  /* ── Elevation (dark context) ── */
+  --shadow-xs:     0 1px 2px rgba(0,0,0,0.3);
+  --shadow-sm:     0 1px 4px rgba(0,0,0,0.35), 0 1px 2px rgba(0,0,0,0.25);
+  --shadow-md:     0 4px 16px rgba(0,0,0,0.45), 0 2px 4px rgba(0,0,0,0.3);
+  --shadow-lg:     0 8px 32px rgba(0,0,0,0.5),  0 4px 8px rgba(0,0,0,0.35);
+  --shadow-xl:     0 20px 60px rgba(0,0,0,0.6), 0 8px 16px rgba(0,0,0,0.4);
+  --shadow-header: 0 1px 0 rgba(255,255,255,0.04);
+  --shadow-glow:   0 0 0 1px rgba(124,110,242,0.35), 0 4px 20px rgba(124,110,242,0.2);
+
+  /* ── Radius ── */
+  --radius-sm:  8px;
+  --radius-md:  12px;
+  --radius-lg:  16px;
+  --radius-xl:  20px;
+  --radius-2xl: 24px;
+
+  /* ── Animation ── */
   --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-out: cubic-bezier(0.0, 0.0, 0.2, 1);
+  --ease-out:    cubic-bezier(0.0, 0.0, 0.2, 1);
   --duration-fast: 140ms;
   --duration-base: 200ms;
   --duration-slow: 320ms;
@@ -46,7 +67,8 @@
   }
 
   body {
-    @apply bg-slate-50 text-slate-800;
+    background: var(--bg);
+    color: var(--text-1);
     font-size: 15px;
     line-height: 1.6;
     letter-spacing: -0.005em;
@@ -58,13 +80,13 @@
   /* Custom scrollbar — thinner, more refined */
   ::-webkit-scrollbar        { width: 4px; height: 4px; }
   ::-webkit-scrollbar-track  { background: transparent; }
-  ::-webkit-scrollbar-thumb  { background: #E2E8F0; border-radius: 99px; }
-  ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+  ::-webkit-scrollbar-thumb  { background: var(--surface3); border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--surface4); }
 
   /* Prevent browser UA stylesheet from overriding button text color */
   button { color: inherit; }
 
-  /* Focus rings use primary color */
+  /* Focus rings */
   input:focus, select:focus, textarea:focus, button:focus-visible {
     outline: 2px solid var(--color-primary);
     outline-offset: 2px;
@@ -119,7 +141,7 @@
   100% { background-position: 400px 0; }
 }
 .skeleton-shimmer {
-  background: linear-gradient(90deg, #f1f5f9 25%, #e8f0f7 50%, #f1f5f9 75%);
+  background: linear-gradient(90deg, var(--surface2) 25%, var(--surface3) 50%, var(--surface2) 75%);
   background-size: 800px 100%;
   animation: shimmer 1.4s ease-in-out infinite;
 }
@@ -133,79 +155,87 @@
 }
 
 @layer utilities {
-  /* Tenant-aware colour utilities */
-  .bg-primary     { background-color: var(--color-primary); }
-  .bg-secondary   { background-color: var(--color-secondary); }
-  .text-primary   { color: var(--color-primary); }
-  .text-secondary { color: var(--color-secondary); }
-  .border-primary { border-color: var(--color-primary); }
-  .ring-primary   { --tw-ring-color: var(--color-primary); }
+  /* Brand colour utilities */
+  .bg-primary      { background-color: var(--color-primary); }
+  .bg-primary-soft { background-color: var(--color-primary-light); }
+  .text-primary    { color: var(--color-primary); }
+  .border-primary  { border-color: var(--color-primary); }
+  .ring-primary    { --tw-ring-color: var(--color-primary); }
 
-  /* Buttons — more rounded, better feel */
+  /* Buttons */
   .btn-primary {
-    @apply inline-flex items-center justify-center px-5 py-2.5 rounded-xl
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg
            font-semibold text-white text-sm transition-all
-           hover:opacity-90 active:scale-[0.97] select-none;
+           active:scale-[0.97] select-none;
     background-color: var(--color-primary);
-    box-shadow: 0 1px 3px rgba(46,125,70,0.3), 0 1px 2px rgba(0,0,0,0.08);
+    box-shadow: var(--shadow-glow);
     transition-duration: var(--duration-fast);
+  }
+  .btn-primary:hover {
+    background-color: var(--color-secondary);
+    transform: translateY(-1px);
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center px-5 py-2.5 rounded-xl
-           font-semibold text-sm border-2 transition-all select-none;
-    color: var(--color-primary);
-    border-color: var(--color-primary);
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg
+           font-semibold text-sm transition-all select-none;
+    background: var(--surface2);
+    color: var(--text-1);
+    border: 1px solid var(--border);
     transition-duration: var(--duration-fast);
   }
-
   .btn-secondary:hover {
-    background-color: var(--color-primary);
-    @apply text-white;
+    background: var(--surface3);
+    border-color: var(--border2);
   }
 
-  /* Card — more refined */
+  /* Card */
   .card {
-    @apply bg-white rounded-2xl border border-slate-100/80;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
     box-shadow: var(--shadow-sm);
     transition: box-shadow var(--duration-base) var(--ease-spring),
+                border-color var(--duration-base),
                 transform var(--duration-base) var(--ease-spring);
   }
   .card:hover {
     box-shadow: var(--shadow-md);
-    transform: translateY(-2px);
+    border-color: var(--border2);
+    transform: translateY(-1px);
   }
 
-  /* Primary-tinted light background */
-  .bg-primary-light {
-    background-color: var(--color-primary-light);
-  }
+  /* Primary-tinted background */
+  .bg-primary-light { background-color: var(--color-primary-light); }
 
-  /* Skeleton loading animation */
+  /* Skeleton */
   .skeleton {
-    @apply animate-pulse bg-slate-100 rounded-xl;
+    background: var(--surface2);
+    border-radius: var(--radius-md);
+    animation: pulse 1.5s ease-in-out infinite;
   }
 
-  /* Line clamp utilities */
+  /* Line clamp */
   .line-clamp-1 { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; }
   .line-clamp-2 { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
   .line-clamp-3 { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
 
-  /* Glass effect for panels/cards over images */
+  /* Glass (dark) */
   .glass {
-    background: rgba(255,255,255,0.85);
+    background: rgba(17,17,25,0.85);
     backdrop-filter: blur(12px) saturate(180%);
     -webkit-backdrop-filter: blur(12px) saturate(180%);
   }
 
-  /* Subtle inset shadow for inputs / search boxes */
+  /* Input ring */
   .input-ring {
-    @apply border border-slate-200 rounded-xl bg-white;
-    box-shadow: 0 0 0 0 transparent;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
     transition: box-shadow var(--duration-fast), border-color var(--duration-fast);
   }
   .input-ring:focus-within {
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px rgba(46,125,70,0.10);
+    border-color: rgba(124,110,242,0.5);
+    box-shadow: 0 0 0 3px rgba(124,110,242,0.1);
   }
 }

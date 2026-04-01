@@ -6,40 +6,37 @@ import { usePathname } from "next/navigation";
 const TABS = [
   {
     href: "/",
-    label: "Search",
+    label: "Agent",
     icon: (active: boolean) => (
-      <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} viewBox="0 0 24 24">
-        <circle cx="11" cy="11" r="8" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35" />
+      <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+        <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
       </svg>
     ),
   },
   {
     href: "/saved",
-    label: "Saved",
+    label: "Gespeichert",
     icon: (active: boolean) => (
-      <svg width="22" height="22" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? 2 : 1.8} viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round"
-          d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+      <svg width="20" height="20" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? 2 : 1.8} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+        <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
       </svg>
     ),
   },
   {
     href: "/markt",
-    label: "Market",
+    label: "Markt",
     icon: (active: boolean) => (
-      <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+      <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+        <path d="M18 20V10M12 20V4M6 20v-6" />
       </svg>
     ),
   },
   {
     href: "/profile",
-    label: "Profile",
+    label: "Profil",
     icon: (active: boolean) => (
-      <svg width="22" height="22" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? 2 : 1.8} viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round"
-          d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      <svg width="20" height="20" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? 2 : 1.8} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+        <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z" />
       </svg>
     ),
   },
@@ -48,80 +45,34 @@ const TABS = [
 export default function BottomNav() {
   const pathname = usePathname();
 
-  // On the map ("/") — show as floating pill above the map instead of hiding
-  const isMap = pathname === "/";
-
-  if (isMap) {
-    return (
-      <nav
-        className="md:hidden fixed bottom-5 left-1/2 z-50 floating-nav-enter"
-        style={{ transform: "translateX(-50%)", paddingBottom: "env(safe-area-inset-bottom)" }}
-      >
-        <div
-          className="flex items-center gap-0.5 rounded-2xl px-2 py-1.5"
-          style={{
-            background: "rgba(255,255,255,0.96)",
-            backdropFilter: "blur(20px) saturate(180%)",
-            WebkitBackdropFilter: "blur(20px) saturate(180%)",
-            boxShadow: "0 8px 32px rgba(0,0,0,0.14), 0 1px 0 rgba(255,255,255,0.8) inset",
-            border: "1px solid rgba(255,255,255,0.6)",
-          }}
-        >
-          {TABS.map((tab) => {
-            const active = tab.href === "/" ? true : false;
-            return (
-              <Link
-                key={tab.href}
-                href={tab.href}
-                className="flex flex-col items-center justify-center gap-0.5 px-4 py-1.5 rounded-xl transition-all active:scale-95"
-                style={{ background: active ? "var(--color-primary-light)" : "transparent" }}
-              >
-                <span style={{ color: active ? "var(--color-primary)" : "#94a3b8" }}>
-                  {tab.icon(active)}
-                </span>
-                <span
-                  className="text-[10px] font-semibold"
-                  style={{ color: active ? "var(--color-primary)" : "#94a3b8" }}
-                >
-                  {tab.label}
-                </span>
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
-    );
-  }
-
   return (
     <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-slate-100/80"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-50"
       style={{
         paddingBottom: "env(safe-area-inset-bottom)",
-        background: "rgba(255,255,255,0.96)",
+        background: "rgba(17,17,25,0.95)",
         backdropFilter: "blur(20px) saturate(180%)",
         WebkitBackdropFilter: "blur(20px) saturate(180%)",
+        borderTop: "1px solid var(--border)",
       }}
     >
-      <div className="flex items-stretch h-[60px]">
+      <div className="flex items-stretch h-[56px]">
         {TABS.map((tab) => {
-          const active = tab.href === "/"
-            ? pathname === "/"
-            : pathname.startsWith(tab.href);
-
+          const active = tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);
           return (
             <Link
               key={tab.href}
               href={tab.href}
-              className="flex-1 flex flex-col items-center justify-center gap-0.5 active:opacity-70 transition-opacity"
+              className="flex-1 flex flex-col items-center justify-center gap-0.5 transition-opacity active:opacity-60"
             >
-              <span style={{ color: active ? "var(--color-primary)" : "#94a3b8" }}>
+              <span style={{ color: active ? "var(--color-primary)" : "var(--text-3)" }}>
                 {tab.icon(active)}
               </span>
-              <span
-                className="text-[10px] font-semibold transition-colors"
-                style={{ color: active ? "var(--color-primary)" : "#94a3b8" }}
-              >
+              <span style={{
+                fontSize: 10, fontWeight: 600, letterSpacing: "0.02em",
+                color: active ? "var(--color-primary)" : "var(--text-3)",
+                transition: "color 0.12s",
+              }}>
                 {tab.label}
               </span>
             </Link>

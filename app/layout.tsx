@@ -78,7 +78,7 @@ export default async function RootLayout({
   // Fix: updated default to new forest green brand colors
   const cssVars = tenant
     ? tenantCssVars(tenant)
-    : "--color-primary: #2E7D46; --color-secondary: #0F1F3D; --color-primary-dark: #235f35; --color-primary-light: #e8f5ed";
+    : "--color-primary: #7C6EF2; --color-secondary: #9B8BF5; --color-primary-dark: #6255D4; --color-primary-light: rgba(124,110,242,0.12)";
 
   return (
     <html lang="en" style={{ cssText: cssVars } as React.CSSProperties}>
@@ -90,7 +90,7 @@ export default async function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Habino" />
         {/* PWA — Android / General */}
-        <meta name="theme-color" content="#2E7D46" />
+        <meta name="theme-color" content="#09090E" />
         <meta name="mobile-web-app-capable" content="yes" />
         <link rel="manifest" href="/manifest.json" />
         {/* Favicon */}
