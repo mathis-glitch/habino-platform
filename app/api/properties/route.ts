@@ -38,6 +38,9 @@ export async function GET(request: NextRequest) {
   const supabase = createServiceClient();
   const offset   = ((filters.page || 1) - 1) * (filters.limit || 12);
 
+  // neighbourhood filter (district chips in mobile UI)
+  const neighbourhoodParam = searchParams.get("neighbourhood") || undefined;
+
   // ── Parse bbox ──────────────────────────────────────────────────────────────
   const bboxParam = searchParams.get("bbox");
   let bboxCoords: { south: number; west: number; north: number; east: number } | null = null;
@@ -62,6 +65,8 @@ export async function GET(request: NextRequest) {
     if (filters.min_price)     q = q.gte("price", filters.min_price);
     if (filters.max_price)     q = q.lte("price", filters.max_price);
     if (filters.bedrooms)      q = q.eq("bedrooms", filters.bedrooms);
+    // District / neighbourhood filter (partial match so "Bole" matches "Bole Michael" etc.)
+    if (neighbourhoodParam)    q = q.ilike("neighbourhood", `%${neighbourhoodParam}%`);
 
     return q;
   }
