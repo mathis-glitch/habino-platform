@@ -41,17 +41,17 @@ const NAV_MAIN = [
 
 const NAV_WORKSPACE = [
   {
-    href: "/listings",
+    href: "/admin/listings",
     label: "Objekte",
     path: "M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z",
-    match: (p: string) => p.startsWith("/listings"),
+    match: (p: string) => p.startsWith("/admin/listings"),
   },
   {
-    href: "/contracts",
+    href: "/home",
     label: "Verträge",
     path: "M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z M14 2v6h6",
     badge: "2",
-    match: (p: string) => p.startsWith("/contracts"),
+    match: (p: string) => p.startsWith("/home"),
   },
   {
     href: "/markt",

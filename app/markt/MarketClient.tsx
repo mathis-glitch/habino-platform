@@ -3,285 +3,367 @@
 import { useState } from "react";
 import { PriceTrendChart, DistrictChart } from "./MarktCharts";
 
-// ── Static data — Addis Ababa & major Ethiopian cities ────────────────────────
-const CITIES = ["Addis Ababa", "Hawassa", "Bahir Dar", "Dire Dawa", "Mekelle"];
+// ── Deutsche Städte & Stadtteile ──────────────────────────────────────────────
+const CITIES = ["Berlin", "München", "Hamburg", "Frankfurt", "Köln"];
 
 const DISTRICTS: Record<string, string[]> = {
-  "Addis Ababa": ["All districts", "Bole", "Kazanchis", "CMC", "Megenagna", "Sarbet", "Lideta", "Piassa", "Merkato"],
-  "Hawassa":     ["All districts", "Tabor", "Hawella", "Mehal Ketema", "Addis Ketema", "Haik Dar"],
-  "Bahir Dar":   ["All districts", "Sefene Selam", "Ghion", "Belay Zeleke", "Shum Abo", "Meshualekia"],
-  "Dire Dawa":   ["All districts", "Kezira", "Sabian", "Gendekore", "Addis Ketema", "Legehare"],
-  "Mekelle":     ["All districts", "Adi Haki", "Enda Mariam", "Hadnet", "Hawelti", "Ayder"],
+  "Berlin":    ["Alle Stadtteile", "Mitte", "Prenzlauer Berg", "Friedrichshain", "Kreuzberg", "Charlottenburg", "Neukölln", "Schöneberg", "Spandau"],
+  "München":   ["Alle Stadtteile", "Maxvorstadt", "Schwabing", "Bogenhausen", "Haidhausen", "Sendling", "Giesing", "Pasing", "Nymphenburg"],
+  "Hamburg":   ["Alle Stadtteile", "Altona", "Eimsbüttel", "Winterhude", "Harvestehude", "Eppendorf", "Wandsbek", "Bergedorf", "Blankenese"],
+  "Frankfurt": ["Alle Stadtteile", "Sachsenhausen", "Bornheim", "Westend", "Nordend", "Bockenheim", "Gallusviertel", "Dornbusch", "Höchst"],
+  "Köln":      ["Alle Stadtteile", "Ehrenfeld", "Nippes", "Sülz", "Lindenthal", "Rodenkirchen", "Deutz", "Chorweiler", "Porz"],
 };
 
 const USAGE_TYPES = [
-  { key: "residential", label: "Residential" },
-  { key: "commercial",  label: "Commercial"  },
-  { key: "land",        label: "Land"         },
+  { key: "residential", label: "Wohnen" },
+  { key: "commercial",  label: "Gewerbe" },
+  { key: "land",        label: "Grundstück" },
 ];
 
-// Prices in ETB per m²
+// Preise in EUR/m²
 const STATS: Record<string, Record<string, { buy: string; rent: string | null; yield: string; trend: string; up: boolean }>> = {
   residential: {
-    "All districts":  { buy: "ETB 28,400", rent: "ETB 320",  yield: "3.8%", trend: "+5.2%", up: true  },
-    "Bole":           { buy: "ETB 45,000", rent: "ETB 520",  yield: "3.6%", trend: "+6.1%", up: true  },
-    "Kazanchis":      { buy: "ETB 38,000", rent: "ETB 440",  yield: "3.9%", trend: "+5.8%", up: true  },
-    "CMC":            { buy: "ETB 32,000", rent: "ETB 380",  yield: "4.1%", trend: "+4.5%", up: true  },
-    "Megenagna":      { buy: "ETB 30,000", rent: "ETB 350",  yield: "4.2%", trend: "+4.8%", up: true  },
-    "Sarbet":         { buy: "ETB 26,000", rent: "ETB 290",  yield: "4.0%", trend: "−0.4%", up: false },
-    "Lideta":         { buy: "ETB 22,000", rent: "ETB 250",  yield: "4.3%", trend: "−1.2%", up: false },
-    "Piassa":         { buy: "ETB 20,000", rent: "ETB 230",  yield: "4.4%", trend: "+0.3%", up: true  },
-    "Merkato":        { buy: "ETB 16,000", rent: "ETB 180",  yield: "4.7%", trend: "−2.1%", up: false },
+    "Alle Stadtteile":  { buy: "€ 5.200",  rent: "€ 18",  yield: "4.2%", trend: "+3.8%", up: true  },
+    "Mitte":            { buy: "€ 7.800",  rent: "€ 26",  yield: "4.0%", trend: "+4.5%", up: true  },
+    "Prenzlauer Berg":  { buy: "€ 6.900",  rent: "€ 24",  yield: "4.2%", trend: "+3.9%", up: true  },
+    "Friedrichshain":   { buy: "€ 6.400",  rent: "€ 22",  yield: "4.1%", trend: "+4.1%", up: true  },
+    "Kreuzberg":        { buy: "€ 6.200",  rent: "€ 21",  yield: "4.1%", trend: "+3.5%", up: true  },
+    "Charlottenburg":   { buy: "€ 7.100",  rent: "€ 25",  yield: "4.2%", trend: "+2.8%", up: true  },
+    "Neukölln":         { buy: "€ 4.800",  rent: "€ 16",  yield: "4.0%", trend: "−0.5%", up: false },
+    "Schöneberg":       { buy: "€ 6.500",  rent: "€ 22",  yield: "4.1%", trend: "+2.1%", up: true  },
+    "Spandau":          { buy: "€ 3.600",  rent: "€ 12",  yield: "4.0%", trend: "−1.2%", up: false },
+    "Maxvorstadt":      { buy: "€ 10.500", rent: "€ 32",  yield: "3.7%", trend: "+5.1%", up: true  },
+    "Schwabing":        { buy: "€ 9.800",  rent: "€ 30",  yield: "3.7%", trend: "+4.8%", up: true  },
+    "Bogenhausen":      { buy: "€ 11.200", rent: "€ 34",  yield: "3.6%", trend: "+5.5%", up: true  },
+    "Haidhausen":       { buy: "€ 8.900",  rent: "€ 28",  yield: "3.8%", trend: "+4.2%", up: true  },
+    "Altona":           { buy: "€ 7.200",  rent: "€ 23",  yield: "3.8%", trend: "+3.6%", up: true  },
+    "Eimsbüttel":       { buy: "€ 7.500",  rent: "€ 24",  yield: "3.8%", trend: "+3.8%", up: true  },
+    "Winterhude":       { buy: "€ 7.800",  rent: "€ 25",  yield: "3.8%", trend: "+4.0%", up: true  },
+    "Sachsenhausen":    { buy: "€ 6.800",  rent: "€ 22",  yield: "3.9%", trend: "+3.2%", up: true  },
+    "Ehrenfeld":        { buy: "€ 5.100",  rent: "€ 17",  yield: "4.0%", trend: "+2.9%", up: true  },
   },
   commercial: {
-    "All districts":  { buy: "ETB 52,000", rent: "ETB 720",  yield: "5.2%", trend: "+4.8%", up: true  },
-    "Bole":           { buy: "ETB 78,000", rent: "ETB 1,100",yield: "5.0%", trend: "+5.9%", up: true  },
-    "Kazanchis":      { buy: "ETB 68,000", rent: "ETB 950",  yield: "5.1%", trend: "+5.3%", up: true  },
-    "CMC":            { buy: "ETB 48,000", rent: "ETB 680",  yield: "5.4%", trend: "+4.1%", up: true  },
-    "Megenagna":      { buy: "ETB 44,000", rent: "ETB 620",  yield: "5.3%", trend: "−0.7%", up: false },
-    "Merkato":        { buy: "ETB 38,000", rent: "ETB 550",  yield: "5.8%", trend: "+2.1%", up: true  },
-    "Piassa":         { buy: "ETB 35,000", rent: "ETB 480",  yield: "5.6%", trend: "−1.8%", up: false },
+    "Alle Stadtteile":  { buy: "€ 6.800",  rent: "€ 28",  yield: "5.0%", trend: "+3.2%", up: true  },
+    "Mitte":            { buy: "€ 9.500",  rent: "€ 38",  yield: "4.8%", trend: "+4.1%", up: true  },
+    "Prenzlauer Berg":  { buy: "€ 7.200",  rent: "€ 30",  yield: "5.0%", trend: "+3.5%", up: true  },
+    "Charlottenburg":   { buy: "€ 8.400",  rent: "€ 35",  yield: "5.0%", trend: "+2.5%", up: true  },
+    "Maxvorstadt":      { buy: "€ 12.000", rent: "€ 46",  yield: "4.6%", trend: "+5.0%", up: true  },
+    "Altona":           { buy: "€ 8.500",  rent: "€ 34",  yield: "4.8%", trend: "+3.4%", up: true  },
+    "Sachsenhausen":    { buy: "€ 7.900",  rent: "€ 32",  yield: "4.9%", trend: "+2.9%", up: true  },
+    "Ehrenfeld":        { buy: "€ 5.800",  rent: "€ 24",  yield: "5.0%", trend: "+2.6%", up: true  },
   },
   land: {
-    "All districts":  { buy: "ETB 8,500",  rent: null, yield: "—", trend: "+7.2%", up: true  },
-    "Bole":           { buy: "ETB 18,000", rent: null, yield: "—", trend: "+8.4%", up: true  },
-    "Kazanchis":      { buy: "ETB 14,000", rent: null, yield: "—", trend: "+7.9%", up: true  },
-    "CMC":            { buy: "ETB 9,500",  rent: null, yield: "—", trend: "+6.8%", up: true  },
-    "Megenagna":      { buy: "ETB 8,800",  rent: null, yield: "—", trend: "+6.4%", up: true  },
-    "Sarbet":         { buy: "ETB 7,200",  rent: null, yield: "—", trend: "+0.5%", up: true  },
-    "Merkato":        { buy: "ETB 5,800",  rent: null, yield: "—", trend: "−0.9%", up: false },
+    "Alle Stadtteile":  { buy: "€ 980",   rent: null, yield: "—", trend: "+5.5%", up: true  },
+    "Mitte":            { buy: "€ 2.800",  rent: null, yield: "—", trend: "+6.8%", up: true  },
+    "Prenzlauer Berg":  { buy: "€ 2.200",  rent: null, yield: "—", trend: "+6.2%", up: true  },
+    "Charlottenburg":   { buy: "€ 2.500",  rent: null, yield: "—", trend: "+5.9%", up: true  },
+    "Neukölln":         { buy: "€ 1.400",  rent: null, yield: "—", trend: "+0.8%", up: true  },
+    "Spandau":          { buy: "€ 680",    rent: null, yield: "—", trend: "−0.4%", up: false },
+    "Maxvorstadt":      { buy: "€ 4.200",  rent: null, yield: "—", trend: "+7.5%", up: true  },
+    "Altona":           { buy: "€ 1.900",  rent: null, yield: "—", trend: "+5.1%", up: true  },
   },
 };
 
-const MICRO_FACTORS: Record<string, { score: number; label: string; icon: string }[]> = {
-  "Bole": [
-    { score: 90, label: "Public Transport", icon: "🚌" },
-    { score: 95, label: "Amenities",        icon: "🏪" },
-    { score: 72, label: "Green Space",      icon: "🌳" },
-    { score: 88, label: "Schools",          icon: "🏫" },
-    { score: 78, label: "Noise Level",      icon: "🔇" },
+const MICRO_FACTORS: Record<string, { score: number; label: string }[]> = {
+  "Mitte": [
+    { score: 97, label: "ÖPNV-Anbindung" },
+    { score: 95, label: "Infrastruktur" },
+    { score: 58, label: "Grünflächen" },
+    { score: 90, label: "Schulen" },
+    { score: 62, label: "Lärmbelastung" },
   ],
-  "Kazanchis": [
-    { score: 85, label: "Public Transport", icon: "🚌" },
-    { score: 88, label: "Amenities",        icon: "🏪" },
-    { score: 68, label: "Green Space",      icon: "🌳" },
-    { score: 82, label: "Schools",          icon: "🏫" },
-    { score: 72, label: "Noise Level",      icon: "🔇" },
+  "Prenzlauer Berg": [
+    { score: 92, label: "ÖPNV-Anbindung" },
+    { score: 90, label: "Infrastruktur" },
+    { score: 75, label: "Grünflächen" },
+    { score: 88, label: "Schulen" },
+    { score: 72, label: "Lärmbelastung" },
   ],
-  "CMC": [
-    { score: 74, label: "Public Transport", icon: "🚌" },
-    { score: 76, label: "Amenities",        icon: "🏪" },
-    { score: 88, label: "Green Space",      icon: "🌳" },
-    { score: 90, label: "Schools",          icon: "🏫" },
-    { score: 86, label: "Noise Level",      icon: "🔇" },
+  "Charlottenburg": [
+    { score: 94, label: "ÖPNV-Anbindung" },
+    { score: 92, label: "Infrastruktur" },
+    { score: 70, label: "Grünflächen" },
+    { score: 86, label: "Schulen" },
+    { score: 68, label: "Lärmbelastung" },
   ],
-  "Megenagna": [
-    { score: 88, label: "Public Transport", icon: "🚌" },
-    { score: 82, label: "Amenities",        icon: "🏪" },
-    { score: 70, label: "Green Space",      icon: "🌳" },
-    { score: 80, label: "Schools",          icon: "🏫" },
-    { score: 74, label: "Noise Level",      icon: "🔇" },
+  "Spandau": [
+    { score: 72, label: "ÖPNV-Anbindung" },
+    { score: 68, label: "Infrastruktur" },
+    { score: 88, label: "Grünflächen" },
+    { score: 80, label: "Schulen" },
+    { score: 90, label: "Lärmbelastung" },
   ],
-  "All districts": [
-    { score: 78, label: "Public Transport", icon: "🚌" },
-    { score: 80, label: "Amenities",        icon: "🏪" },
-    { score: 74, label: "Green Space",      icon: "🌳" },
-    { score: 80, label: "Schools",          icon: "🏫" },
-    { score: 72, label: "Noise Level",      icon: "🔇" },
+  "Alle Stadtteile": [
+    { score: 82, label: "ÖPNV-Anbindung" },
+    { score: 80, label: "Infrastruktur" },
+    { score: 72, label: "Grünflächen" },
+    { score: 80, label: "Schulen" },
+    { score: 70, label: "Lärmbelastung" },
   ],
 };
 
 function getStats(usage: string, district: string) {
-  return STATS[usage]?.[district] ?? STATS[usage]?.["All districts"] ?? null;
+  return STATS[usage]?.[district] ?? STATS[usage]?.["Alle Stadtteile"] ?? null;
 }
 
 function getMicro(district: string) {
-  return MICRO_FACTORS[district] ?? MICRO_FACTORS["All districts"];
+  return MICRO_FACTORS[district] ?? MICRO_FACTORS["Alle Stadtteile"];
 }
 
 function ScoreBar({ score }: { score: number }) {
+  const color = score >= 85 ? "var(--ok)" : score >= 65 ? "var(--warn)" : "var(--err)";
   return (
-    <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
-      <div className="h-full rounded-full transition-all duration-500"
-        style={{ width: `${score}%`, backgroundColor: score >= 85 ? "#10b981" : score >= 70 ? "#f59e0b" : "#ef4444" }} />
+    <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "var(--surface3)" }}>
+      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${score}%`, background: color }} />
     </div>
   );
 }
 
+const selectStyle: React.CSSProperties = {
+  padding: "8px 12px",
+  borderRadius: 9,
+  border: "1px solid var(--border2)",
+  fontSize: 13,
+  fontWeight: 500,
+  color: "var(--text-1)",
+  background: "var(--surface2)",
+  outline: "none",
+  cursor: "pointer",
+};
+
 export default function MarketClient() {
-  const [city,     setCity]     = useState("Addis Ababa");
-  const [district, setDistrict] = useState("All districts");
+  const [city,     setCity]     = useState("Berlin");
+  const [district, setDistrict] = useState("Alle Stadtteile");
   const [usage,    setUsage]    = useState("residential");
 
   const stats     = getStats(usage, district);
   const micro     = getMicro(district);
-  const districts = DISTRICTS[city] || DISTRICTS["Addis Ababa"];
+  const districts = DISTRICTS[city] || DISTRICTS["Berlin"];
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8 flex flex-col gap-6">
+    <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 20px 80px", display: "flex", flexDirection: "column", gap: 24 }}>
 
-      {/* Header + selectors */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 border border-amber-100 text-amber-600 text-xs font-semibold mb-3">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
-            Indicative data · Live GIS integration coming soon
+      {/* Header */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", justifyContent: "space-between", gap: 16 }}>
+          <div>
+            <div style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "4px 12px", borderRadius: 20,
+              background: "rgba(255,159,10,0.1)", border: "1px solid rgba(255,159,10,0.2)",
+              color: "var(--warn)", fontSize: 11, fontWeight: 600, marginBottom: 10,
+            }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--warn)", display: "inline-block" }} />
+              Indikative Daten · Live GIS-Integration in Vorbereitung
+            </div>
+            <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--text-1)", letterSpacing: "-0.02em", margin: 0 }}>
+              Marktbericht
+            </h1>
+            <p style={{ fontSize: 13, color: "var(--text-2)", marginTop: 4 }}>
+              Immobilienmarktdaten nach Stadt, Stadtteil & Nutzungsart
+            </p>
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">Market Report</h1>
-          <p className="text-slate-500 text-sm mt-0.5">Real estate market intelligence by city, district & usage type</p>
+
+          {/* City + District selectors */}
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <select value={city} onChange={(e) => { setCity(e.target.value); setDistrict("Alle Stadtteile"); }} style={selectStyle}>
+              {CITIES.map((c) => <option key={c}>{c}</option>)}
+            </select>
+            <select value={district} onChange={(e) => setDistrict(e.target.value)} style={selectStyle}>
+              {districts.map((d) => <option key={d}>{d}</option>)}
+            </select>
+          </div>
         </div>
 
-        {/* City + District selectors */}
-        <div className="flex gap-2 flex-wrap">
-          <select value={city} onChange={(e) => { setCity(e.target.value); setDistrict("All districts"); }}
-            className="px-3 py-2 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 bg-white focus:outline-none focus:ring-2">
-            {CITIES.map((c) => <option key={c}>{c}</option>)}
-          </select>
-          <select value={district} onChange={(e) => setDistrict(e.target.value)}
-            className="px-3 py-2 rounded-xl border border-slate-200 text-sm font-medium text-slate-700 bg-white focus:outline-none focus:ring-2">
-            {districts.map((d) => <option key={d}>{d}</option>)}
-          </select>
+        {/* Usage type tabs */}
+        <div style={{
+          display: "flex", gap: 2,
+          background: "var(--surface2)", border: "1px solid var(--border)",
+          borderRadius: 10, padding: 3, width: "fit-content",
+        }}>
+          {USAGE_TYPES.map((u) => (
+            <button key={u.key} onClick={() => setUsage(u.key)} style={{
+              padding: "6px 16px", borderRadius: 7,
+              fontSize: 13, fontWeight: 600,
+              background: usage === u.key ? "var(--surface3)" : "transparent",
+              color: usage === u.key ? "var(--text-1)" : "var(--text-2)",
+              boxShadow: usage === u.key ? "0 1px 3px rgba(0,0,0,0.3)" : "none",
+              border: "none", cursor: "pointer", transition: "all 0.12s",
+            }}>
+              {u.label}
+            </button>
+          ))}
         </div>
-      </div>
-
-      {/* Usage type tabs */}
-      <div className="flex gap-0.5 bg-slate-100 rounded-xl p-1 w-fit">
-        {USAGE_TYPES.map((u) => (
-          <button key={u.key} onClick={() => setUsage(u.key)}
-            className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${
-              usage === u.key ? "bg-white text-slate-900" : "text-slate-500 hover:text-slate-700"
-            }`}
-            style={usage === u.key ? { boxShadow: "var(--shadow-xs)" } : {}}>
-            {u.label}
-          </button>
-        ))}
       </div>
 
       {/* Stat cards */}
       {stats && (
-        <div className={`grid gap-4 ${usage === "land" ? "grid-cols-3" : "grid-cols-2 md:grid-cols-4"}`}>
+        <div style={{ display: "grid", gridTemplateColumns: `repeat(${usage === "land" ? 3 : 4}, 1fr)`, gap: 12 }}>
           {[
-            { label: "Avg. Sale Price/m²",   value: stats.buy,   icon: "🏠" },
-            ...(stats.rent ? [{ label: "Avg. Rent/m²/mo", value: stats.rent, icon: "🔑" }] : []),
-            { label: "Gross Yield",           value: stats.yield, icon: "📈" },
-            { label: "Price Trend (MoM)",     value: stats.trend, icon: stats.up ? "⬆️" : "⬇️", up: stats.up },
-          ].map(({ label, value, icon, up }) => (
-            <div key={label} className="bg-white rounded-2xl border border-slate-100/80 p-5" style={{ boxShadow: "var(--shadow-sm)" }}>
-              <span className="text-2xl mb-2 block">{icon}</span>
-              <p className={`text-2xl font-bold ${up !== undefined ? (up ? "text-emerald-600" : "text-red-500") : "text-slate-900"}`}>
+            { label: "Ø Kaufpreis/m²",  value: stats.buy,   up: undefined },
+            ...(stats.rent ? [{ label: "Ø Miete/m²/Mo",   value: stats.rent,  up: undefined }] : []),
+            { label: "Brutto-Rendite",   value: stats.yield, up: undefined },
+            { label: "Preistrend (MoM)", value: stats.trend, up: stats.up },
+          ].map(({ label, value, up }) => (
+            <div key={label} style={{
+              background: "var(--surface2)", border: "1px solid var(--border)",
+              borderRadius: 12, padding: "18px 20px",
+            }}>
+              <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>
+                {label}
+              </p>
+              <p style={{
+                fontSize: 22, fontWeight: 800, letterSpacing: "-0.02em",
+                color: up !== undefined ? (up ? "var(--ok)" : "var(--err)") : "var(--text-1)",
+              }}>
                 {value}
               </p>
-              <p className="text-xs text-slate-400 mt-1">{label}</p>
             </div>
           ))}
         </div>
       )}
 
       {/* Charts */}
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-2xl border border-slate-100/80 p-6" style={{ boxShadow: "var(--shadow-sm)" }}>
-          <h2 className="font-semibold text-slate-800 mb-1">Price Trend — 12 months</h2>
-          <p className="text-xs text-slate-400 mb-4">{city} · {district}</p>
-          <PriceTrendChart usageType={usage} />
-        </div>
-        <div className="bg-white rounded-2xl border border-slate-100/80 p-6" style={{ boxShadow: "var(--shadow-sm)" }}>
-          <h2 className="font-semibold text-slate-800 mb-1">Price by District</h2>
-          <p className="text-xs text-slate-400 mb-4">{city} · {USAGE_TYPES.find(u => u.key === usage)?.label}</p>
-          <DistrictChart usageType={usage} />
-        </div>
-      </div>
-
-      {/* Micro-location + district table side by side */}
-      <div className="grid md:grid-cols-2 gap-6">
-
-        {/* Micro-location scores */}
-        <div className="bg-white rounded-2xl border border-slate-100/80 p-6" style={{ boxShadow: "var(--shadow-sm)" }}>
-          <h2 className="font-semibold text-slate-800 mb-1">Micro-Location Score</h2>
-          <p className="text-xs text-slate-400 mb-5">{district} · {city}</p>
-          <div className="flex flex-col gap-3">
-            {micro.map(({ score, label, icon }) => (
-              <div key={label} className="flex items-center gap-3">
-                <span className="text-base w-6 text-center">{icon}</span>
-                <span className="text-sm text-slate-600 w-32 shrink-0">{label}</span>
-                <ScoreBar score={score} />
-                <span className={`text-xs font-semibold w-8 text-right ${
-                  score >= 85 ? "text-emerald-600" : score >= 70 ? "text-amber-500" : "text-red-500"
-                }`}>{score}</span>
-              </div>
-            ))}
-          </div>
-          <p className="text-xs text-slate-300 mt-5">* Scores 0–100 based on OpenStreetMap data (GIS)</p>
-        </div>
-
-        {/* District comparison table */}
-        <div className="bg-white rounded-2xl border border-slate-100/80 overflow-hidden" style={{ boxShadow: "var(--shadow-sm)" }}>
-          <div className="px-6 py-5 border-b border-slate-100">
-            <h2 className="font-semibold text-slate-800">District Overview</h2>
-            <p className="text-xs text-slate-400 mt-0.5">{city} · {USAGE_TYPES.find(u => u.key === usage)?.label}</p>
-          </div>
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-xs text-slate-400 uppercase">
-              <tr>
-                <th className="px-5 py-2.5 text-left">District</th>
-                <th className="px-4 py-2.5 text-right">Sale/m²</th>
-                {usage !== "land" && <th className="px-4 py-2.5 text-right">Rent/m²</th>}
-                <th className="px-4 py-2.5 text-right">Trend</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {(DISTRICTS[city] || []).filter(d => d !== "All districts").map((d) => {
-                const s = getStats(usage, d);
-                if (!s) return null;
-                return (
-                  <tr key={d}
-                    onClick={() => setDistrict(d)}
-                    className={`cursor-pointer transition-colors ${district === d ? "bg-primary/5" : "hover:bg-slate-50"}`}>
-                    <td className="px-5 py-3 font-medium text-slate-800">
-                      {district === d && <span className="inline-block w-1.5 h-1.5 rounded-full mr-2 mb-0.5" style={{ backgroundColor: "var(--color-primary)" }} />}
-                      {d}
-                    </td>
-                    <td className="px-4 py-3 text-right text-slate-600">{s.buy}</td>
-                    {usage !== "land" && <td className="px-4 py-3 text-right text-slate-600">{s.rent}</td>}
-                    <td className="px-4 py-3 text-right">
-                      <span className={`text-xs font-semibold ${s.up ? "text-emerald-600" : "text-red-500"}`}>{s.trend}</span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Market insight cards */}
-      <div className="grid md:grid-cols-3 gap-4">
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         {[
           {
-            tag: "Market Dynamics", tagColor: "bg-blue-50 text-blue-700",
-            title: "Strong Demand",
-            body: "Demand for residential units in Bole and Kazanchis outpaces supply by ~31%. Properties in prime areas average 18 days on market.",
+            title: "Preisentwicklung — 12 Monate",
+            subtitle: `${city} · ${district}`,
+            chart: <PriceTrendChart usageType={usage} />,
           },
           {
-            tag: "Price Outlook", tagColor: "bg-emerald-50 text-emerald-700",
-            title: "Consistent Growth",
-            body: "Sale prices in Addis Ababa have risen 5–8% MoM in 2025–26, driven by urban expansion and infrastructure investment.",
+            title: "Preise nach Stadtteil",
+            subtitle: `${city} · ${USAGE_TYPES.find(u => u.key === usage)?.label}`,
+            chart: <DistrictChart usageType={usage} />,
           },
-          {
-            tag: "Rental Market", tagColor: "bg-amber-50 text-amber-700",
-            title: "Rising Rents",
-            body: "Rental demand is strong in Bole and Megenagna. Yield averages 3.8–4.2% for residential and up to 5.8% for commercial.",
-          },
-        ].map(({ tag, tagColor, title, body }) => (
-          <div key={title} className="bg-white rounded-2xl border border-slate-100/80 p-5" style={{ boxShadow: "var(--shadow-sm)" }}>
-            <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-semibold mb-3 ${tagColor}`}>{tag}</span>
-            <h3 className="font-semibold text-slate-800 mb-2">{title}</h3>
-            <p className="text-sm text-slate-500 leading-relaxed">{body}</p>
+        ].map(({ title, subtitle, chart }) => (
+          <div key={title} style={{
+            background: "var(--surface2)", border: "1px solid var(--border)",
+            borderRadius: 12, padding: 24,
+          }}>
+            <h2 style={{ fontSize: 14, fontWeight: 600, color: "var(--text-1)", margin: 0 }}>{title}</h2>
+            <p style={{ fontSize: 12, color: "var(--text-3)", marginTop: 3, marginBottom: 16 }}>{subtitle}</p>
+            {chart}
           </div>
         ))}
       </div>
 
-      <p className="text-xs text-slate-300 text-center pb-2">
-        * All figures are indicative estimates for demonstration. Live market data will be integrated via Supabase GIS.
+      {/* Mikrolage + Stadtteil-Tabelle */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+
+        {/* Mikrolage */}
+        <div style={{
+          background: "var(--surface2)", border: "1px solid var(--border)",
+          borderRadius: 12, padding: 24,
+        }}>
+          <h2 style={{ fontSize: 14, fontWeight: 600, color: "var(--text-1)", margin: 0 }}>Mikrolage-Score</h2>
+          <p style={{ fontSize: 12, color: "var(--text-3)", marginTop: 3, marginBottom: 20 }}>{district} · {city}</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {micro.map(({ score, label }) => (
+              <div key={label} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 12, color: "var(--text-2)", width: 130, flexShrink: 0 }}>{label}</span>
+                <ScoreBar score={score} />
+                <span style={{
+                  fontSize: 12, fontWeight: 700, width: 28, textAlign: "right", flexShrink: 0,
+                  color: score >= 85 ? "var(--ok)" : score >= 65 ? "var(--warn)" : "var(--err)",
+                }}>{score}</span>
+              </div>
+            ))}
+          </div>
+          <p style={{ fontSize: 11, color: "var(--text-3)", marginTop: 16 }}>* Scores 0–100 basierend auf OpenStreetMap-Daten</p>
+        </div>
+
+        {/* Stadtteil-Tabelle */}
+        <div style={{
+          background: "var(--surface2)", border: "1px solid var(--border)",
+          borderRadius: 12, overflow: "hidden",
+        }}>
+          <div style={{ padding: "18px 20px 16px", borderBottom: "1px solid var(--border)" }}>
+            <h2 style={{ fontSize: 14, fontWeight: 600, color: "var(--text-1)", margin: 0 }}>Stadtteil-Übersicht</h2>
+            <p style={{ fontSize: 12, color: "var(--text-3)", marginTop: 3 }}>
+              {city} · {USAGE_TYPES.find(u => u.key === usage)?.label}
+            </p>
+          </div>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead>
+                <tr style={{ background: "var(--surface3)" }}>
+                  <th style={{ padding: "8px 16px", textAlign: "left", fontSize: 11, fontWeight: 600, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.04em" }}>Stadtteil</th>
+                  <th style={{ padding: "8px 12px", textAlign: "right", fontSize: 11, fontWeight: 600, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.04em" }}>Kauf/m²</th>
+                  {usage !== "land" && <th style={{ padding: "8px 12px", textAlign: "right", fontSize: 11, fontWeight: 600, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.04em" }}>Miete/m²</th>}
+                  <th style={{ padding: "8px 16px 8px 12px", textAlign: "right", fontSize: 11, fontWeight: 600, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.04em" }}>Trend</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(DISTRICTS[city] || []).filter(d => d !== "Alle Stadtteile").map((d) => {
+                  const s = getStats(usage, d);
+                  if (!s) return null;
+                  const isActive = district === d;
+                  return (
+                    <tr key={d}
+                      onClick={() => setDistrict(d)}
+                      style={{
+                        cursor: "pointer",
+                        background: isActive ? "var(--color-primary-light)" : "transparent",
+                        borderBottom: "1px solid var(--border)",
+                        transition: "background 0.12s",
+                      }}>
+                      <td style={{ padding: "10px 16px", fontWeight: isActive ? 600 : 400, color: isActive ? "var(--color-primary)" : "var(--text-1)" }}>
+                        {isActive && (
+                          <span style={{ display: "inline-block", width: 5, height: 5, borderRadius: "50%", background: "var(--color-primary)", marginRight: 6, marginBottom: 1 }} />
+                        )}
+                        {d}
+                      </td>
+                      <td style={{ padding: "10px 12px", textAlign: "right", color: "var(--text-2)" }}>{s.buy}</td>
+                      {usage !== "land" && <td style={{ padding: "10px 12px", textAlign: "right", color: "var(--text-2)" }}>{s.rent}</td>}
+                      <td style={{ padding: "10px 16px 10px 12px", textAlign: "right" }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: s.up ? "var(--ok)" : "var(--err)" }}>{s.trend}</span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* Markt-Insights */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+        {[
+          {
+            tag: "Marktdynamik", tagColor: { bg: "rgba(124,110,242,0.1)", text: "var(--color-primary)", border: "rgba(124,110,242,0.2)" },
+            title: "Hohe Nachfrage",
+            body: "Die Nachfrage nach Wohnimmobilien in Berlin-Mitte und Prenzlauer Berg übersteigt das Angebot um ~28 %. Objekte in Toplagen bleiben durchschnittlich 14 Tage am Markt.",
+          },
+          {
+            tag: "Preisprognose", tagColor: { bg: "rgba(48,209,88,0.1)", text: "var(--ok)", border: "rgba(48,209,88,0.2)" },
+            title: "Stabiles Wachstum",
+            body: "Kaufpreise in deutschen Großstädten stiegen 2025–26 um 3–6 % p.a., getrieben durch Bevölkerungszuwachs, Wohnungsmangel und geringe Bautätigkeit.",
+          },
+          {
+            tag: "Mietmarkt", tagColor: { bg: "rgba(255,159,10,0.1)", text: "var(--warn)", border: "rgba(255,159,10,0.2)" },
+            title: "Steigende Mieten",
+            body: "Die Mieternachfrage bleibt in allen Großstädten hoch. Brutto-Renditen von 3,6–4,2 % bei Wohnen und bis zu 5,0 % bei Gewerbe sind typisch für A-Städte.",
+          },
+        ].map(({ tag, tagColor, title, body }) => (
+          <div key={title} style={{
+            background: "var(--surface2)", border: "1px solid var(--border)",
+            borderRadius: 12, padding: 20,
+          }}>
+            <span style={{
+              display: "inline-block", padding: "3px 10px", borderRadius: 20, marginBottom: 12,
+              fontSize: 11, fontWeight: 600,
+              background: tagColor.bg, color: tagColor.text, border: `1px solid ${tagColor.border}`,
+            }}>{tag}</span>
+            <h3 style={{ fontSize: 14, fontWeight: 600, color: "var(--text-1)", marginBottom: 8 }}>{title}</h3>
+            <p style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.6 }}>{body}</p>
+          </div>
+        ))}
+      </div>
+
+      <p style={{ fontSize: 11, color: "var(--text-3)", textAlign: "center" }}>
+        * Alle Angaben sind indikative Schätzwerte zur Demo-Darstellung. Live-Marktdaten werden via Supabase GIS integriert.
       </p>
     </div>
   );

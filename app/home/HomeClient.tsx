@@ -6,14 +6,11 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
-// ContractType used in CONTRACT_TYPE_LABELS below — keep import
 
-// Chat redirect URL for starting the contract wizard
-const CONTRACT_CHAT_URL = "/?q=Create+a+contract";
+// ── Helpers ──────────────────────────────────────────────────────────────────
 
-// ── Helpers ───────────────────────────────────────────────────
 function fmt(price: number, currency: string) {
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("de-DE", {
     style: "currency", currency, maximumFractionDigits: 0,
   }).format(price);
 }
@@ -22,189 +19,157 @@ function thumb(property: Property) {
   return property.images?.[0]?.url ?? null;
 }
 
-const STATUS_COLORS: Record<ContractStatus, string> = {
-  draft:               "bg-slate-100 text-slate-600",
-  pending_review:      "bg-yellow-100 text-yellow-700",
-  pending_signature:   "bg-blue-100 text-blue-700",
-  signed:              "bg-indigo-100 text-indigo-700",
-  active:              "bg-green-100 text-green-700",
-  expired:             "bg-slate-100 text-slate-500",
-  terminated:          "bg-red-100 text-red-600",
-};
-
-const STATUS_LABELS: Record<ContractStatus, string> = {
-  draft:               "Draft",
-  pending_review:      "In Review",
-  pending_signature:   "Awaiting Signature",
-  signed:              "Signed",
-  active:              "Active",
-  expired:             "Expired",
-  terminated:          "Terminated",
+const STATUS_STYLE: Record<ContractStatus, { bg: string; color: string; border: string; label: string }> = {
+  draft:               { bg: "rgba(255,255,255,0.04)", color: "var(--text-2)",   border: "var(--border)",                    label: "Entwurf"          },
+  pending_review:      { bg: "rgba(255,159,10,0.08)",  color: "var(--warn)",     border: "rgba(255,159,10,0.2)",              label: "In Prüfung"       },
+  pending_signature:   { bg: "rgba(124,110,242,0.10)", color: "var(--color-primary)", border: "rgba(124,110,242,0.2)",        label: "Signatur ausstehend" },
+  signed:              { bg: "rgba(48,209,88,0.08)",   color: "var(--ok)",       border: "rgba(48,209,88,0.2)",               label: "Unterzeichnet"    },
+  active:              { bg: "rgba(48,209,88,0.08)",   color: "var(--ok)",       border: "rgba(48,209,88,0.2)",               label: "Aktiv"            },
+  expired:             { bg: "rgba(255,255,255,0.04)", color: "var(--text-3)",   border: "var(--border)",                    label: "Abgelaufen"       },
+  terminated:          { bg: "rgba(255,69,58,0.08)",   color: "var(--err)",      border: "rgba(255,69,58,0.2)",               label: "Beendet"          },
 };
 
 const CONTRACT_TYPE_LABELS: Record<ContractType, string> = {
-  residential_rental:  "Residential Rental",
-  commercial_rental:   "Commercial Lease",
-  purchase:            "Purchase Agreement",
-  option_to_purchase:  "Option to Purchase",
-  short_term_rental:   "Short-Term Rental",
+  residential_rental:  "Wohnraummiete",
+  commercial_rental:   "Gewerbemiete",
+  purchase:            "Kaufvertrag",
+  option_to_purchase:  "Kaufoption",
+  short_term_rental:   "Kurzzeitmiete",
 };
 
-// ── Tab type ──────────────────────────────────────────────────
 type Tab = "saved" | "properties" | "contracts";
 
-// ── Contract Detail Modal ─────────────────────────────────────
-function ContractModal({
-  contract,
-  onClose,
-  onGenerate,
-  generating,
-}: {
-  contract: Contract;
-  onClose: () => void;
-  onGenerate: (id: string) => void;
-  generating: boolean;
+// ── Contract Modal ────────────────────────────────────────────────────────────
+
+function ContractModal({ contract, onClose, onGenerate, generating }: {
+  contract: Contract; onClose: () => void;
+  onGenerate: (id: string) => void; generating: boolean;
 }) {
   const clauses = contract.contract_data?.clauses ?? [];
+  const st = STATUS_STYLE[contract.status];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={onClose}>
+    <div
+      style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
+      onClick={onClose}
+    >
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
+        style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 18, width: "100%", maxWidth: 700, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 24px 80px rgba(0,0,0,0.6)" }}
+        onClick={e => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between rounded-t-2xl">
+        {/* Modal Header */}
+        <div style={{ position: "sticky", top: 0, background: "var(--surface)", borderBottom: "1px solid var(--border)", padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
-            <div className="flex items-center gap-2">
-              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_COLORS[contract.status]}`}>
-                {STATUS_LABELS[contract.status]}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+              <span style={{ fontSize: 11, fontWeight: 600, padding: "3px 8px", borderRadius: 6, background: st.bg, color: st.color, border: `1px solid ${st.border}` }}>
+                {st.label}
               </span>
-              <span className="text-xs text-slate-400">{CONTRACT_TYPE_LABELS[contract.contract_type]}</span>
+              <span style={{ fontSize: 11, color: "var(--text-3)" }}>{CONTRACT_TYPE_LABELS[contract.contract_type]}</span>
             </div>
-            <h2 className="font-semibold text-slate-800 mt-1">
-              {contract.property?.title ?? "Contract"}
+            <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--text-1)" }}>
+              {contract.property?.title ?? "Vertrag"}
             </h2>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-2xl leading-none">×</button>
+          <button onClick={onClose} style={{ width: 28, height: 28, background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "var(--text-2)" }}>
+            <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
         </div>
 
-        {/* Body */}
-        <div className="px-6 py-5 flex flex-col gap-6">
+        {/* Modal Body */}
+        <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: 20 }}>
 
           {/* Parties */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-slate-50 rounded-xl p-4">
-              <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-2">Landlord / Vendor</p>
-              <p className="font-medium text-slate-800 text-sm">{contract.landlord_name}</p>
-              <p className="text-slate-500 text-xs mt-0.5">{contract.landlord_email}</p>
-              {contract.landlord_address && <p className="text-slate-400 text-xs mt-0.5">{contract.landlord_address}</p>}
-            </div>
-            <div className="bg-slate-50 rounded-xl p-4">
-              <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-2">Tenant / Purchaser</p>
-              <p className="font-medium text-slate-800 text-sm">{contract.tenant_name}</p>
-              <p className="text-slate-500 text-xs mt-0.5">{contract.tenant_email}</p>
-              {contract.tenant_address && <p className="text-slate-400 text-xs mt-0.5">{contract.tenant_address}</p>}
-            </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            {[
+              { label: "Vermieter / Verkäufer", name: contract.landlord_name, email: contract.landlord_email, addr: contract.landlord_address },
+              { label: "Mieter / Käufer", name: contract.tenant_name, email: contract.tenant_email, addr: contract.tenant_address },
+            ].map(p => (
+              <div key={p.label} style={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 12, padding: "14px 16px" }}>
+                <p style={{ fontSize: 10, fontWeight: 600, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 8 }}>{p.label}</p>
+                <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)" }}>{p.name}</p>
+                <p style={{ fontSize: 12, color: "var(--text-2)", marginTop: 2 }}>{p.email}</p>
+                {p.addr && <p style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>{p.addr}</p>}
+              </div>
+            ))}
           </div>
 
           {/* Key terms */}
-          <div className="grid grid-cols-3 gap-3 text-sm">
-            {contract.monthly_rent && (
-              <div className="bg-slate-50 rounded-xl p-3">
-                <p className="text-xs text-slate-400">Monthly Rent</p>
-                <p className="font-semibold text-slate-800 mt-0.5">{fmt(contract.monthly_rent, contract.currency)}</p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+            {[
+              contract.monthly_rent  && { label: "Monatliche Miete",  val: fmt(contract.monthly_rent, contract.currency) },
+              contract.purchase_price && { label: "Kaufpreis",          val: fmt(contract.purchase_price, contract.currency) },
+              contract.deposit_amount && { label: "Kaution",            val: fmt(contract.deposit_amount, contract.currency) },
+              { label: "Beginn",       val: new Date(contract.start_date).toLocaleDateString("de-DE") },
+              contract.end_date && { label: "Ende", val: new Date(contract.end_date).toLocaleDateString("de-DE") },
+              { label: "Rechtslage",   val: contract.governing_law ?? contract.country_code },
+            ].filter(Boolean).map((item: { label: string; val: string } | null | false, i) => item && (
+              <div key={i} style={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 10, padding: "12px 14px" }}>
+                <p style={{ fontSize: 10, color: "var(--text-3)" }}>{item.label}</p>
+                <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)", marginTop: 3 }}>{item.val}</p>
               </div>
-            )}
-            {contract.purchase_price && (
-              <div className="bg-slate-50 rounded-xl p-3">
-                <p className="text-xs text-slate-400">Purchase Price</p>
-                <p className="font-semibold text-slate-800 mt-0.5">{fmt(contract.purchase_price, contract.currency)}</p>
-              </div>
-            )}
-            {contract.deposit_amount && (
-              <div className="bg-slate-50 rounded-xl p-3">
-                <p className="text-xs text-slate-400">Security Deposit</p>
-                <p className="font-semibold text-slate-800 mt-0.5">{fmt(contract.deposit_amount, contract.currency)}</p>
-              </div>
-            )}
-            <div className="bg-slate-50 rounded-xl p-3">
-              <p className="text-xs text-slate-400">Start Date</p>
-              <p className="font-semibold text-slate-800 mt-0.5">{new Date(contract.start_date).toLocaleDateString()}</p>
-            </div>
-            {contract.end_date && (
-              <div className="bg-slate-50 rounded-xl p-3">
-                <p className="text-xs text-slate-400">End Date</p>
-                <p className="font-semibold text-slate-800 mt-0.5">{new Date(contract.end_date).toLocaleDateString()}</p>
-              </div>
-            )}
-            <div className="bg-slate-50 rounded-xl p-3">
-              <p className="text-xs text-slate-400">Governing Law</p>
-              <p className="font-semibold text-slate-800 mt-0.5 text-xs">{contract.governing_law ?? contract.country_code}</p>
-            </div>
+            ))}
           </div>
 
           {/* AI Generate */}
           {contract.status === "draft" && (
-            <div className="border border-dashed border-slate-200 rounded-xl p-5 flex flex-col gap-3 items-center text-center">
-              <div className="text-2xl">✨</div>
-              <p className="text-sm font-medium text-slate-700">Generate AI Contract</p>
-              <p className="text-xs text-slate-400">
-                Claude will draft a full, jurisdiction-compliant contract based on the details above.
-                This takes about 15–30 seconds.
+            <div style={{ background: "var(--color-primary-light)", border: "1px solid rgba(124,110,242,0.2)", borderRadius: 14, padding: "20px", textAlign: "center" }}>
+              <div style={{ width: 40, height: 40, borderRadius: 10, background: "rgba(124,110,242,0.15)", border: "1px solid rgba(124,110,242,0.2)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
+                <svg width="18" height="18" fill="none" stroke="var(--color-primary)" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+              </div>
+              <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text-1)", marginBottom: 6 }}>KI-Vertrag generieren</p>
+              <p style={{ fontSize: 13, color: "var(--text-2)", marginBottom: 16, lineHeight: 1.6 }}>
+                Claude erstellt einen vollständigen, rechtskonformen Vertrag auf Basis der obigen Daten. Dauer: ca. 15–30 Sekunden.
               </p>
               <button
                 onClick={() => onGenerate(contract.id)}
                 disabled={generating}
-                className="flex items-center gap-2 px-6 py-2 rounded-xl text-white text-sm font-medium disabled:opacity-50"
-                style={{ backgroundColor: "var(--color-primary)" }}
+                style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "9px 20px", borderRadius: 9, background: "var(--color-primary)", color: "white", fontSize: 13, fontWeight: 600, border: "none", cursor: generating ? "not-allowed" : "pointer", opacity: generating ? 0.65 : 1 }}
               >
                 {generating && <LoadingSpinner className="h-4 w-4" />}
-                {generating ? "Generating…" : "Generate Contract"}
+                {generating ? "Generiere…" : "Vertrag generieren"}
               </button>
             </div>
           )}
 
           {/* Clauses */}
           {clauses.length > 0 && (
-            <div className="flex flex-col gap-4">
-              <h3 className="font-semibold text-slate-800">Contract Clauses</h3>
-              {clauses.map((clause, i) => (
-                <div key={i} className="border border-slate-100 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <p className="font-medium text-slate-800 text-sm">{clause.title}</p>
-                    {clause.type === "jurisdiction_specific" && (
-                      <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">Jurisdiction-specific</span>
-                    )}
+            <div>
+              <h3 style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)", marginBottom: 12 }}>Vertragsklauseln</h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {clauses.map((clause, i) => (
+                  <div key={i} style={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 12, padding: "14px 16px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)" }}>{clause.title}</p>
+                      {clause.type === "jurisdiction_specific" && (
+                        <span style={{ fontSize: 10, background: "rgba(255,159,10,0.1)", color: "var(--warn)", border: "1px solid rgba(255,159,10,0.2)", borderRadius: 4, padding: "2px 6px", fontWeight: 600 }}>Jurisdiktionsspezifisch</span>
+                      )}
+                    </div>
+                    <p style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{clause.body}</p>
                   </div>
-                  <p className="text-slate-600 text-sm leading-relaxed whitespace-pre-wrap">{clause.body}</p>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           )}
 
-          {/* Jurisdiction note */}
+          {/* Legal note */}
           {contract.contract_data?.jurisdiction_notes && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-amber-800 leading-relaxed">
-              <strong>Legal Note:</strong> {contract.contract_data.jurisdiction_notes}
+            <div style={{ background: "rgba(255,159,10,0.06)", border: "1px solid rgba(255,159,10,0.18)", borderRadius: 12, padding: "14px 16px", fontSize: 12.5, color: "var(--warn)", lineHeight: 1.6 }}>
+              <strong>Rechtlicher Hinweis:</strong> {contract.contract_data.jurisdiction_notes}
             </div>
           )}
 
           {/* Signatures */}
           {(contract.signatures?.landlord || contract.signatures?.tenant) && (
-            <div className="grid grid-cols-2 gap-3">
-              {contract.signatures.landlord && (
-                <div className="bg-green-50 rounded-xl p-3 text-xs">
-                  <p className="font-medium text-green-800">Landlord signed</p>
-                  <p className="text-green-600 mt-0.5">{new Date(contract.signatures.landlord.signed_at).toLocaleString()}</p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              {[
+                contract.signatures?.landlord && { label: "Vermieter unterzeichnet", date: contract.signatures.landlord.signed_at },
+                contract.signatures?.tenant   && { label: "Mieter unterzeichnet",    date: contract.signatures.tenant.signed_at },
+              ].filter(Boolean).map((sig: { label: string; date: string } | null | false, i) => sig && (
+                <div key={i} style={{ background: "rgba(48,209,88,0.06)", border: "1px solid rgba(48,209,88,0.15)", borderRadius: 10, padding: "12px 14px" }}>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: "var(--ok)" }}>{sig.label}</p>
+                  <p style={{ fontSize: 11, color: "var(--text-2)", marginTop: 3 }}>{new Date(sig.date).toLocaleString("de-DE")}</p>
                 </div>
-              )}
-              {contract.signatures.tenant && (
-                <div className="bg-green-50 rounded-xl p-3 text-xs">
-                  <p className="font-medium text-green-800">Tenant signed</p>
-                  <p className="text-green-600 mt-0.5">{new Date(contract.signatures.tenant.signed_at).toLocaleString()}</p>
-                </div>
-              )}
+              ))}
             </div>
           )}
         </div>
@@ -213,24 +178,23 @@ function ContractModal({
   );
 }
 
-// ── Main HomeClient ───────────────────────────────────────────
+// ── Main HomeClient ───────────────────────────────────────────────────────────
+
 export function HomeClient() {
   const router = useRouter();
-  const [tab,           setTab]           = useState<Tab>("saved");
-  const [savedProps,    setSavedProps]    = useState<Property[]>([]);
-  const [activeProps,   setActiveProps]   = useState<Property[]>([]);
-  const [contracts,     setContracts]     = useState<Contract[]>([]);
-  const [loading,       setLoading]       = useState(true);
+  const [tab,              setTab]              = useState<Tab>("saved");
+  const [savedProps,       setSavedProps]       = useState<Property[]>([]);
+  const [activeProps,      setActiveProps]      = useState<Property[]>([]);
+  const [contracts,        setContracts]        = useState<Contract[]>([]);
+  const [loading,          setLoading]          = useState(true);
   const [selectedContract, setSelectedContract] = useState<Contract | null>(null);
-  const [generating,    setGenerating]    = useState(false);
+  const [generating,       setGenerating]       = useState(false);
 
-  // ── Fetch saved properties ──────────────────────────────────
   const fetchSaved = useCallback(async () => {
     const ids: string[] = JSON.parse(localStorage.getItem("habino_saved") ?? "[]");
     if (!ids.length) { setSavedProps([]); return; }
     const res = await fetch("/api/properties/batch", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ids }),
     });
     if (!res.ok) return;
@@ -238,430 +202,337 @@ export function HomeClient() {
     setSavedProps(data.properties ?? []);
   }, []);
 
-  // ── Fetch contracts ─────────────────────────────────────────
   const fetchContracts = useCallback(async () => {
     const res = await fetch("/api/contracts");
     if (!res.ok) return;
     const data = await res.json();
     const all: Contract[] = data.contracts ?? [];
     setContracts(all);
-    // Active properties = properties linked to active/signed contracts where user is tenant
-    const active = all
-      .filter((c) => ["active", "signed"].includes(c.status) && c.property)
-      .map((c) => c.property!)
-      .filter(Boolean);
-    setActiveProps(active);
+    setActiveProps(all.filter(c => ["active","signed"].includes(c.status) && c.property).map(c => c.property!).filter(Boolean));
   }, []);
 
   useEffect(() => {
     Promise.all([fetchSaved(), fetchContracts()]).finally(() => setLoading(false));
   }, [fetchSaved, fetchContracts]);
 
-  // ── AI generate for existing draft ─────────────────────────
   async function handleGenerate(contractId: string) {
     setGenerating(true);
     try {
       const res = await fetch(`/api/contracts/${contractId}/generate`, { method: "POST" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      // Update contract in list
-      setContracts((prev) => prev.map((c) => c.id === contractId ? data.contract : c));
+      setContracts(prev => prev.map(c => c.id === contractId ? data.contract : c));
       setSelectedContract(data.contract);
-    } catch (err) {
-      console.error("Generate error:", err);
-    } finally {
-      setGenerating(false);
-    }
+    } catch (err) { console.error(err); }
+    finally { setGenerating(false); }
   }
 
-  // ── Unsave ──────────────────────────────────────────────────
   function unsave(id: string) {
     const ids: string[] = JSON.parse(localStorage.getItem("habino_saved") ?? "[]");
-    const next = ids.filter((x) => x !== id);
-    localStorage.setItem("habino_saved", JSON.stringify(next));
-    setSavedProps((prev) => prev.filter((p) => p.id !== id));
+    localStorage.setItem("habino_saved", JSON.stringify(ids.filter(x => x !== id)));
+    setSavedProps(prev => prev.filter(p => p.id !== id));
   }
 
-  if (loading) {
-    return (
-      <main className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner className="h-8 w-8" />
-      </main>
-    );
-  }
+  if (loading) return (
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}>
+      <LoadingSpinner className="h-8 w-8" />
+    </div>
+  );
 
-  // Greeting helper
   const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const greeting = hour < 12 ? "Guten Morgen" : hour < 18 ? "Guten Tag" : "Guten Abend";
+
+  const TABS: { id: Tab; label: string; count: number }[] = [
+    { id: "saved",      label: "Gespeichert",  count: savedProps.length  },
+    { id: "properties", label: "Meine Objekte", count: activeProps.length },
+    { id: "contracts",  label: "Verträge",      count: contracts.length   },
+  ];
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main style={{ minHeight: "100vh", background: "var(--bg)" }}>
 
-      {/* ── Greeting hero — forest green matching Figma dashboard ── */}
-      <div className="px-5 pt-6 pb-14 text-white"
-        style={{ background: "linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark, #235f35) 100%)" }}>
-        <h1 className="font-bold text-2xl">{greeting} 👋</h1>
-        <p className="text-white/75 text-sm mt-1">Your personal property dashboard</p>
+      {/* Page header */}
+      <div style={{ borderBottom: "1px solid var(--border)", padding: "24px 24px 20px", background: "var(--surface)" }}>
+        <div style={{ maxWidth: 900, margin: "0 auto" }}>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+            <div>
+              <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text-1)", letterSpacing: "-0.02em", marginBottom: 4 }}>
+                {greeting} 👋
+              </h1>
+              <p style={{ fontSize: 13.5, color: "var(--text-2)" }}>Dein persönliches Immobilien-Dashboard</p>
+            </div>
+            <Link href="/?q=Immobilie+inserieren" style={{
+              display: "inline-flex", alignItems: "center", gap: 7,
+              padding: "9px 16px", borderRadius: 9,
+              background: "var(--color-primary)", color: "white",
+              fontSize: 13, fontWeight: 600, textDecoration: "none",
+              boxShadow: "0 0 0 1px rgba(124,110,242,0.3), 0 3px 12px rgba(124,110,242,0.2)",
+            }}>
+              <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Objekt inserieren
+            </Link>
+          </div>
+
+          {/* Stats row */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginTop: 20 }}>
+            {[
+              { label: "Gespeichert",  value: savedProps.length,  icon: "M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" },
+              { label: "Verträge",    value: contracts.length,   icon: "M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z M14 2v6h6" },
+              { label: "Aktiv",       value: activeProps.length,  icon: "M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z M9 22V12h6v10" },
+            ].map(s => (
+              <div key={s.label} style={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 12, padding: "16px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                  <span style={{ fontSize: 10.5, fontWeight: 600, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.06em" }}>{s.label}</span>
+                  <div style={{ width: 26, height: 26, borderRadius: 7, background: "var(--color-primary-light)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <svg width="12" height="12" fill="none" stroke="var(--color-primary)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d={s.icon}/></svg>
+                  </div>
+                </div>
+                <p style={{ fontSize: 26, fontWeight: 800, color: "var(--text-1)", letterSpacing: "-0.03em", lineHeight: 1 }}>{s.value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 -mt-8">
+      <div style={{ maxWidth: 900, margin: "0 auto", padding: "24px" }}>
 
-        {/* ── Stats row — first card green-filled like Figma ─────── */}
-        <div className="grid grid-cols-3 gap-3 mb-5">
-          {[
-            { label: "Saved",      value: savedProps.length,  primary: true },
-            { label: "Contracts",  value: contracts.length,   primary: false },
-            { label: "Active",     value: activeProps.length, primary: false },
-          ].map(({ label, value, primary }) => (
-            <div key={label}
-              className={`rounded-xl p-3 shadow-sm border text-center transition-colors ${
-                primary
-                  ? "border-transparent text-white"
-                  : "bg-white border-slate-200 text-slate-900"
-              }`}
-              style={primary ? { backgroundColor: "var(--color-primary)" } : {}}>
-              <div className={`font-black text-2xl ${primary ? "text-white" : "text-slate-900"}`}>{value}</div>
-              <div className={`text-[11px] font-medium mt-0.5 ${primary ? "text-white/80" : "text-slate-500"}`}>{label}</div>
+        {/* Quick actions */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 24 }}>
+          <Link href="/?q=Immobilie+inserieren" style={{
+            display: "flex", alignItems: "center", gap: 14, padding: "16px 18px",
+            background: "var(--color-primary-light)", border: "1px solid rgba(124,110,242,0.2)",
+            borderRadius: 12, textDecoration: "none", transition: "all 0.14s",
+          }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(124,110,242,0.4)"; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(124,110,242,0.2)"; }}
+          >
+            <div style={{ width: 38, height: 38, borderRadius: 10, background: "var(--color-primary)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <svg width="16" height="16" fill="none" stroke="white" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             </div>
-          ))}
-        </div>
-
-        {/* ── Quick actions ────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          <Link
-            href="/?q=List+my+property"
-            className="flex items-center gap-3 p-4 rounded-xl text-white shadow-sm active:scale-[0.98] transition-all"
-            style={{ backgroundColor: "var(--color-primary)" }}
-          >
-            <div className="w-9 h-9 rounded-lg bg-white/20 flex items-center justify-center text-lg shrink-0">🏠</div>
-            <span className="text-sm font-semibold leading-snug">List a property</span>
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)" }}>Objekt inserieren</p>
+              <p style={{ fontSize: 12, color: "var(--text-2)", marginTop: 2 }}>Neues Inserat anlegen</p>
+            </div>
           </Link>
-          <Link
-            href={CONTRACT_CHAT_URL}
-            className="flex items-center gap-3 p-4 bg-white border border-slate-200 rounded-xl shadow-sm active:scale-[0.98] transition-all hover:border-slate-300"
+          <Link href="/?q=Vertrag+erstellen" style={{
+            display: "flex", alignItems: "center", gap: 14, padding: "16px 18px",
+            background: "var(--surface2)", border: "1px solid var(--border)",
+            borderRadius: 12, textDecoration: "none", transition: "all 0.14s",
+          }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--border2)"; (e.currentTarget as HTMLElement).style.background = "var(--surface3)"; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--border)"; (e.currentTarget as HTMLElement).style.background = "var(--surface2)"; }}
           >
-            <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-lg shrink-0">📄</div>
-            <span className="text-sm font-semibold text-slate-800 leading-snug">Create a contract</span>
+            <div style={{ width: 38, height: 38, borderRadius: 10, background: "var(--surface3)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <svg width="16" height="16" fill="none" stroke="var(--color-primary)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><path strokeLinecap="round" d="M13 10V3"/></svg>
+            </div>
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)" }}>Vertrag mit KI erstellen</p>
+              <p style={{ fontSize: 12, color: "var(--text-2)", marginTop: 2 }}>Claude generiert den Vertrag</p>
+            </div>
           </Link>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 bg-white border border-slate-200 rounded-xl p-1 shadow-sm mb-6 w-fit">
-          {([
-            { id: "saved",      label: "Saved",        count: savedProps.length },
-            { id: "properties", label: "My Properties", count: activeProps.length },
-            { id: "contracts",  label: "Contracts",    count: contracts.length },
-          ] as { id: Tab; label: string; count: number }[]).map(({ id, label, count }) => (
-            <button
-              key={id}
-              onClick={() => setTab(id)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
-                tab === id
-                  ? "text-white shadow-sm"
-                  : "text-slate-500 hover:text-slate-700"
-              }`}
-              style={tab === id ? { backgroundColor: "var(--color-primary)" } : {}}
-            >
+        <div style={{ display: "flex", gap: 2, background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 10, padding: 3, width: "fit-content", marginBottom: 20 }}>
+          {TABS.map(({ id, label, count }) => (
+            <button key={id} onClick={() => setTab(id)} style={{
+              padding: "7px 16px", borderRadius: 7, fontFamily: "inherit",
+              fontSize: 13, fontWeight: 500, cursor: "pointer", border: "none",
+              display: "flex", alignItems: "center", gap: 7, transition: "all 0.12s",
+              background: tab === id ? "var(--surface3)" : "transparent",
+              color: tab === id ? "var(--text-1)" : "var(--text-2)",
+              boxShadow: tab === id ? "0 1px 3px rgba(0,0,0,0.3)" : "none",
+            }}>
               {label}
               {count > 0 && (
-                <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                  tab === id ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
-                }`}>{count}</span>
+                <span style={{
+                  fontSize: 10.5, fontWeight: 700, padding: "1px 6px", borderRadius: 20,
+                  background: tab === id ? "var(--color-primary-light)" : "rgba(255,255,255,0.05)",
+                  color: tab === id ? "var(--color-primary)" : "var(--text-3)",
+                  border: tab === id ? "1px solid rgba(124,110,242,0.2)" : "1px solid var(--border)",
+                }}>
+                  {count}
+                </span>
               )}
             </button>
           ))}
         </div>
 
-        {/* ── TAB: Saved ──────────────────────────────────────── */}
+        {/* TAB: Gespeichert */}
         {tab === "saved" && (
-          <div>
-            {savedProps.length === 0 ? (
-              <EmptyState
-                icon="🔖"
-                title="No saved listings yet"
-                text="Tap the bookmark icon on any listing to save it here."
-                action={{ label: "Browse listings", href: "/search" }}
-              />
-            ) : (
-              <div className="grid sm:grid-cols-2 gap-4">
-                {savedProps.map((p) => (
-                  <PropertyCard
-                    key={p.id}
-                    property={p}
-                    onUnsave={() => unsave(p.id)}
-                    onClick={() => router.push(`/properties/${p.id}`)}
-                  />
-                ))}
+          savedProps.length === 0
+            ? <EmptyState icon={<HeartIcon />} title="Noch keine Inserate gespeichert" text="Tippe auf das Herz-Symbol bei einem Inserat, um es hier zu speichern." action={{ label: "Inserate entdecken", href: "/search" }} />
+            : <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14 }}>
+                {savedProps.map(p => <HomePropertyCard key={p.id} property={p} onUnsave={() => unsave(p.id)} onClick={() => router.push(`/properties/${p.id}`)} />)}
               </div>
-            )}
-          </div>
         )}
 
-        {/* ── TAB: My Properties ─────────────────────────────── */}
+        {/* TAB: Meine Objekte */}
         {tab === "properties" && (
-          <div>
-            {activeProps.length === 0 ? (
-              <EmptyState
-                icon="🏠"
-                title="No active properties"
-                text="Properties linked to your active or signed rental/purchase contracts will appear here."
-                action={{ label: "Create a contract", href: CONTRACT_CHAT_URL }}
-              />
-            ) : (
-              <div className="grid sm:grid-cols-2 gap-4">
-                {activeProps.map((p) => (
-                  <PropertyCard
-                    key={p.id}
-                    property={p}
-                    showContractBadge
-                    onClick={() => router.push(`/properties/${p.id}`)}
-                  />
-                ))}
+          activeProps.length === 0
+            ? <EmptyState icon={<HomeIcon />} title="Keine aktiven Objekte" text="Objekte mit aktiven oder unterzeichneten Miet- oder Kaufverträgen erscheinen hier." action={{ label: "Vertrag erstellen", href: "/?q=Vertrag+erstellen" }} />
+            : <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14 }}>
+                {activeProps.map(p => <HomePropertyCard key={p.id} property={p} showActiveBadge onClick={() => router.push(`/properties/${p.id}`)} />)}
               </div>
-            )}
-          </div>
         )}
 
-        {/* ── TAB: Contracts ─────────────────────────────────── */}
+        {/* TAB: Verträge */}
         {tab === "contracts" && (
           <div>
-            <div className="flex justify-between items-center mb-4">
-              <p className="text-sm text-slate-500">{contracts.length} contract{contracts.length !== 1 ? "s" : ""}</p>
-              <Link
-                href={CONTRACT_CHAT_URL}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-medium hover:opacity-90 transition-opacity"
-                style={{ backgroundColor: "var(--color-primary)" }}
-              >
-                <span>✨</span> New Contract via AI
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
+              <Link href="/?q=Vertrag+erstellen" style={{
+                display: "inline-flex", alignItems: "center", gap: 7,
+                padding: "8px 14px", borderRadius: 8,
+                background: "var(--color-primary)", color: "white",
+                fontSize: 13, fontWeight: 600, textDecoration: "none",
+              }}>
+                <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                Neuer KI-Vertrag
               </Link>
             </div>
-
-            {contracts.length === 0 ? (
-              <EmptyState
-                icon="📄"
-                title="No contracts yet"
-                text="Let the AI guide you through creating a rental or purchase contract — just talk to it."
-                action={{ label: "Create contract with AI ✨", href: CONTRACT_CHAT_URL }}
-              />
-            ) : (
-              <div className="flex flex-col gap-3">
-                {contracts.map((c) => (
-                  <ContractRow
-                    key={c.id}
-                    contract={c}
-                    onClick={() => setSelectedContract(c)}
-                  />
-                ))}
-              </div>
-            )}
+            {contracts.length === 0
+              ? <EmptyState icon={<DocIcon />} title="Noch keine Verträge" text="Lass den KI-Assistenten einen Miet- oder Kaufvertrag für dich erstellen." action={{ label: "Vertrag mit KI erstellen", href: "/?q=Vertrag+erstellen" }} />
+              : <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {contracts.map(c => <ContractRow key={c.id} contract={c} onClick={() => setSelectedContract(c)} />)}
+                </div>
+            }
           </div>
         )}
       </div>
 
-      {/* Contract detail modal */}
       {selectedContract && (
-        <ContractModal
-          contract={selectedContract}
-          onClose={() => setSelectedContract(null)}
-          onGenerate={handleGenerate}
-          generating={generating}
-        />
+        <ContractModal contract={selectedContract} onClose={() => setSelectedContract(null)} onGenerate={handleGenerate} generating={generating} />
       )}
     </main>
   );
 }
 
-// ── Sub-components ────────────────────────────────────────────
-function EmptyState({
-  icon, title, text, action,
-}: {
-  icon: string;
-  title: string;
-  text: string;
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+function EmptyState({ icon, title, text, action }: {
+  icon: React.ReactNode; title: string; text: string;
   action?: { label: string; href?: string; onClick?: () => void };
 }) {
   return (
-    <div className="flex flex-col items-center text-center py-16 gap-3">
-      <span className="text-4xl">{icon}</span>
-      <p className="font-semibold text-slate-700">{title}</p>
-      <p className="text-slate-400 text-sm max-w-xs">{text}</p>
-      {action && (
-        action.href ? (
-          <Link href={action.href}
-            className="mt-2 px-5 py-2 rounded-xl text-white text-sm font-medium"
-            style={{ backgroundColor: "var(--color-primary)" }}>
-            {action.label}
-          </Link>
-        ) : (
-          <button onClick={action.onClick}
-            className="mt-2 px-5 py-2 rounded-xl text-white text-sm font-medium"
-            style={{ backgroundColor: "var(--color-primary)" }}>
-            {action.label}
-          </button>
-        )
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", padding: "64px 24px", gap: 12 }}>
+      <div style={{ width: 48, height: 48, borderRadius: 14, background: "var(--surface2)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-3)" }}>
+        {icon}
+      </div>
+      <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text-1)" }}>{title}</p>
+      <p style={{ fontSize: 13, color: "var(--text-2)", maxWidth: 320, lineHeight: 1.6 }}>{text}</p>
+      {action && (action.href
+        ? <Link href={action.href} style={{ marginTop: 8, padding: "9px 18px", borderRadius: 9, background: "var(--color-primary)", color: "white", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>{action.label}</Link>
+        : <button onClick={action.onClick} style={{ marginTop: 8, padding: "9px 18px", borderRadius: 9, background: "var(--color-primary)", color: "white", fontSize: 13, fontWeight: 600, border: "none", cursor: "pointer" }}>{action.label}</button>
       )}
     </div>
   );
 }
 
-function PropertyCard({
-  property: p,
-  onUnsave,
-  showContractBadge,
-  onClick,
-}: {
-  property: Property;
-  onUnsave?: () => void;
-  showContractBadge?: boolean;
-  onClick: () => void;
+function HomePropertyCard({ property: p, onUnsave, showActiveBadge, onClick }: {
+  property: Property; onUnsave?: () => void; showActiveBadge?: boolean; onClick: () => void;
 }) {
   const image = thumb(p);
   return (
-    <div
-      onClick={onClick}
-      className="bg-white rounded-2xl border border-slate-100/80 overflow-hidden cursor-pointer transition-all hover:-translate-y-0.5"
-      style={{ boxShadow: "var(--shadow-sm)" }}
-      onMouseEnter={(e) => (e.currentTarget.style.boxShadow = "var(--shadow-md)")}
-      onMouseLeave={(e) => (e.currentTarget.style.boxShadow = "var(--shadow-sm)")}
+    <div onClick={onClick} style={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden", cursor: "pointer", transition: "all 0.16s" }}
+      onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = "var(--border2)"; el.style.transform = "translateY(-1px)"; el.style.boxShadow = "var(--shadow-md)"; }}
+      onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = "var(--border)"; el.style.transform = ""; el.style.boxShadow = "none"; }}
     >
-      {/* Image */}
-      <div className="relative h-[148px] bg-slate-100">
-        {image ? (
-          <Image src={image} alt={p.title} fill className="object-cover" sizes="400px" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-slate-300 text-3xl">🏠</div>
+      <div style={{ position: "relative", height: 140, overflow: "hidden" }}>
+        {image
+          ? <Image src={image} alt={p.title} fill style={{ objectFit: "cover" }} sizes="400px" />
+          : <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg, #1A1A2E, #2A2040)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <HomeIcon />
+            </div>
+        }
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.4), transparent)" }} />
+        {showActiveBadge && (
+          <div style={{ position: "absolute", top: 8, left: 8, fontSize: 10.5, fontWeight: 600, padding: "3px 8px", borderRadius: 6, background: "rgba(48,209,88,0.15)", color: "var(--ok)", border: "1px solid rgba(48,209,88,0.2)", backdropFilter: "blur(6px)" }}>Aktiv</div>
         )}
-        {/* Subtle gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
-        {showContractBadge && (
-          <div
-            className="absolute top-2.5 left-2.5 text-white text-[11px] font-semibold px-2.5 py-1 rounded-full backdrop-blur-sm"
-            style={{ backgroundColor: "var(--color-primary)" }}
-          >
-            Active
+        {!showActiveBadge && (
+          <div style={{ position: "absolute", top: 8, left: 8, fontSize: 10.5, fontWeight: 600, padding: "3px 8px", borderRadius: 6, background: p.listing_type === "rent" ? "var(--color-primary-light)" : "rgba(48,209,88,0.12)", color: p.listing_type === "rent" ? "var(--color-primary)" : "var(--ok)", border: `1px solid ${p.listing_type === "rent" ? "rgba(124,110,242,0.25)" : "rgba(48,209,88,0.2)"}`, backdropFilter: "blur(6px)" }}>
+            {p.listing_type === "rent" ? "Miete" : "Kauf"}
           </div>
         )}
         {onUnsave && (
-          <button
-            onClick={(e) => { e.stopPropagation(); onUnsave(); }}
-            className="absolute top-2.5 right-2.5 bg-white/90 hover:bg-white rounded-full w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors"
-            style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.12)" }}
-            title="Remove from saved"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          <button onClick={e => { e.stopPropagation(); onUnsave(); }} style={{ position: "absolute", top: 8, right: 8, width: 28, height: 28, background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 7, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", backdropFilter: "blur(6px)" }}>
+            <svg width="12" height="12" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth={2.5} viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         )}
-        {/* Type badge bottom-left */}
-        <div className="absolute bottom-2.5 left-2.5">
-          <span className="text-[11px] font-semibold text-white bg-black/50 backdrop-blur-sm px-2 py-0.5 rounded-full">
-            {p.listing_type === "rent" ? "For Rent" : "For Sale"}
-          </span>
-        </div>
       </div>
-
-      {/* Content */}
-      <div className="p-4">
-        <p className="text-[15px] font-semibold text-slate-900 truncate leading-snug">{p.title}</p>
-        <p className="text-[13px] text-slate-400 mt-0.5 truncate">
-          {p.city}{p.neighbourhood ? ` · ${p.neighbourhood}` : ""}
+      <div style={{ padding: "12px 14px" }}>
+        <p style={{ fontSize: 16, fontWeight: 800, color: "var(--text-1)", letterSpacing: "-0.02em" }}>
+          {fmt(p.price, p.currency)}{p.listing_type === "rent" && <span style={{ fontSize: 11, fontWeight: 400, color: "var(--text-2)", marginLeft: 3 }}>/Mo</span>}
         </p>
-        {/* Specs row */}
+        <p style={{ fontSize: 13, fontWeight: 500, color: "var(--text-1)", marginTop: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.title}</p>
+        <p style={{ fontSize: 12, color: "var(--text-2)", marginTop: 2 }}>{p.city}{p.neighbourhood ? ` · ${p.neighbourhood}` : ""}</p>
         {(p.bedrooms || p.bathrooms || p.area_sqm) && (
-          <div className="flex items-center gap-3 mt-2 text-[12px] text-slate-500">
-            {p.bedrooms && <span>{p.bedrooms} bed</span>}
-            {p.bathrooms && <span>{p.bathrooms} bath</span>}
-            {p.area_sqm && <span>{p.area_sqm} m²</span>}
+          <div style={{ display: "flex", gap: 10, marginTop: 8, paddingTop: 8, borderTop: "1px solid var(--border)", fontSize: 12, color: "var(--text-3)" }}>
+            {p.bedrooms  && <span>{p.bedrooms} Zi</span>}
+            {p.bathrooms && <span>{p.bathrooms} Bad</span>}
+            {p.area_sqm  && <span>{p.area_sqm} m²</span>}
           </div>
         )}
-        <p className="text-[16px] font-bold mt-2" style={{ color: "var(--color-primary)" }}>
-          {fmt(p.price, p.currency)}
-          {p.listing_type === "rent" && <span className="text-slate-400 font-normal text-[12px] ml-1">/mo</span>}
-        </p>
       </div>
     </div>
   );
 }
 
 function ContractRow({ contract: c, onClick }: { contract: Contract; onClick: () => void }) {
+  const st = STATUS_STYLE[c.status];
   const prop = c.property;
 
-  // Progress % for active/signed contracts with defined end date
   const progress = (() => {
-    if (!["active", "signed"].includes(c.status) || !c.end_date) return null;
-    const start = new Date(c.start_date).getTime();
-    const end   = new Date(c.end_date).getTime();
-    const now   = Date.now();
+    if (!["active","signed"].includes(c.status) || !c.end_date) return null;
+    const start = new Date(c.start_date).getTime(), end = new Date(c.end_date).getTime(), now = Date.now();
     if (end <= start) return null;
     return Math.min(100, Math.max(0, Math.round(((now - start) / (end - start)) * 100)));
   })();
 
   return (
-    <div
-      onClick={onClick}
-      className="bg-white rounded-2xl border border-slate-100/80 cursor-pointer transition-all hover:-translate-y-0.5"
-      style={{ boxShadow: "var(--shadow-sm)" }}
-      onMouseEnter={(e) => (e.currentTarget.style.boxShadow = "var(--shadow-md)")}
-      onMouseLeave={(e) => (e.currentTarget.style.boxShadow = "var(--shadow-sm)")}
+    <div onClick={onClick} style={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 14, cursor: "pointer", transition: "all 0.14s" }}
+      onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = "var(--border2)"; el.style.transform = "translateX(2px)"; }}
+      onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = "var(--border)"; el.style.transform = ""; }}
     >
-      <div className="p-4 flex items-start gap-4">
-        {/* Thumb */}
-        <div className="w-[60px] h-[60px] rounded-xl overflow-hidden bg-slate-100 flex-shrink-0">
-          {prop?.images?.[0]?.url ? (
-            <Image src={prop.images[0].url} alt={prop.title ?? ""} width={60} height={60} className="object-cover w-full h-full" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-slate-300 text-xl">🏠</div>
-          )}
+      <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 16px" }}>
+        <div style={{ width: 52, height: 40, borderRadius: 8, overflow: "hidden", flexShrink: 0, background: "var(--surface3)" }}>
+          {prop?.images?.[0]?.url
+            ? <Image src={prop.images[0].url} alt={prop.title ?? ""} width={52} height={40} style={{ objectFit: "cover", width: "100%", height: "100%" }} />
+            : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><HomeIcon /></div>
+          }
         </div>
-
-        {/* Info */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[c.status]}`}>
-              {STATUS_LABELS[c.status]}
-            </span>
-            <span className="text-[11px] text-slate-400">{CONTRACT_TYPE_LABELS[c.contract_type]}</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 4 }}>
+            <span style={{ fontSize: 10.5, fontWeight: 600, padding: "2px 7px", borderRadius: 5, background: st.bg, color: st.color, border: `1px solid ${st.border}` }}>{st.label}</span>
+            <span style={{ fontSize: 11, color: "var(--text-3)" }}>{CONTRACT_TYPE_LABELS[c.contract_type]}</span>
           </div>
-          <p className="text-[14px] font-semibold text-slate-900 truncate leading-tight">
-            {prop?.title ?? `Contract ${c.id.slice(0, 8)}`}
-          </p>
-          <p className="text-[12px] text-slate-400 mt-0.5">
-            {new Date(c.start_date).toLocaleDateString()}
-            {c.end_date ? ` → ${new Date(c.end_date).toLocaleDateString()}` : " · Open-ended"}
+          <p style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{prop?.title ?? `Vertrag ${c.id.slice(0,8)}`}</p>
+          <p style={{ fontSize: 12, color: "var(--text-2)", marginTop: 2 }}>
+            {new Date(c.start_date).toLocaleDateString("de-DE")}{c.end_date ? ` → ${new Date(c.end_date).toLocaleDateString("de-DE")}` : " · Unbefristet"}
           </p>
         </div>
-
-        {/* Amount */}
-        <div className="text-right flex-shrink-0">
-          {c.monthly_rent && (
-            <p className="text-[14px] font-bold" style={{ color: "var(--color-primary)" }}>
-              {fmt(c.monthly_rent, c.currency)}
-              <span className="text-slate-400 font-normal text-[11px]">/mo</span>
-            </p>
-          )}
-          {c.purchase_price && (
-            <p className="text-[14px] font-bold" style={{ color: "var(--color-primary)" }}>
-              {fmt(c.purchase_price, c.currency)}
-            </p>
-          )}
-          <p className="text-[11px] text-slate-400 mt-0.5">{c.country_code}</p>
+        <div style={{ textAlign: "right", flexShrink: 0 }}>
+          {c.monthly_rent && <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)" }}>{fmt(c.monthly_rent, c.currency)}<span style={{ fontSize: 11, fontWeight: 400, color: "var(--text-3)" }}>/Mo</span></p>}
+          {c.purchase_price && <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)" }}>{fmt(c.purchase_price, c.currency)}</p>}
+          <p style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>{c.country_code}</p>
         </div>
       </div>
-
-      {/* Progress bar — active contracts only */}
       {progress !== null && (
-        <div className="px-4 pb-4">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[11px] text-slate-400">{progress}% elapsed</span>
-            <span className="text-[11px] text-slate-400">{100 - progress}% remaining</span>
+        <div style={{ padding: "0 16px 14px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+            <span style={{ fontSize: 11, color: "var(--text-3)" }}>{progress}% abgelaufen</span>
+            <span style={{ fontSize: 11, color: "var(--text-3)" }}>{100 - progress}% verbleibend</span>
           </div>
-          <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-            <div
-              className="h-full rounded-full"
-              style={{ width: `${progress}%`, backgroundColor: "var(--color-primary)" }}
-            />
+          <div style={{ height: 4, background: "var(--surface3)", borderRadius: 99, overflow: "hidden" }}>
+            <div style={{ height: "100%", borderRadius: 99, width: `${progress}%`, background: "var(--color-primary)" }} />
           </div>
         </div>
       )}
     </div>
   );
 }
+
+// ── Small icons ───────────────────────────────────────────────────────────────
+
+function HeartIcon() { return <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>; }
+function HomeIcon() { return <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>; }
+function DocIcon()  { return <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>; }
