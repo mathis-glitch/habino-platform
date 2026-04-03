@@ -8,6 +8,7 @@ import { tenantCssVars } from "@/lib/tenant";
 import { Tenant } from "@/lib/types";
 import BottomNav from "@/components/layout/BottomNav";
 import InstallPrompt from "@/components/pwa/InstallPrompt";
+import SplashScreen from "@/components/SplashScreen";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -112,6 +113,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </div>
           </div>
 
+          <SplashScreen />
           <InstallPrompt />
         </TenantProvider>
       </body>

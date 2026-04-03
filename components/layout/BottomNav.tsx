@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-// Forest green CI
-const GREEN = "#2D6A4F";
+const GREEN   = "#2D6A4F";
 const INACTIVE = "#9CA3AF";
 
 const TABS = [
@@ -19,20 +18,20 @@ const TABS = [
     ),
   },
   {
-    href: "/saved",
-    label: "Saved",
-    icon: (active: boolean) => (
-      <svg width="24" height="24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? 0 : 1.7} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-        <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
-      </svg>
-    ),
-  },
-  {
     href: "/markt",
     label: "Insights",
     icon: (active: boolean) => (
       <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.7} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
         <path d="M18 20V10M12 20V4M6 20v-6" />
+      </svg>
+    ),
+  },
+  {
+    href: "/services",
+    label: "Services",
+    icon: (active: boolean) => (
+      <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.7} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+        <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
       </svg>
     ),
   },
@@ -60,68 +59,49 @@ export default function BottomNav({ unreadMessages = 0 }: { unreadMessages?: num
   const pathname = usePathname();
 
   return (
-    <nav
-      style={{
-        flexShrink: 0,
-        paddingBottom: "env(safe-area-inset-bottom)",
-        background: "rgba(255,255,255,0.98)",
-        backdropFilter: "blur(20px) saturate(180%)",
-        WebkitBackdropFilter: "blur(20px) saturate(180%)",
-        borderTop: "1px solid rgba(0,0,0,0.06)",
-        boxShadow: "0 -2px 16px rgba(0,0,0,0.05)",
-      }}
-    >
+    <nav style={{
+      flexShrink: 0,
+      paddingBottom: "env(safe-area-inset-bottom)",
+      background: "rgba(255,255,255,0.98)",
+      backdropFilter: "blur(20px) saturate(180%)",
+      WebkitBackdropFilter: "blur(20px) saturate(180%)",
+      borderTop: "1px solid rgba(0,0,0,0.06)",
+      boxShadow: "0 -2px 16px rgba(0,0,0,0.05)",
+    }}>
       <div style={{ display: "flex", alignItems: "stretch", height: 64 }}>
         {TABS.map((tab) => {
-          const active = pathname === tab.href || pathname.startsWith(tab.href + "/");
+          const active    = pathname === tab.href || pathname.startsWith(tab.href + "/");
           const showBadge = tab.href === "/messages" && unreadMessages > 0;
           return (
-            <Link
-              key={tab.href}
-              href={tab.href}
-              style={{
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 3,
-                color: active ? GREEN : INACTIVE,
-                transition: "opacity 0.1s",
-                position: "relative",
-                textDecoration: "none",
-              }}
-            >
+            <Link key={tab.href} href={tab.href} style={{
+              flex: 1, display: "flex", flexDirection: "column",
+              alignItems: "center", justifyContent: "center",
+              gap: 3, color: active ? GREEN : INACTIVE,
+              position: "relative", textDecoration: "none",
+              transition: "opacity 0.1s",
+            }}>
               <span style={{ position: "relative", display: "flex" }}>
                 {tab.icon(active)}
                 {showBadge && (
-                  <span
-                    style={{
-                      position: "absolute", top: -3, right: -5,
-                      minWidth: 15, height: 15, borderRadius: 999,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 9, fontWeight: 700, color: "#fff",
-                      background: "#FF453A", padding: "0 3px",
-                    }}
-                  >
+                  <span style={{
+                    position: "absolute", top: -3, right: -5,
+                    minWidth: 15, height: 15, borderRadius: 999,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 9, fontWeight: 700, color: "#fff",
+                    background: "#FF453A", padding: "0 3px",
+                  }}>
                     {unreadMessages > 9 ? "9+" : unreadMessages}
                   </span>
                 )}
               </span>
-              <span style={{
-                fontSize: 10,
-                fontWeight: active ? 700 : 500,
-                letterSpacing: "0.01em",
-                color: active ? GREEN : INACTIVE,
-              }}>
+              <span style={{ fontSize: 10, fontWeight: active ? 700 : 500, letterSpacing: "0.01em", color: active ? GREEN : INACTIVE }}>
                 {tab.label}
               </span>
               {active && (
                 <span style={{
                   position: "absolute", bottom: 0, left: "50%",
                   transform: "translateX(-50%)",
-                  width: 20, height: 2, borderRadius: 1,
-                  background: GREEN,
+                  width: 20, height: 2, borderRadius: 1, background: GREEN,
                 }} />
               )}
             </Link>
