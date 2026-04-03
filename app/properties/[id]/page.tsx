@@ -170,8 +170,14 @@ export default async function PropertyDetailPage({
   const typeLabel    = PROP_TYPE_LABELS[property.property_type] ?? property.property_type;
   const location     = [property.neighbourhood, property.city].filter(Boolean).join(", ");
   const isRent       = property.listing_type === "rent";
-  const agentName    = property.agent_name ?? "Habino Agent";
+  const agentName    = property.agent_name;   // null means no real broker data — don't fake it
   const districtInfo = getDistrictInfo(property.neighbourhood, property.city);
+
+  // Nearby properties for map
+  const nearbyForMap = (similar as Property[] ?? []).map(p => ({
+    id: p.id, title: p.title, price: p.price, currency: p.currency,
+    neighbourhood: p.neighbourhood, listing_type: p.listing_type,
+  }));
 
   const priceEUR = property.currency === "ETB"
     ? `€ ${Math.round(property.price * RATES.EUR.rate).toLocaleString()}`
@@ -253,61 +259,62 @@ export default async function PropertyDetailPage({
             </div>
           )}
 
-          {/* ── Broker card — prominent, right below location ── */}
-          <div style={{
-            display: "flex", alignItems: "center", gap: 12,
-            padding: "12px 14px", borderRadius: 14, marginBottom: 20,
-            background: GL, border: `1px solid rgba(45,106,79,0.12)`,
-          }}>
-            <div style={{ position: "relative", flexShrink: 0 }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={brokerPhoto(agentName)}
-                alt={agentName}
-                style={{ width: 44, height: 44, borderRadius: 12, objectFit: "cover", display: "block" }}
-              />
-              {/* Verified dot */}
-              <div style={{
-                position: "absolute", bottom: -2, right: -2,
-                width: 16, height: 16, borderRadius: "50%",
-                background: G, border: "2px solid #fff",
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}>
-                <svg width="8" height="8" viewBox="0 0 10 10" fill="none">
-                  <path d="M2 5l2.5 2.5L8 3" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
+          {/* ── Broker card — only if real agent data exists ── */}
+          {agentName && (
+            <div style={{
+              display: "flex", alignItems: "center", gap: 12,
+              padding: "12px 14px", borderRadius: 14, marginBottom: 20,
+              background: GL, border: `1px solid rgba(45,106,79,0.12)`,
+            }}>
+              <div style={{ position: "relative", flexShrink: 0 }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={brokerPhoto(agentName)}
+                  alt={agentName}
+                  style={{ width: 44, height: 44, borderRadius: 12, objectFit: "cover", display: "block" }}
+                />
+                <div style={{
+                  position: "absolute", bottom: -2, right: -2,
+                  width: 16, height: 16, borderRadius: "50%",
+                  background: G, border: "2px solid #fff",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <svg width="8" height="8" viewBox="0 0 10 10" fill="none">
+                    <path d="M2 5l2.5 2.5L8 3" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "#1A1A2E" }}>{agentName}</span>
+                  <VerifiedBadge />
+                </div>
+                <div style={{ fontSize: 12, color: "#6B7280" }}>Licensed Real Estate Agent</div>
+                {property.agent_phone && (
+                  <div style={{ fontSize: 12, color: G, fontWeight: 500, marginTop: 1 }}>{property.agent_phone}</div>
+                )}
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
+                {property.agent_phone && (
+                  <a href={`tel:${property.agent_phone}`} style={{
+                    padding: "7px 14px", borderRadius: 10, background: G, color: "#fff",
+                    fontSize: 12, fontWeight: 700, textDecoration: "none", textAlign: "center",
+                  }}>
+                    Call
+                  </a>
+                )}
+                {property.agent_email && (
+                  <a href={`mailto:${property.agent_email}`} style={{
+                    padding: "7px 14px", borderRadius: 10, background: "#fff", color: G,
+                    fontSize: 12, fontWeight: 600, textDecoration: "none", textAlign: "center",
+                    border: `1px solid rgba(45,106,79,0.2)`,
+                  }}>
+                    Email
+                  </a>
+                )}
               </div>
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                <span style={{ fontSize: 14, fontWeight: 700, color: "#1A1A2E" }}>{agentName}</span>
-                <VerifiedBadge />
-              </div>
-              <div style={{ fontSize: 12, color: "#6B7280" }}>Licensed Real Estate Agent</div>
-              {property.agent_phone && (
-                <div style={{ fontSize: 12, color: G, fontWeight: 500, marginTop: 1 }}>{property.agent_phone}</div>
-              )}
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
-              {property.agent_phone && (
-                <a href={`tel:${property.agent_phone}`} style={{
-                  padding: "7px 14px", borderRadius: 10, background: G, color: "#fff",
-                  fontSize: 12, fontWeight: 700, textDecoration: "none", textAlign: "center",
-                }}>
-                  Call
-                </a>
-              )}
-              {property.agent_email && (
-                <a href={`mailto:${property.agent_email}`} style={{
-                  padding: "7px 14px", borderRadius: 10, background: "#fff", color: G,
-                  fontSize: 12, fontWeight: 600, textDecoration: "none", textAlign: "center",
-                  border: `1px solid rgba(45,106,79,0.2)`,
-                }}>
-                  Email
-                </a>
-              )}
-            </div>
-          </div>
+          )}
 
           {/* Specs row */}
           {specs.length > 0 && (
@@ -417,7 +424,8 @@ export default async function PropertyDetailPage({
               neighbourhood={property.neighbourhood}
               city={property.city}
               label={property.neighbourhood ?? property.city ?? "Property"}
-              height={240}
+              height={260}
+              nearby={nearbyForMap}
             />
             <div style={{ marginTop: 8, fontSize: 12, color: "#9CA3AF" }}>
               📍 {location || property.city}, Addis Ababa — map shows approximate district location

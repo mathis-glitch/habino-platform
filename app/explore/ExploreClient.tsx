@@ -225,43 +225,39 @@ function PropCard({ p, saved, onSave }: { p: Property; saved: boolean; onSave: (
           </div>
         </div>
 
-        {/* Row 2: Broker photo + name + verified badge */}
-        {(() => {
-          const name = p.agent_name ?? "Habino Agent";
-          return (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                <div style={{ position: "relative", flexShrink: 0 }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={brokerPhoto(name)}
-                    alt={name}
-                    style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover", display: "block", border: "1.5px solid rgba(0,0,0,0.07)" }}
-                  />
-                  {/* Verified dot */}
-                  <div style={{
-                    position: "absolute", bottom: -1, right: -1,
-                    width: 10, height: 10, borderRadius: "50%",
-                    background: T.primary, border: "1.5px solid #fff",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                  }}>
-                    <svg width="5" height="5" viewBox="0 0 8 8" fill="none">
-                      <path d="M1.5 4L3 5.5L6.5 2.5" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </div>
+        {/* Row 2: Broker photo + name (only when real data exists) */}
+        {p.agent_name && (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+              <div style={{ position: "relative", flexShrink: 0 }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={brokerPhoto(p.agent_name)}
+                  alt={p.agent_name}
+                  style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover", display: "block", border: "1.5px solid rgba(0,0,0,0.07)" }}
+                />
+                <div style={{
+                  position: "absolute", bottom: -1, right: -1,
+                  width: 10, height: 10, borderRadius: "50%",
+                  background: T.primary, border: "1.5px solid #fff",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <svg width="5" height="5" viewBox="0 0 8 8" fill="none">
+                    <path d="M1.5 4L3 5.5L6.5 2.5" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
                 </div>
-                <span style={{ fontSize: 12, color: T.text2, fontWeight: 500 }}>{name}</span>
               </div>
-              <a
-                href="/markt#brokers"
-                onClick={(e) => e.stopPropagation()}
-                style={{ fontSize: 11, fontWeight: 600, color: T.primary, textDecoration: "none" }}
-              >
-                Broker →
-              </a>
+              <span style={{ fontSize: 12, color: T.text2, fontWeight: 500 }}>{p.agent_name}</span>
             </div>
-          );
-        })()}
+            <a
+              href="/markt#brokers"
+              onClick={(e) => e.stopPropagation()}
+              style={{ fontSize: 11, fontWeight: 600, color: T.primary, textDecoration: "none" }}
+            >
+              Broker →
+            </a>
+          </div>
+        )}
 
         <div style={{ fontSize: 13, color: T.text2, marginBottom: 4 }}>{subtitleParts}</div>
         <div style={{ fontSize: 15, fontWeight: 700, color: T.text1 }}>
