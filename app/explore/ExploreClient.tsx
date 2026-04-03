@@ -212,17 +212,41 @@ function PropCard({ p, saved, onSave }: { p: Property; saved: boolean; onSave: (
 
       {/* Info */}
       <div style={{ padding: "12px 2px 0" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 2 }}>
+        {/* Row 1: Location + New badge */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: T.text1 }}>
             {p.neighbourhood ? `${p.neighbourhood}, ` : ""}{p.city}
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 13, fontWeight: 600, color: T.text1 }}>
-            <svg width="12" height="12" fill={T.text1} viewBox="0 0 24 24">
+          <div style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 12, fontWeight: 600, color: T.text1 }}>
+            <svg width="11" height="11" fill={T.text1} viewBox="0 0 24 24">
               <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
             </svg>
             New
           </div>
         </div>
+
+        {/* Row 2: Broker photo + name (directly under "New") */}
+        {p.agent_name && (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={brokerPhoto(p.agent_name)}
+                alt={p.agent_name}
+                style={{ width: 22, height: 22, borderRadius: "50%", objectFit: "cover", flexShrink: 0, border: "1.5px solid rgba(0,0,0,0.07)" }}
+              />
+              <span style={{ fontSize: 12, color: T.text2, fontWeight: 500 }}>{p.agent_name}</span>
+            </div>
+            <a
+              href="/markt#brokers"
+              onClick={(e) => e.stopPropagation()}
+              style={{ fontSize: 11, fontWeight: 600, color: T.primary, textDecoration: "none" }}
+            >
+              Broker →
+            </a>
+          </div>
+        )}
+
         <div style={{ fontSize: 13, color: T.text2, marginBottom: 4 }}>{subtitleParts}</div>
         <div style={{ fontSize: 15, fontWeight: 700, color: T.text1 }}>
           <strong>{main}</strong>{" "}
@@ -236,31 +260,6 @@ function PropCard({ p, saved, onSave }: { p: Property; saved: boolean; onSave: (
                 fontSize: 11, fontWeight: 500, color: T.text2, background: T.bgSoft,
               }}>{t}</span>
             ))}
-          </div>
-        )}
-
-        {/* Broker / agent row */}
-        {p.agent_name && (
-          <div style={{
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-            marginTop: 10, paddingTop: 10, borderTop: `1px solid ${T.border}`,
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={brokerPhoto(p.agent_name)}
-                alt={p.agent_name}
-                style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
-              />
-              <span style={{ fontSize: 12, color: T.text2, fontWeight: 500 }}>{p.agent_name}</span>
-            </div>
-            <a
-              href="/markt#brokers"
-              onClick={(e) => e.stopPropagation()}
-              style={{ fontSize: 11, fontWeight: 600, color: T.primary, textDecoration: "none" }}
-            >
-              View broker →
-            </a>
           </div>
         )}
       </div>
