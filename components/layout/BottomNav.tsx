@@ -62,18 +62,13 @@ export default function BottomNav({ unreadMessages = 0 }: { unreadMessages?: num
   return (
     <nav
       style={{
-        position: "sticky",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        zIndex: 50,
+        flexShrink: 0,
         paddingBottom: "env(safe-area-inset-bottom)",
         background: "rgba(255,255,255,0.98)",
         backdropFilter: "blur(20px) saturate(180%)",
         WebkitBackdropFilter: "blur(20px) saturate(180%)",
         borderTop: "1px solid rgba(0,0,0,0.06)",
         boxShadow: "0 -2px 16px rgba(0,0,0,0.05)",
-        flexShrink: 0,
       }}
     >
       <div style={{ display: "flex", alignItems: "stretch", height: 64 }}>

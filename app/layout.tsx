@@ -76,38 +76,38 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             with gradient background — exactly like the mockup.
           */}
           <div style={{
-            minHeight: "100dvh",
+            height: "100dvh",
             background: "linear-gradient(145deg,#E8F4EE 0%,#F0F7F4 40%,#EAF2F0 100%)",
             display: "flex",
             justifyContent: "center",
             alignItems: "flex-start",
+            overflow: "hidden",
           }}>
-            {/* Phone shell */}
+            {/* Phone shell — fixed height so BottomNav never scrolls off screen */}
             <div style={{
               width: "100%",
               maxWidth: 430,
-              minHeight: "100dvh",
+              height: "100dvh",
               background: "#FFFFFF",
-              position: "relative",
               display: "flex",
               flexDirection: "column",
               overflow: "hidden",
-              /* Subtle phone-frame shadow on desktop */
               boxShadow: "0 0 0 1px rgba(0,0,0,0.06), 0 32px 80px rgba(0,0,0,0.18)",
             }}>
-              {/* Page content */}
+              {/* Page content — only this scrolls */}
               <div style={{
                 flex: 1,
                 display: "flex",
                 flexDirection: "column",
                 overflowY: "auto",
                 overflowX: "hidden",
-                paddingBottom: 80, /* space for bottom nav */
+                WebkitOverflowScrolling: "touch" as React.CSSProperties["WebkitOverflowScrolling"],
+                paddingBottom: 0,
               }}>
                 {children}
               </div>
 
-              {/* Bottom navigation — always inside the phone shell */}
+              {/* Bottom navigation — always pinned, never scrolls */}
               <BottomNav />
             </div>
           </div>

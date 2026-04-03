@@ -2,6 +2,29 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { getTenantSlug, isCustomDomain } from "@/lib/tenant";
 
+// ── Tenant cache — avoids a Supabase round-trip on every request ──────────────
+// TTL: 5 minutes. Safe because tenant config rarely changes.
+const tenantCache = new Map<string, { id: string; slug: string; exp: number }>();
+const CACHE_TTL = 5 * 60 * 1000;
+
+async function lookupTenantCached(column: string, value: string, serviceKey: string, supabaseUrl: string) {
+  const cacheKey = `${column}:${value}`;
+  const cached = tenantCache.get(cacheKey);
+  if (cached && cached.exp > Date.now()) return cached;
+
+  const res = await fetch(
+    `${supabaseUrl}/rest/v1/tenants?${column}=eq.${encodeURIComponent(value)}&is_active=eq.true&select=id,slug&limit=1`,
+    { headers: { "apikey": serviceKey, "Authorization": `Bearer ${serviceKey}` } }
+  ).catch(() => null);
+  if (!res?.ok) return null;
+  const rows = await res.json().catch(() => []);
+  if (!Array.isArray(rows) || rows.length === 0) return null;
+
+  const tenant = { id: rows[0].id, slug: rows[0].slug, exp: Date.now() + CACHE_TTL };
+  tenantCache.set(cacheKey, tenant);
+  return tenant;
+}
+
 export async function middleware(request: NextRequest) {
   const hostname = request.headers.get("host") || "";
   const { pathname } = request.nextUrl;
@@ -47,28 +70,16 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Use service role key for tenant lookup to bypass RLS
-  // (tenants table may have RLS that blocks anon reads)
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-
-  async function lookupTenant(column: string, value: string) {
-    const res = await fetch(
-      `${supabaseUrl}/rest/v1/tenants?${column}=eq.${encodeURIComponent(value)}&is_active=eq.true&select=id,slug&limit=1`,
-      { headers: { "apikey": serviceKey, "Authorization": `Bearer ${serviceKey}` } }
-    ).catch(() => null);
-    if (!res?.ok) return null;
-    const rows = await res.json().catch(() => []);
-    return Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
-  }
 
   const slug = getTenantSlug(hostname);
 
   if (slug) {
-    const tenant = await lookupTenant("slug", slug);
+    const tenant = await lookupTenantCached("slug", slug, serviceKey, supabaseUrl);
     if (tenant) { tenantId = tenant.id; tenantSlug = tenant.slug; }
   } else if (isCustomDomain(hostname)) {
-    const tenant = await lookupTenant("custom_domain", hostname);
+    const tenant = await lookupTenantCached("custom_domain", hostname, serviceKey, supabaseUrl);
     if (tenant) { tenantId = tenant.id; tenantSlug = tenant.slug; }
   }
 
