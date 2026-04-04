@@ -902,7 +902,7 @@ export default function InsightsClient() {
                   title="AI Broker Finder"
                   subtitle="Type to filter · Press Enter for AI ranking"
                   placeholder="e.g. Luxury specialist in Bole with 5+ years…"
-                  suggestions={AI_SUGGESTIONS}
+                  suggestions={[]}
                   onSearch={q => { setBrokerSearch(q); if (!q) { setBrokerAiIds(null); setBrokerAiSuggestion(null); } }}
                   onSubmit={handleBrokerAISearch}
                   onClear={() => { setBrokerSearch(""); setBrokerAiIds(null); setBrokerAiSuggestion(null); }}

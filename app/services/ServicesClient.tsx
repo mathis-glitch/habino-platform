@@ -654,7 +654,7 @@ export default function ServicesClient() {
             title="Service Assistant"
             subtitle="Type to filter · Press Enter for AI ranking"
             placeholder="e.g. deep cleaning Bole, emergency plumber…"
-            suggestions={AI_SUGGESTIONS}
+            suggestions={[]}
             onSearch={q => { setAiQuery(q); if (!q) { setServiceAiIds(null); setServiceAiSuggestion(null); } }}
             onSubmit={handleServiceAISearch}
             onClear={() => { setAiQuery(""); setServiceAiIds(null); setServiceAiSuggestion(null); }}
@@ -684,23 +684,6 @@ export default function ServicesClient() {
           })}
         </div>
 
-        {/* District chips */}
-        <div style={{ padding: "0 16px 10px", display: "flex", gap: 7, flexWrap: "wrap", flexShrink: 0 }}>
-          {SERVICE_DISTRICTS.map(d => {
-            const active = serviceDistricts.includes(d);
-            return (
-              <button key={d} onClick={() => setServiceDistricts(prev => active ? prev.filter(x => x !== d) : [...prev, d])} style={{
-                padding: "6px 11px", borderRadius: 9999,
-                border: `1.5px solid ${active ? G : T.border}`,
-                background: active ? "rgba(45,106,79,0.09)" : T.bgSoft,
-                color: active ? G : T.text2,
-                fontSize: 11, fontWeight: 500, cursor: "pointer", whiteSpace: "nowrap",
-              }}>
-                {d}
-              </button>
-            );
-          })}
-        </div>
 
         {/* Provider list */}
         <div style={{ flex: 1, overflowY: "auto", padding: "0 16px 24px" }}>
