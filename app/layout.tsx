@@ -7,7 +7,6 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { tenantCssVars } from "@/lib/tenant";
 import { Tenant } from "@/lib/types";
 import BottomNav from "@/components/layout/BottomNav";
-import InstallPrompt from "@/components/pwa/InstallPrompt";
 import SplashScreen from "@/components/SplashScreen";
 import CookieBanner from "@/components/privacy/CookieBanner";
 
@@ -115,7 +114,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </div>
 
           <SplashScreen />
-          <InstallPrompt />
           <CookieBanner />
         </TenantProvider>
       </body>
