@@ -250,15 +250,15 @@ const KNOWN_DISTRICTS = [
 ];
 
 // ── Smart NLP broker filter ───────────────────────────────────────────────────
-function smartFilterBrokers(query: string, region: string, brokers: DbBroker[]): DbBroker[] {
+function smartFilterBrokers(query: string, districts: string[], brokers: DbBroker[]): DbBroker[] {
   const q = query.toLowerCase().trim();
 
-  // Region chip filter
-  const regionFiltered = region === "All"
+  // District chip filter — ANY selected district must appear in broker's districts
+  const regionFiltered = districts.length === 0
     ? brokers
     : brokers.filter(b => {
         const dists = Array.isArray(b.districts) ? b.districts.join(" ").toLowerCase() : "";
-        return dists.includes(region.toLowerCase());
+        return districts.some(d => dists.includes(d.toLowerCase()));
       });
 
   if (!q) return regionFiltered;
@@ -470,11 +470,16 @@ export default function InsightsClient() {
   const [brokersLoading, setBrokersLoading] = useState(false);
   const [brokerPage,   setBrokerPage]   = useState(1);
   const [brokerTotal,  setBrokerTotal]  = useState(0);
-  const [brokerSearch, setBrokerSearch] = useState("");
-  const [brokerRegion, setBrokerRegion] = useState("All");
-  const [brokerAiIds,  setBrokerAiIds]  = useState<string[] | null>(null);
-  const [brokerAiLoading, setBrokerAiLoading] = useState(false);
-  const [brokerAiSuggestion, setBrokerAiSuggestion] = useState<string | null>(null);
+  const [brokerSearch,      setBrokerSearch]      = useState("");
+  const [brokerDistricts,   setBrokerDistricts]   = useState<string[]>([]);
+  const [brokerSpecialities,setBrokerSpecialities] = useState<string[]>([]);
+  const [showBrokerFilters, setShowBrokerFilters] = useState(false);
+  const [bFilterVerified,   setBFilterVerified]   = useState(false);
+  const [bFilterMinYears,   setBFilterMinYears]   = useState<number | null>(null);
+  const [bFilterMinRating,  setBFilterMinRating]  = useState<number | null>(null);
+  const [brokerAiIds,       setBrokerAiIds]       = useState<string[] | null>(null);
+  const [brokerAiLoading,   setBrokerAiLoading]   = useState(false);
+  const [brokerAiSuggestion,setBrokerAiSuggestion] = useState<string | null>(null);
   const BROKER_LIMIT = 20;
 
   const AI_SUGGESTIONS = [
@@ -486,7 +491,18 @@ export default function InsightsClient() {
     "Verified broker Kazanchis",
   ];
 
-  const BROKER_REGIONS = ["All", "Bole", "CMC", "Kazanchis", "Sarbet", "Megenagna", "Piassa", "Yeka", "Nifas Silk"];
+  const BROKER_DISTRICTS = [
+    "Bole", "CMC", "Kazanchis", "Sarbet", "Megenagna", "Piassa",
+    "Yeka", "Lideta", "Arada", "Kirkos", "Kolfe", "Nifas Silk", "Gulele",
+  ];
+  const BROKER_SPEC_CHIPS = [
+    { key: "residential", label: "Residential" },
+    { key: "commercial",  label: "Commercial"  },
+    { key: "land",        label: "Land"        },
+    { key: "expat",       label: "Expat / NGO" },
+    { key: "rental",      label: "Rental"      },
+    { key: "invest",      label: "Investment"  },
+  ];
 
   useEffect(() => {
     if (tab !== "brokers") return;
@@ -506,7 +522,33 @@ export default function InsightsClient() {
   const stats = getStats(usage, district);
   const micro = getMicro(district);
 
-  const filteredBrokers = smartFilterBrokers(brokerSearch, brokerRegion, brokers);
+  // Apply speciality chip filter after smartFilterBrokers (which handles search + district)
+  const SPEC_TERMS: Record<string, string[]> = {
+    residential: ["residential","apartment","house","villa","wohn"],
+    commercial:  ["commercial","office"],
+    land:        ["land","plot","grundstück"],
+    expat:       ["expat","ngo","diplomat","embassy"],
+    rental:      ["rent","rental","miete"],
+    invest:      ["invest"],
+  };
+
+  const filteredBrokers = (() => {
+    // Pass multi-select districts as the "region" — smartFilterBrokers now accepts array
+    const bySearch = smartFilterBrokers(brokerSearch, brokerDistricts, brokers);
+    return bySearch.filter(b => {
+      const spec = Array.isArray(b.speciality) ? b.speciality.join(" ").toLowerCase() : "";
+      // Speciality chip filter (ANY selected speciality must match)
+      if (brokerSpecialities.length > 0) {
+        const matches = brokerSpecialities.some(s => SPEC_TERMS[s]?.some(t => spec.includes(t)));
+        if (!matches) return false;
+      }
+      // Hard filter panel values
+      if (bFilterVerified && !b.verified) return false;
+      if (bFilterMinYears !== null && (b.years_exp ?? 0) < bFilterMinYears) return false;
+      if (bFilterMinRating !== null && Number(b.rating ?? 0) < bFilterMinRating) return false;
+      return true;
+    });
+  })();
 
   // If AI returned ranked IDs, reorder filteredBrokers by those IDs
   const displayBrokers = brokerAiIds
@@ -870,28 +912,91 @@ export default function InsightsClient() {
                 />
               </div>
 
-              {/* Region filter chips */}
-              <div style={{ display: "flex", gap: 7, overflowX: "auto", paddingBottom: 4, marginBottom: 12 }}>
-                {BROKER_REGIONS.map(r => (
-                  <button key={r} onClick={() => setBrokerRegion(r)}
-                    style={{
-                      padding: "6px 13px", borderRadius: 20, flexShrink: 0,
-                      border: `1.5px solid ${brokerRegion === r ? T.primary : T.border2}`,
-                      background: brokerRegion === r ? T.primary : T.bg,
-                      color: brokerRegion === r ? "#fff" : T.text2,
-                      fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: T.font,
-                    }}>
-                    {r}
-                  </button>
-                ))}
+              {/* ── Chips + Filter row ── */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 7, marginBottom: 10 }}>
+                {/* Row 1: Speciality chips */}
+                <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+                  {BROKER_SPEC_CHIPS.map(chip => {
+                    const active = brokerSpecialities.includes(chip.key);
+                    return (
+                      <button key={chip.key}
+                        onClick={() => setBrokerSpecialities(prev => active ? prev.filter(s => s !== chip.key) : [...prev, chip.key])}
+                        style={{
+                          padding: "7px 12px", borderRadius: 20,
+                          border: `1.5px solid ${active ? T.primary : T.border2}`,
+                          background: active ? T.primaryL : T.bg,
+                          color: active ? T.primary : T.text2,
+                          fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: T.font, whiteSpace: "nowrap",
+                        }}>
+                        {chip.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Row 2: District chips */}
+                <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+                  {BROKER_DISTRICTS.map(d => {
+                    const active = brokerDistricts.includes(d);
+                    return (
+                      <button key={d}
+                        onClick={() => setBrokerDistricts(prev => active ? prev.filter(x => x !== d) : [...prev, d])}
+                        style={{
+                          padding: "6px 11px", borderRadius: 20,
+                          border: `1.5px solid ${active ? T.primary : T.border2}`,
+                          background: active ? T.primaryL : T.bg,
+                          color: active ? T.primary : T.text2,
+                          fontSize: 11, fontWeight: 500, cursor: "pointer", fontFamily: T.font, whiteSpace: "nowrap",
+                        }}>
+                        {d}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
-              {/* Result count */}
-              <p style={{ fontSize: 12, color: T.text3, marginBottom: 10 }}>
-                {brokers.length === 0
-                  ? "Loading brokers…"
-                  : `${filteredBrokers.length} broker${filteredBrokers.length !== 1 ? "s" : ""} found${brokerSearch || brokerRegion !== "All" ? " · filtered" : ` of ${brokerTotal}`}`}
-              </p>
+              {/* ── Result count + Filter + Reset ── */}
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <p style={{ flex: 1, fontSize: 12, color: T.text3, margin: 0 }}>
+                  {brokers.length === 0 ? "Loading brokers…"
+                    : `${filteredBrokers.length} broker${filteredBrokers.length !== 1 ? "s" : ""} found`
+                      + (brokerSearch || brokerDistricts.length || brokerSpecialities.length || bFilterVerified || bFilterMinYears || bFilterMinRating ? " · filtered" : ` of ${brokerTotal}`)}
+                </p>
+                {/* Filter button */}
+                {(() => {
+                  const hasF = bFilterVerified || bFilterMinYears !== null || bFilterMinRating !== null;
+                  return (
+                    <button onClick={() => setShowBrokerFilters(true)} style={{
+                      display: "flex", alignItems: "center", gap: 5,
+                      padding: "7px 12px", borderRadius: 10,
+                      border: `1.5px solid ${hasF ? T.primary : T.border2}`,
+                      background: hasF ? T.primaryL : T.bg,
+                      color: hasF ? T.primary : T.text2,
+                      fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: T.font,
+                    }}>
+                      <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 6h18M7 12h10M11 18h2" />
+                      </svg>
+                      Filter{hasF ? " ●" : ""}
+                    </button>
+                  );
+                })()}
+                {/* Reset button */}
+                {(brokerSearch || brokerDistricts.length > 0 || brokerSpecialities.length > 0 || bFilterVerified || bFilterMinYears || bFilterMinRating || brokerAiIds) && (
+                  <button onClick={() => {
+                    setBrokerSearch(""); setBrokerDistricts([]); setBrokerSpecialities([]);
+                    setBFilterVerified(false); setBFilterMinYears(null); setBFilterMinRating(null);
+                    setBrokerAiIds(null); setBrokerAiSuggestion(null);
+                  }} style={{
+                    display: "flex", alignItems: "center", gap: 4,
+                    padding: "7px 10px", borderRadius: 10,
+                    border: "1.5px solid rgba(255,69,58,0.25)", background: "rgba(255,69,58,0.06)",
+                    color: T.err, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font,
+                  }}>
+                    ✕ Reset
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Broker list */}
@@ -914,7 +1019,7 @@ export default function InsightsClient() {
             </div>
 
             {/* Load more */}
-            {!brokersLoading && !brokerSearch && brokerRegion === "All" && brokers.length < brokerTotal && (
+            {!brokersLoading && !brokerSearch && brokerDistricts.length === 0 && brokers.length < brokerTotal && (
               <div style={{ padding: "12px 16px" }}>
                 <button onClick={() => setBrokerPage(p => p + 1)}
                   style={{
@@ -929,6 +1034,78 @@ export default function InsightsClient() {
             )}
             {brokersLoading && brokers.length > 0 && (
               <div style={{ textAlign: "center", padding: "12px 0", fontSize: 13, color: T.text3 }}>Loading…</div>
+            )}
+
+            {/* ── Broker Filter Panel overlay ── */}
+            {showBrokerFilters && (
+              <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "flex-end" }}
+                onClick={() => setShowBrokerFilters(false)}>
+                <div style={{ background: T.bg, borderRadius: "24px 24px 0 0", padding: "8px 20px 40px", width: "100%", boxShadow: "0 -8px 40px rgba(0,0,0,0.15)", fontFamily: T.font }}
+                  onClick={e => e.stopPropagation()}>
+                  <div style={{ width: 36, height: 4, borderRadius: 2, background: "rgba(0,0,0,0.12)", margin: "0 auto 20px" }} />
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: T.text1 }}>Broker Filter</div>
+                    <button onClick={() => { setBFilterVerified(false); setBFilterMinYears(null); setBFilterMinRating(null); }}
+                      style={{ fontSize: 13, fontWeight: 600, color: T.primary, background: "none", border: "none", cursor: "pointer" }}>
+                      Reset all
+                    </button>
+                  </div>
+                  {/* Verified */}
+                  <div style={{ marginBottom: 24 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: T.text2, marginBottom: 10 }}>Verification</div>
+                    <button onClick={() => setBFilterVerified(v => !v)} style={{
+                      display: "flex", alignItems: "center", gap: 8,
+                      padding: "10px 16px", borderRadius: 12, cursor: "pointer",
+                      border: `1.5px solid ${bFilterVerified ? T.primary : T.border2}`,
+                      background: bFilterVerified ? T.primaryL : T.bg,
+                      color: bFilterVerified ? T.primary : T.text1,
+                      fontSize: 13, fontWeight: 600, fontFamily: T.font,
+                    }}>
+                      <span>{bFilterVerified ? "✓" : "○"}</span> Verified brokers only
+                    </button>
+                  </div>
+                  {/* Min years experience */}
+                  <div style={{ marginBottom: 24 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: T.text2, marginBottom: 10 }}>Min. Years Experience</div>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      {[null, 1, 3, 5, 7, 10].map(y => (
+                        <button key={String(y)} onClick={() => setBFilterMinYears(y)} style={{
+                          padding: "8px 14px", borderRadius: 20,
+                          border: `1.5px solid ${bFilterMinYears === y ? T.primary : T.border2}`,
+                          background: bFilterMinYears === y ? T.primaryL : T.bg,
+                          color: bFilterMinYears === y ? T.primary : T.text1,
+                          fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: T.font,
+                        }}>
+                          {y === null ? "Any" : `${y}+`}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {/* Min rating */}
+                  <div style={{ marginBottom: 28 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: T.text2, marginBottom: 10 }}>Min. Rating</div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      {[null, 4.0, 4.5, 4.8].map(r => (
+                        <button key={String(r)} onClick={() => setBFilterMinRating(r)} style={{
+                          flex: 1, padding: "9px 0", borderRadius: 12,
+                          border: `1.5px solid ${bFilterMinRating === r ? T.primary : T.border2}`,
+                          background: bFilterMinRating === r ? T.primaryL : T.bg,
+                          color: bFilterMinRating === r ? T.primary : T.text1,
+                          fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: T.font,
+                        }}>
+                          {r === null ? "Any" : `★ ${r}+`}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <button onClick={() => setShowBrokerFilters(false)} style={{
+                    width: "100%", padding: "14px 0", borderRadius: 14, border: "none",
+                    background: T.primary, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: T.font,
+                  }}>
+                    Show {filteredBrokers.length} broker{filteredBrokers.length !== 1 ? "s" : ""}
+                  </button>
+                </div>
+              </div>
             )}
           </div>
       )}

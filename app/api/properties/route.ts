@@ -38,8 +38,11 @@ export async function GET(request: NextRequest) {
   const supabase = createServiceClient();
   const offset   = ((filters.page || 1) - 1) * (filters.limit || 12);
 
-  // neighbourhood filter (district chips in mobile UI)
-  const neighbourhoodParam = searchParams.get("neighbourhood") || undefined;
+  // neighbourhood filter — supports single ("neighbourhood") or multi ("neighbourhoods" comma-sep)
+  const neighbourhoodParam  = searchParams.get("neighbourhood")  || undefined;
+  const neighbourhoodsParam = searchParams.get("neighbourhoods") || undefined;
+  // property type — supports single ("property_type") or multi ("property_types" comma-sep)
+  const propertyTypesParam  = searchParams.get("property_types") || undefined;
 
   // ── Parse bbox ──────────────────────────────────────────────────────────────
   const bboxParam = searchParams.get("bbox");
@@ -61,12 +64,30 @@ export async function GET(request: NextRequest) {
       .range(offset, offset + (filters.limit || 12) - 1);
 
     if (filters.listing_type)  q = q.eq("listing_type",  filters.listing_type);
-    if (filters.property_type) q = q.eq("property_type", filters.property_type);
     if (filters.min_price)     q = q.gte("price", filters.min_price);
     if (filters.max_price)     q = q.lte("price", filters.max_price);
     if (filters.bedrooms)      q = q.eq("bedrooms", filters.bedrooms);
-    // District / neighbourhood filter (partial match so "Bole" matches "Bole Michael" etc.)
-    if (neighbourhoodParam)    q = q.ilike("neighbourhood", `%${neighbourhoodParam}%`);
+
+    // Property type — multi takes precedence over single
+    if (propertyTypesParam) {
+      const types = propertyTypesParam.split(",").map(t => t.trim()).filter(Boolean);
+      if (types.length === 1) q = q.eq("property_type", types[0]);
+      else if (types.length > 1) q = q.in("property_type", types);
+    } else if (filters.property_type) {
+      q = q.eq("property_type", filters.property_type);
+    }
+
+    // District / neighbourhood — multi takes precedence over single
+    if (neighbourhoodsParam) {
+      const districts = neighbourhoodsParam.split(",").map(d => d.trim()).filter(Boolean);
+      if (districts.length === 1) {
+        q = q.ilike("neighbourhood", `%${districts[0]}%`);
+      } else if (districts.length > 1) {
+        q = q.or(districts.map(d => `neighbourhood.ilike.%${d}%`).join(","));
+      }
+    } else if (neighbourhoodParam) {
+      q = q.ilike("neighbourhood", `%${neighbourhoodParam}%`);
+    }
 
     return q;
   }

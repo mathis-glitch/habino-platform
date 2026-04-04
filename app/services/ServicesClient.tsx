@@ -473,6 +473,10 @@ export default function ServicesClient() {
   const [serviceAiIds,       setServiceAiIds]        = useState<string[] | null>(null);
   const [serviceAiLoading,   setServiceAiLoading]    = useState(false);
   const [serviceAiSuggestion,setServiceAiSuggestion] = useState<string | null>(null);
+  const [serviceDistricts,   setServiceDistricts]    = useState<string[]>([]);
+  const [showServiceFilters, setShowServiceFilters]  = useState(false);
+  const [sfVerified,         setSfVerified]          = useState(false);
+  const [sfMaxPrice,         setSfMaxPrice]          = useState<number | null>(null);
   const [authGate,         setAuthGate]           = useState(false);
   const [selectedProvider, setSelectedProvider]  = useState<Provider | null>(null);
   const [dbProviders,      setDbProviders]        = useState<Provider[]>([]);
@@ -508,6 +512,11 @@ export default function ServicesClient() {
   }, []);
 
   const allProviders = dbProviders.length > 0 ? dbProviders : PROVIDERS;
+
+  const SERVICE_DISTRICTS = [
+    "Bole", "CMC", "Kazanchis", "Sarbet", "Megenagna", "Piassa",
+    "Yeka", "Lideta", "Arada", "Kirkos", "Kolfe", "Nifas Silk", "Gulele",
+  ];
 
   // NLP keyword filter — tokenize query and score providers
   const SERVICE_STOP = new Set([
@@ -565,7 +574,17 @@ export default function ServicesClient() {
     });
   }
 
-  const localFiltered = smartFilterServices(aiQuery, activeCategory, allProviders);
+  const localFiltered = smartFilterServices(aiQuery, activeCategory, allProviders).filter(p => {
+    // District chip filter (ANY selected district must appear in provider's districts)
+    if (serviceDistricts.length > 0) {
+      const areas = (p.districts ?? []).join(" ").toLowerCase();
+      const isWide = areas.includes("all districts") || areas.includes("addis ababa-wide") || areas.includes("addis abeba");
+      if (!isWide && !serviceDistricts.some(d => areas.includes(d.toLowerCase()))) return false;
+    }
+    if (sfVerified && !p.verified) return false;
+    if (sfMaxPrice !== null && (p.priceNum ?? 0) > sfMaxPrice) return false;
+    return true;
+  });
 
   // If AI returned ranked IDs, reorder localFiltered by those IDs
   const filtered = serviceAiIds
@@ -646,7 +665,7 @@ export default function ServicesClient() {
         </div>
 
         {/* Category chips */}
-        <div style={{ overflowX: "auto", padding: "0 16px 14px", display: "flex", gap: 8, flexShrink: 0 }}>
+        <div style={{ overflowX: "auto", padding: "0 16px 8px", display: "flex", gap: 8, flexShrink: 0 }}>
           {CATEGORIES.map(cat => {
             const active = activeCategory === cat.key;
             return (
@@ -665,11 +684,66 @@ export default function ServicesClient() {
           })}
         </div>
 
+        {/* District chips */}
+        <div style={{ padding: "0 16px 10px", display: "flex", gap: 7, flexWrap: "wrap", flexShrink: 0 }}>
+          {SERVICE_DISTRICTS.map(d => {
+            const active = serviceDistricts.includes(d);
+            return (
+              <button key={d} onClick={() => setServiceDistricts(prev => active ? prev.filter(x => x !== d) : [...prev, d])} style={{
+                padding: "6px 11px", borderRadius: 9999,
+                border: `1.5px solid ${active ? G : T.border}`,
+                background: active ? "rgba(45,106,79,0.09)" : T.bgSoft,
+                color: active ? G : T.text2,
+                fontSize: 11, fontWeight: 500, cursor: "pointer", whiteSpace: "nowrap",
+              }}>
+                {d}
+              </button>
+            );
+          })}
+        </div>
+
         {/* Provider list */}
         <div style={{ flex: 1, overflowY: "auto", padding: "0 16px 24px" }}>
-          <div style={{ fontSize: 12, color: T.text3, marginBottom: 12 }}>
-            {filtered.length} provider{filtered.length !== 1 ? "s" : ""}
-            {activeCategory !== "all" ? ` in ${CATEGORIES.find(c => c.key === activeCategory)?.label}` : " available"}
+          {/* Result count + filter + reset row */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+            <div style={{ flex: 1, fontSize: 12, color: T.text3 }}>
+              {filtered.length} provider{filtered.length !== 1 ? "s" : ""}
+              {activeCategory !== "all" ? ` in ${CATEGORIES.find(c => c.key === activeCategory)?.label}` : " available"}
+            </div>
+            {/* Filter button */}
+            {(() => {
+              const hasF = sfVerified || sfMaxPrice !== null;
+              return (
+                <button onClick={() => setShowServiceFilters(true)} style={{
+                  display: "flex", alignItems: "center", gap: 5,
+                  padding: "6px 11px", borderRadius: 9,
+                  border: `1.5px solid ${hasF ? G : T.border}`,
+                  background: hasF ? "rgba(45,106,79,0.09)" : T.bgSoft,
+                  color: hasF ? G : T.text2,
+                  fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: T.font,
+                }}>
+                  <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 6h18M7 12h10M11 18h2" />
+                  </svg>
+                  Filter{hasF ? " ●" : ""}
+                </button>
+              );
+            })()}
+            {/* Reset button */}
+            {(aiQuery || activeCategory !== "all" || serviceDistricts.length > 0 || sfVerified || sfMaxPrice !== null || serviceAiIds) && (
+              <button onClick={() => {
+                setAiQuery(""); setActiveCategory("all"); setServiceDistricts([]);
+                setSfVerified(false); setSfMaxPrice(null);
+                setServiceAiIds(null); setServiceAiSuggestion(null);
+              }} style={{
+                display: "flex", alignItems: "center", gap: 4,
+                padding: "6px 10px", borderRadius: 9,
+                border: "1.5px solid rgba(255,69,58,0.25)", background: "rgba(255,69,58,0.06)",
+                color: "#FF453A", fontSize: 11, fontWeight: 700, cursor: "pointer",
+              }}>
+                ✕ Reset
+              </button>
+            )}
           </div>
 
           {loadingDb ? (
@@ -697,6 +771,64 @@ export default function ServicesClient() {
           </div>
         </div>
       </div>
+
+      {/* Service filter panel */}
+      {showServiceFilters && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "flex-end" }}
+          onClick={() => setShowServiceFilters(false)}>
+          <div style={{ background: "#fff", borderRadius: "24px 24px 0 0", padding: "8px 20px 40px", width: "100%", boxShadow: "0 -8px 40px rgba(0,0,0,0.15)", fontFamily: T.font }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ width: 36, height: 4, borderRadius: 2, background: "rgba(0,0,0,0.12)", margin: "0 auto 20px" }} />
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: T.text1 }}>Filters</div>
+              <button onClick={() => { setSfVerified(false); setSfMaxPrice(null); }}
+                style={{ fontSize: 13, fontWeight: 600, color: G, background: "none", border: "none", cursor: "pointer" }}>
+                Reset all
+              </button>
+            </div>
+
+            {/* Verified */}
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: T.text2, marginBottom: 10 }}>Provider Quality</div>
+              <button onClick={() => setSfVerified(v => !v)} style={{
+                display: "flex", alignItems: "center", gap: 8,
+                padding: "10px 16px", borderRadius: 12, cursor: "pointer",
+                border: `1.5px solid ${sfVerified ? G : T.border}`,
+                background: sfVerified ? "rgba(45,106,79,0.09)" : "#fff",
+                color: sfVerified ? G : T.text1,
+                fontSize: 13, fontWeight: 600, fontFamily: T.font,
+              }}>
+                <span>{sfVerified ? "✓" : "○"}</span> Verified providers only
+              </button>
+            </div>
+
+            {/* Max price */}
+            <div style={{ marginBottom: 28 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: T.text2, marginBottom: 10 }}>Max. Price (ETB / session)</div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {[null, 500, 1000, 1500, 2000, 3000].map(p => (
+                  <button key={String(p)} onClick={() => setSfMaxPrice(p)} style={{
+                    padding: "8px 14px", borderRadius: 20,
+                    border: `1.5px solid ${sfMaxPrice === p ? G : T.border}`,
+                    background: sfMaxPrice === p ? "rgba(45,106,79,0.09)" : "#fff",
+                    color: sfMaxPrice === p ? G : T.text1,
+                    fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: T.font,
+                  }}>
+                    {p === null ? "Any" : `≤ ${p.toLocaleString()}`}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button onClick={() => setShowServiceFilters(false)} style={{
+              width: "100%", padding: "14px 0", borderRadius: 14, border: "none",
+              background: G, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: T.font,
+            }}>
+              Show {filtered.length} provider{filtered.length !== 1 ? "s" : ""}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Provider detail modal */}
       {selectedProvider && (

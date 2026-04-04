@@ -63,16 +63,22 @@ function greeting() {
   return "Good evening";
 }
 
-const CHIPS = [
-  { key: "",           label: "All" },
-  { key: "rent",       label: "Rent" },
-  { key: "buy",        label: "Buy" },
-  { key: "Bole",       label: "Bole" },
-  { key: "Kazanchis",  label: "Kazanchis" },
-  { key: "Sarbet",     label: "Sarbet" },
-  { key: "CMC",        label: "CMC" },
-  { key: "Megenagna",  label: "Megenagna" },
-  { key: "Piassa",     label: "Piassa" },
+const LISTING_TYPE_CHIPS = [
+  { key: "rent", label: "Rent" },
+  { key: "buy",  label: "Buy"  },
+];
+
+const DISTRICT_CHIPS = [
+  "Bole", "Kazanchis", "Sarbet", "CMC", "Megenagna", "Piassa",
+  "Yeka", "Lideta", "Kirkos", "Addis Ketema", "Nifas Silk", "Kolfe", "Arada", "Gulele",
+];
+
+const PROPERTY_TYPE_CHIPS = [
+  { key: "apartment",  label: "Apartment" },
+  { key: "house",      label: "House"     },
+  { key: "villa",      label: "Villa"     },
+  { key: "commercial", label: "Commercial"},
+  { key: "land",       label: "Land"      },
 ];
 
 // AI prompt suggestions
@@ -384,7 +390,7 @@ function AISearchBar({ value, onChange, onSubmit, onSuggestion, aiLoading, aiSug
             ref={inputRef}
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            onFocus={() => setFocused(true)}
+            onFocus={(e) => { setFocused(true); e.currentTarget.select(); }}
             onBlur={() => setTimeout(() => setFocused(false), 150)}
             onKeyDown={(e) => e.key === "Enter" && onSubmit()}
             placeholder="What are you looking for?"
@@ -481,7 +487,7 @@ function FilterPanel({ filters, onChange, onClose }: {
 
   return (
     <div style={{
-      position: "absolute", inset: 0, zIndex: 200,
+      position: "fixed", inset: 0, zIndex: 200,
       background: "rgba(0,0,0,0.4)",
       display: "flex", alignItems: "flex-end",
     }} onClick={onClose}>
@@ -697,9 +703,16 @@ function parsePropertyQuery(raw: string) {
   const bedroomM = q.match(/(\d+)\s*(?:bed(?:room)?s?|br\b|zimmer)/);
   const bedrooms = bedroomM ? parseInt(bedroomM[1]) : null;
 
-  // price ceiling
-  const maxPriceM = q.match(/(?:under|below|max(?:imum)?|bis|unter)\s*([\d,]+)/);
-  const maxPrice = maxPriceM ? parseInt(maxPriceM[1].replace(/,/g, "")) : null;
+  // price ceiling — handles "under 20K", "under 20,000", "below 1.5M"
+  const maxPriceM = q.match(/(?:under|below|max(?:imum)?|bis|unter)\s*([\d,.]+)\s*([km])?/i);
+  let maxPrice: number | null = null;
+  if (maxPriceM) {
+    let num = parseFloat(maxPriceM[1].replace(/,/g, ""));
+    const sfx = (maxPriceM[2] ?? "").toLowerCase();
+    if (sfx === "k") num *= 1_000;
+    else if (sfx === "m") num *= 1_000_000;
+    maxPrice = Math.round(num);
+  }
 
   return { listingType, propertyType, neighbourhood, bedrooms, maxPrice };
 }
@@ -707,9 +720,11 @@ function parsePropertyQuery(raw: string) {
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function ExploreClient() {
   const [properties, setProperties] = useState<Property[]>([]);
-  const [loading, setLoading]       = useState(true);
-  const [search, setSearch]         = useState("");
-  const [activeChip, setActiveChip] = useState("");
+  const [loading, setLoading]             = useState(true);
+  const [search, setSearch]               = useState("");
+  const [chipListingType, setChipListingType]         = useState<""|"rent"|"buy">("");
+  const [chipNeighbourhoods, setChipNeighbourhoods]   = useState<string[]>([]);
+  const [chipPropertyTypes, setChipPropertyTypes]     = useState<string[]>([]);
   const [total, setTotal]           = useState(0);
   const [propAiIds,       setPropAiIds]       = useState<string[] | null>(null);
   const [propAiLoading,   setPropAiLoading]   = useState(false);
@@ -729,26 +744,25 @@ export default function ExploreClient() {
     supabase.auth.getUser().then(({ data }) => setIsLoggedIn(!!data.user));
   }, []);
 
-  const chipListingType   = activeChip === "rent" || activeChip === "buy" ? activeChip : "";
-  const chipNeighbourhood = !chipListingType ? activeChip : "";
-
   const fetchProperties = useCallback(async () => {
     setLoading(true);
     const params = new URLSearchParams();
-    if (chipListingType)        params.set("type", chipListingType);
-    if (chipNeighbourhood)      params.set("neighbourhood", chipNeighbourhood);
+    if (chipListingType)                params.set("type", chipListingType);
+    if (chipNeighbourhoods.length > 0)  params.set("neighbourhoods", chipNeighbourhoods.join(","));
+    if (chipPropertyTypes.length > 0)   params.set("property_types", chipPropertyTypes.join(","));
 
     // NLP parse: extract structured filters from free-text query
     if (search.trim()) {
       const nlp = parsePropertyQuery(search);
-      if (nlp.listingType  && !chipListingType)  params.set("type",         nlp.listingType);
-      if (nlp.propertyType && !filters.propertyType) params.set("property_type", nlp.propertyType);
-      if (nlp.neighbourhood && !chipNeighbourhood)   params.set("neighbourhood", nlp.neighbourhood);
-      if (nlp.bedrooms     && !filters.bedrooms)     params.set("bedrooms",      String(nlp.bedrooms));
-      if (nlp.maxPrice     && !filters.maxPrice)     params.set("max_price",     String(nlp.maxPrice));
+      if (nlp.listingType  && !chipListingType)              params.set("type",          nlp.listingType);
+      if (nlp.propertyType && !chipPropertyTypes.length && !filters.propertyType)
+                                                             params.set("property_type", nlp.propertyType);
+      if (nlp.neighbourhood && !chipNeighbourhoods.length)   params.set("neighbourhood", nlp.neighbourhood);
+      if (nlp.bedrooms     && !filters.bedrooms)             params.set("bedrooms",      String(nlp.bedrooms));
+      if (nlp.maxPrice     && !filters.maxPrice)             params.set("max_price",     String(nlp.maxPrice));
     }
 
-    if (filters.propertyType)   params.set("property_type", filters.propertyType);
+    if (filters.propertyType && !chipPropertyTypes.length) params.set("property_type", filters.propertyType);
     if (filters.minPrice)       params.set("min_price", String(filters.minPrice));
     if (filters.maxPrice)       params.set("max_price", String(filters.maxPrice));
     if (filters.bedrooms)       params.set("bedrooms", String(filters.bedrooms));
@@ -764,7 +778,7 @@ export default function ExploreClient() {
     } finally {
       setLoading(false);
     }
-  }, [chipListingType, chipNeighbourhood, search, filters]);
+  }, [chipListingType, chipNeighbourhoods, chipPropertyTypes, search, filters]);
 
   useEffect(() => { fetchProperties(); }, [fetchProperties]);
 
@@ -786,7 +800,19 @@ export default function ExploreClient() {
     setPropAiIds(null);
     setPropAiSuggestion(null);
     try {
-      const items = properties.map(p => ({
+      // Pre-filter client-side using NLP constraints before sending to AI
+      // This ensures price/type constraints are respected even if chips weren't set
+      const nlp = parsePropertyQuery(query);
+      const candidatePool = properties.filter(p => {
+        if (nlp.maxPrice && (p.price ?? 0) > nlp.maxPrice) return false;
+        if (nlp.listingType && p.listing_type !== nlp.listingType) return false;
+        if (nlp.propertyType && p.property_type !== nlp.propertyType) return false;
+        return true;
+      });
+      // If all candidates filtered out (e.g. price mismatch), fall back to full list
+      const pool = candidatePool.length > 0 ? candidatePool : properties;
+
+      const items = pool.map(p => ({
         id:            p.id,
         title:         p.title,
         listing_type:  p.listing_type,
@@ -884,6 +910,23 @@ export default function ExploreClient() {
               </svg>
               Filter{hasActiveFilters ? " ●" : ""}
             </button>
+
+            {/* Reset all — shown when any filter/search/chip is active */}
+            {(chipListingType || chipNeighbourhoods.length > 0 || chipPropertyTypes.length > 0 || search || hasActiveFilters || propAiIds) && (
+              <button onClick={() => {
+                setChipListingType(""); setChipNeighbourhoods([]); setChipPropertyTypes([]);
+                setSearch(""); setPropAiIds(null); setPropAiSuggestion(null);
+                setFilters({ minPrice: null, maxPrice: null, propertyType: "", bedrooms: null });
+              }} style={{
+                display: "flex", alignItems: "center", gap: 5,
+                padding: "9px 12px", borderRadius: 12,
+                border: `1.5px solid rgba(255,69,58,0.25)`,
+                background: "rgba(255,69,58,0.06)",
+                color: T.err, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font,
+              }}>
+                ✕ Reset
+              </button>
+            )}
           </div>
         </div>
 
@@ -927,21 +970,79 @@ export default function ExploreClient() {
       </div>
 
       {/* ── Filter chips ── */}
-      <div style={{ display: "flex", gap: 8, padding: "0 20px 18px", overflowX: "auto" }}>
-        {CHIPS.map((chip) => (
-          <button key={chip.key} onClick={() => setActiveChip(chip.key === activeChip ? "" : chip.key)} style={{
-            display: "flex", alignItems: "center", gap: 5,
-            padding: "8px 14px", borderRadius: T.rFull,
-            border: `1.5px solid ${activeChip === chip.key ? T.text1 : T.borderMd}`,
-            background: activeChip === chip.key ? T.text1 : T.bg,
-            fontSize: 13, fontWeight: 500,
-            color: activeChip === chip.key ? "#fff" : T.text1,
-            whiteSpace: "nowrap", cursor: "pointer", transition: "all .15s",
-            fontFamily: T.font, flexShrink: 0,
-          }}>
-            {chip.label}
-          </button>
-        ))}
+      <div style={{ padding: "0 20px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
+        {/* Row 1: Listing type (mutually exclusive) */}
+        <div style={{ display: "flex", gap: 8 }}>
+          {LISTING_TYPE_CHIPS.map((chip) => {
+            const active = chipListingType === chip.key;
+            return (
+              <button key={chip.key} onClick={() => setChipListingType(active ? "" : chip.key as "rent"|"buy")} style={{
+                padding: "8px 18px", borderRadius: T.rFull,
+                border: `1.5px solid ${active ? T.text1 : T.borderMd}`,
+                background: active ? T.text1 : T.bg,
+                fontSize: 13, fontWeight: 600,
+                color: active ? "#fff" : T.text1,
+                whiteSpace: "nowrap", cursor: "pointer", transition: "all .15s", fontFamily: T.font,
+              }}>
+                {chip.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Row 2: Districts (multi-select) */}
+        <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+          {DISTRICT_CHIPS.map((district) => {
+            const active = chipNeighbourhoods.includes(district);
+            return (
+              <button key={district} onClick={() => setChipNeighbourhoods(prev =>
+                active ? prev.filter(d => d !== district) : [...prev, district]
+              )} style={{
+                padding: "7px 13px", borderRadius: T.rFull,
+                border: `1.5px solid ${active ? T.primary : T.borderMd}`,
+                background: active ? T.primaryL : T.bg,
+                fontSize: 12, fontWeight: 500,
+                color: active ? T.primary : T.text2,
+                whiteSpace: "nowrap", cursor: "pointer", transition: "all .15s", fontFamily: T.font,
+              }}>
+                {district}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Row 3: Property types (multi-select) */}
+        <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+          {PROPERTY_TYPE_CHIPS.map((chip) => {
+            const active = chipPropertyTypes.includes(chip.key);
+            return (
+              <button key={chip.key} onClick={() => setChipPropertyTypes(prev =>
+                active ? prev.filter(t => t !== chip.key) : [...prev, chip.key]
+              )} style={{
+                padding: "7px 13px", borderRadius: T.rFull,
+                border: `1.5px solid ${active ? T.primary : T.borderMd}`,
+                background: active ? T.primaryL : T.bg,
+                fontSize: 12, fontWeight: 500,
+                color: active ? T.primary : T.text2,
+                whiteSpace: "nowrap", cursor: "pointer", transition: "all .15s", fontFamily: T.font,
+              }}>
+                {chip.label}
+              </button>
+            );
+          })}
+          {/* Clear all chips */}
+          {(chipListingType || chipNeighbourhoods.length > 0 || chipPropertyTypes.length > 0) && (
+            <button onClick={() => { setChipListingType(""); setChipNeighbourhoods([]); setChipPropertyTypes([]); }} style={{
+              padding: "7px 13px", borderRadius: T.rFull,
+              border: `1.5px solid ${T.borderMd}`,
+              background: "rgba(255,69,58,0.06)",
+              fontSize: 12, fontWeight: 600, color: T.err,
+              whiteSpace: "nowrap", cursor: "pointer", transition: "all .15s", fontFamily: T.font,
+            }}>
+              ✕ Clear
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ── Map view ── */}
@@ -985,10 +1086,18 @@ export default function ExploreClient() {
             <div style={{ fontSize: 13, fontWeight: 600, color: T.primary, cursor: "pointer" }}>See all</div>
           </div>
 
+          {/* Subtle loading bar while re-fetching (keeps old results visible) */}
+          {loading && properties.length > 0 && (
+            <div style={{ height: 2, background: T.primaryL, margin: "0 20px 4px", borderRadius: 2, overflow: "hidden" }}>
+              <div style={{ height: "100%", background: T.primary, borderRadius: 2, animation: "loading-bar 1.4s ease-in-out infinite" }} />
+            </div>
+          )}
+          <style>{`@keyframes loading-bar { 0%{width:0%;margin-left:0} 50%{width:60%;margin-left:20%} 100%{width:0%;margin-left:100%} }`}</style>
+
           <div style={{ display: "flex", flexDirection: "column", gap: 28, padding: "0 20px", paddingBottom: 120 }}>
-            {loading
+            {loading && properties.length === 0
               ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} />)
-              : displayProperties.length === 0
+              : !loading && displayProperties.length === 0
               ? (
                 <div style={{ padding: "48px 0", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
                   <div style={{
@@ -1003,12 +1112,12 @@ export default function ExploreClient() {
                   <div style={{ fontSize: 14, color: T.text2, lineHeight: 1.6, maxWidth: 240, marginBottom: 24 }}>
                     Try adjusting your filters or search for a different area.
                   </div>
-                  <button onClick={() => { setActiveChip(""); setSearch(""); setFilters({ minPrice: null, maxPrice: null, propertyType: "", bedrooms: null }); }} style={{
+                  <button onClick={() => { setChipListingType(""); setChipNeighbourhoods([]); setChipPropertyTypes([]); setSearch(""); setPropAiIds(null); setPropAiSuggestion(null); setFilters({ minPrice: null, maxPrice: null, propertyType: "", bedrooms: null }); }} style={{
                     padding: "14px 32px", borderRadius: 14,
                     background: T.text1, color: "#fff",
                     fontSize: 15, fontWeight: 700, border: "none", cursor: "pointer", fontFamily: T.font,
                   }}>
-                    Clear filters
+                    Clear all filters
                   </button>
                 </div>
               )
