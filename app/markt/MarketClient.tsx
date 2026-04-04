@@ -1,7 +1,43 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, Component } from "react";
 import { PriceTrendChart, DistrictChart } from "./MarktCharts";
+
+// ── Error Boundary — catches render crashes in broker list ────────────────────
+class BrokerErrorBoundary extends Component<
+  { children: React.ReactNode },
+  { error: Error | null }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { error: null };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ padding: "32px 16px", textAlign: "center" }}>
+          <div style={{ fontSize: 32, marginBottom: 12 }}>⚠️</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#1A1A2E", marginBottom: 6 }}>
+            Could not load brokers
+          </div>
+          <div style={{ fontSize: 12, color: "#9CA3AF", marginBottom: 16 }}>
+            {this.state.error.message}
+          </div>
+          <button
+            onClick={() => this.setState({ error: null })}
+            style={{ padding: "10px 24px", borderRadius: 12, border: "none", background: "#2D6A4F", color: "#fff", fontWeight: 700, cursor: "pointer" }}
+          >
+            Retry
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // ── Light-mode design tokens (hardcoded — no CSS vars) ────────────────────────
 const T = {
@@ -160,8 +196,8 @@ type DbBroker = {
   verified: boolean;
   rating: number | null;
   districts: string[] | null;
-  speciality: string | null;
-  years_experience: number | null;
+  speciality: string[] | null;  // text[] in DB
+  years_exp: number | null;     // column is years_exp in DB
   listings_count: number | null;
   phone: string | null;
 };
@@ -180,11 +216,12 @@ function isFemale(name: string): boolean {
 function getBadges(b: DbBroker): string[] {
   const out: string[] = [];
   if (b.verified) out.push("Verified");
-  if ((b.rating ?? 0) >= 4.8) out.push("Top Rated");
-  const yrs = b.years_experience ?? 0;
+  if (Number(b.rating ?? 0) >= 4.8) out.push("Top Rated");
+  const yrs = b.years_exp ?? 0;
   if (yrs >= 7) out.push("Senior Expert");
   else if (yrs >= 3) out.push("Experienced");
-  const spec = (b.speciality ?? "").toLowerCase();
+  const specArr = Array.isArray(b.speciality) ? b.speciality : [];
+  const spec = specArr.join(" ").toLowerCase();
   if (spec.includes("luxury")) out.push("Luxury");
   if (spec.includes("commercial")) out.push("Commercial");
   if (spec.includes("land") || spec.includes("plot")) out.push("Land");
@@ -209,9 +246,12 @@ function BrokerCard({ broker }: { broker: DbBroker }) {
   const name    = broker.full_name || "Agent";
   const female  = isFemale(name);
   const deals   = broker.listings_count ?? 0;
-  const rating  = typeof broker.rating === "number" ? broker.rating : null;
+  const rating  = broker.rating != null ? Number(broker.rating) : null;
   const badges  = getBadges(broker);
-  const usageLabel = broker.speciality ? (USAGE_MAP[broker.speciality] ?? broker.speciality) : null;
+  const specArr = Array.isArray(broker.speciality) ? broker.speciality : [];
+  const usageLabel = specArr.length > 0
+    ? (USAGE_MAP[specArr[0]] ?? specArr[0])
+    : null;
   const districts = Array.isArray(broker.districts) ? broker.districts.slice(0, 3) : [];
   const accentColor = female ? "#9B7EC8" : T.primary;
   const avatarBg    = female ? "#EDE8F0" : "#E8EDF0";
@@ -297,8 +337,8 @@ function BrokerCard({ broker }: { broker: DbBroker }) {
                 </span>
               )}
               <span style={{ fontSize: 12, color: T.text2 }}>{deals} listings</span>
-              {(broker.years_experience ?? 0) > 0 && (
-                <span style={{ fontSize: 12, color: T.text3 }}>{broker.years_experience}y exp</span>
+              {(broker.years_exp ?? 0) > 0 && (
+                <span style={{ fontSize: 12, color: T.text3 }}>{broker.years_exp}y exp</span>
               )}
               <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 700, color: accentColor }}>
                 View →
@@ -363,16 +403,23 @@ export default function InsightsClient() {
   const micro = getMicro(district);
 
   const brokerQ = brokerSearch.toLowerCase().trim();
-  const filteredBrokers = brokers.filter(b => {
-    const matchSearch = !brokerQ
-      || (b.full_name ?? "").toLowerCase().includes(brokerQ)
-      || (b.speciality ?? "").toLowerCase().includes(brokerQ)
-      || (b.agency ?? "").toLowerCase().includes(brokerQ)
-      || (b.districts ?? []).some(d => d.toLowerCase().includes(brokerQ));
-    const matchRegion = brokerRegion === "All"
-      || (b.districts ?? []).some(d => d.toLowerCase().includes(brokerRegion.toLowerCase()));
-    return matchSearch && matchRegion;
-  });
+  let filteredBrokers: DbBroker[] = brokers;
+  try {
+    filteredBrokers = brokers.filter(b => {
+      const bDistricts = Array.isArray(b.districts) ? b.districts : [];
+      const bSpeciality = Array.isArray(b.speciality) ? b.speciality.join(" ") : "";
+      const matchSearch = !brokerQ
+        || String(b.full_name ?? "").toLowerCase().includes(brokerQ)
+        || bSpeciality.toLowerCase().includes(brokerQ)
+        || String(b.agency ?? "").toLowerCase().includes(brokerQ)
+        || bDistricts.some(d => typeof d === "string" && d.toLowerCase().includes(brokerQ));
+      const matchRegion = brokerRegion === "All"
+        || bDistricts.some(d => typeof d === "string" && d.toLowerCase().includes(brokerRegion.toLowerCase()));
+      return matchSearch && matchRegion;
+    });
+  } catch {
+    filteredBrokers = brokers;
+  }
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", background: T.bgSoft, fontFamily: T.font, minHeight: 0 }}>
@@ -786,7 +833,9 @@ export default function InsightsClient() {
                   <div style={{ fontSize: 13, color: T.text2 }}>Try a different search or region filter</div>
                 </div>
               ) : (
-                filteredBrokers.map(b => <BrokerCard key={b.id} broker={b} />)
+                <BrokerErrorBoundary>
+                  {filteredBrokers.map(b => <BrokerCard key={b.id ?? Math.random()} broker={b} />)}
+                </BrokerErrorBoundary>
               )}
             </div>
 

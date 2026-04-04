@@ -46,11 +46,11 @@ interface BrokerProfile {
   districts: string[] | null;
   languages: string[] | null;
   verified: boolean;
-  verified_score: number;
-  listings_count: number;
-  rating: number;
-  reviews_count: number;
-  years_exp: number;
+  verified_score: number | string | null;
+  listings_count: number | null;
+  rating: number | string | null;
+  reviews_count: number | null;
+  years_exp: number | string | null;
 }
 
 interface Listing {
@@ -68,15 +68,16 @@ interface Listing {
   images?: { url: string; sort_order: number }[];
 }
 
-function StarRow({ rating, reviews }: { rating: number; reviews: number }) {
+function StarRow({ rating, reviews }: { rating: number | string | null; reviews: number }) {
+  const r = Number(rating) || 0;
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
       {[1,2,3,4,5].map(s => (
-        <svg key={s} width="14" height="14" viewBox="0 0 24 24" fill={s <= Math.round(rating) ? "#FF9F0A" : "#E5E7EB"}>
+        <svg key={s} width="14" height="14" viewBox="0 0 24 24" fill={s <= Math.round(r) ? "#FF9F0A" : "#E5E7EB"}>
           <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
         </svg>
       ))}
-      <span style={{ fontSize: 13, fontWeight: 700, color: T.text1, marginLeft: 2 }}>{rating.toFixed(1)}</span>
+      <span style={{ fontSize: 13, fontWeight: 700, color: T.text1, marginLeft: 2 }}>{r.toFixed(1)}</span>
       <span style={{ fontSize: 12, color: T.text3 }}>({reviews} reviews)</span>
     </div>
   );
@@ -254,9 +255,9 @@ export default function BrokerProfilePage() {
         {/* Stats row */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 16 }}>
           {[
-            { label: "Listings", value: listings.length || broker.listings_count },
-            { label: "Years exp.", value: broker.years_exp },
-            { label: "Score", value: `${broker.verified_score}%` },
+            { label: "Listings", value: listings.length || Number(broker.listings_count ?? 0) },
+            { label: "Years exp.", value: Number(broker.years_exp ?? 0) },
+            { label: "Score", value: `${Number(broker.verified_score ?? 0)}%` },
           ].map(s => (
             <div key={s.label} style={{ background: T.bgSoft, borderRadius: 14, padding: "12px 10px", textAlign: "center" }}>
               <div style={{ fontSize: 20, fontWeight: 800, color: G }}>{s.value}</div>
