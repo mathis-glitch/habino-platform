@@ -544,6 +544,7 @@ export default function ServicesClient() {
             suggestions={AI_SUGGESTIONS}
             onSearch={q => setAiQuery(q)}
             onClear={() => setAiQuery("")}
+            resultCount={filtered.length}
           />
         </div>
 

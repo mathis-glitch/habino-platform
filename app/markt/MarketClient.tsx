@@ -242,6 +242,107 @@ const USAGE_MAP: Record<string, string> = {
   "Property Management": "Management · Rental",
 };
 
+// ── Addis districts for NLP parsing ──────────────────────────────────────────
+const KNOWN_DISTRICTS = [
+  "bole","cmc","kazanchis","sarbet","megenagna","piassa","yeka","lideta","arada",
+  "kirkos","kolfe","gulele","nifas silk","summit","gerji","ayat","jemo","saris",
+  "lebu","gofa","akaki","kality","lafto","ferensay",
+];
+
+// ── Smart NLP broker filter ───────────────────────────────────────────────────
+function smartFilterBrokers(query: string, region: string, brokers: DbBroker[]): DbBroker[] {
+  const q = query.toLowerCase().trim();
+
+  // Region chip filter
+  const regionFiltered = region === "All"
+    ? brokers
+    : brokers.filter(b => {
+        const dists = Array.isArray(b.districts) ? b.districts.join(" ").toLowerCase() : "";
+        return dists.includes(region.toLowerCase());
+      });
+
+  if (!q) return regionFiltered;
+
+  // ── Parse structured constraints ─────────────────────────────────────────
+  // "5+ years", "5 years", "min 5 years"
+  const yearMatch  = q.match(/(\d+)\+?\s*y(?:ear|r)?s?/);
+  const minYears   = yearMatch ? parseInt(yearMatch[1]) : null;
+
+  // "4.5+ rating", "above 4", "over 4 stars"
+  const ratingMatch = q.match(/(\d+\.?\d*)\+?\s*(?:rating|stars?)/);
+  const minRating   = ratingMatch ? parseFloat(ratingMatch[1]) : null;
+
+  // "top rated", "best", "highest rated"
+  const wantsTopRated = /top[\s-]?rated|best|highest/.test(q);
+
+  // "verified"
+  const wantsVerified = q.includes("verified");
+
+  // Speciality keywords → map to DB values
+  const specMap: Record<string, string[]> = {
+    luxury:     ["luxury", "luxus"],
+    commercial: ["commercial", "office", "büro"],
+    land:       ["land", "plot", "grundstück"],
+    expat:      ["expat", "ngo", "diplomat"],
+    rental:     ["rent", "rental", "miete"],
+    newdev:     ["new", "development", "off-plan", "neubau"],
+    management: ["management", "manage", "verwalt"],
+    invest:     ["invest"],
+    residential:["residential", "apartment", "house", "villa", "wohn"],
+  };
+
+  const wantedSpecs = Object.entries(specMap)
+    .filter(([, kws]) => kws.some(kw => q.includes(kw)))
+    .map(([key]) => key);
+
+  // Mentioned districts in query
+  const mentionedDistricts = KNOWN_DISTRICTS.filter(d => q.includes(d));
+
+  // Words left for general text search (remove parsed terms)
+  const stopWords = new Set([
+    "years","year","yrs","yr","rating","stars","star","top","rated","best","highest",
+    "verified","luxury","commercial","office","land","plot","expat","ngo","rental","rent",
+    "new","development","management","invest","residential","apartment","house","villa",
+    "broker","agent","specialist","expert","in","at","for","the","and","with","from",
+    "über","mit","für","von","und","years+", ...KNOWN_DISTRICTS,
+  ]);
+  const freeWords = q.split(/[\s,+]+/)
+    .map(w => w.replace(/[^a-z0-9äöü]/g, ""))
+    .filter(w => w.length > 2 && !stopWords.has(w));
+
+  return regionFiltered.filter(b => {
+    const spec   = Array.isArray(b.speciality) ? b.speciality.join(" ").toLowerCase() : "";
+    const dists  = Array.isArray(b.districts)  ? b.districts.join(" ").toLowerCase()  : "";
+    const name   = String(b.full_name ?? "").toLowerCase();
+    const agency = String(b.agency    ?? "").toLowerCase();
+    const allText = `${name} ${agency} ${spec} ${dists}`;
+
+    // Hard filters first (fast exit)
+    if (minYears   !== null && (b.years_exp  ?? 0) < minYears)          return false;
+    if (minRating  !== null && Number(b.rating ?? 0) < minRating)        return false;
+    if (wantsVerified && !b.verified)                                     return false;
+    if (wantsTopRated && Number(b.rating ?? 0) < 4.5)                    return false;
+
+    // Speciality match — ALL wanted specs must match somewhere
+    for (const wanted of wantedSpecs) {
+      const kws = specMap[wanted];
+      if (!kws.some(kw => spec.includes(kw) || agency.includes(kw))) return false;
+    }
+
+    // District match — ANY mentioned district must appear in broker's districts
+    if (mentionedDistricts.length > 0) {
+      if (!mentionedDistricts.some(d => dists.includes(d))) return false;
+    }
+
+    // Free-word search — all remaining words must appear somewhere
+    if (freeWords.length > 0) {
+      if (!freeWords.every(w => allText.includes(w))) return false;
+    }
+
+    return true;
+  });
+}
+
 // ── Broker Card ───────────────────────────────────────────────────────────────
 function BrokerCard({ broker }: { broker: DbBroker }) {
   const name    = broker.full_name || "Agent";
@@ -362,28 +463,18 @@ export default function InsightsClient() {
   const [brokerTotal,  setBrokerTotal]  = useState(0);
   const [brokerSearch, setBrokerSearch] = useState("");
   const [brokerRegion, setBrokerRegion] = useState("All");
-  const [brokerAiQuery, setBrokerAiQuery] = useState("");
-  const [aiThinking,   setAiThinking]   = useState(false);
   const BROKER_LIMIT = 20;
 
   const AI_SUGGESTIONS = [
-    "Luxury apartment specialist in Bole",
-    "Commercial property broker CMC",
-    "Broker with 5+ years experience",
-    "Top rated agent for rentals",
-    "Land and plots specialist",
+    "Luxury specialist in Bole",
+    "Commercial broker CMC",
+    "5+ years experience",
+    "Top rated rental agent",
+    "Land & plots specialist",
+    "Verified broker Kazanchis",
   ];
 
   const BROKER_REGIONS = ["All", "Bole", "CMC", "Kazanchis", "Sarbet", "Megenagna", "Piassa", "Yeka", "Nifas Silk"];
-
-  function handleAiSearch(q: string) {
-    setBrokerAiQuery(q);
-    setAiThinking(true);
-    setTimeout(() => {
-      setBrokerSearch(q);
-      setAiThinking(false);
-    }, 600);
-  }
 
   useEffect(() => {
     if (tab !== "brokers") return;
@@ -403,24 +494,7 @@ export default function InsightsClient() {
   const stats = getStats(usage, district);
   const micro = getMicro(district);
 
-  const brokerQ = brokerSearch.toLowerCase().trim();
-  let filteredBrokers: DbBroker[] = brokers;
-  try {
-    filteredBrokers = brokers.filter(b => {
-      const bDistricts = Array.isArray(b.districts) ? b.districts : [];
-      const bSpeciality = Array.isArray(b.speciality) ? b.speciality.join(" ") : "";
-      const matchSearch = !brokerQ
-        || String(b.full_name ?? "").toLowerCase().includes(brokerQ)
-        || bSpeciality.toLowerCase().includes(brokerQ)
-        || String(b.agency ?? "").toLowerCase().includes(brokerQ)
-        || bDistricts.some(d => typeof d === "string" && d.toLowerCase().includes(brokerQ));
-      const matchRegion = brokerRegion === "All"
-        || bDistricts.some(d => typeof d === "string" && d.toLowerCase().includes(brokerRegion.toLowerCase()));
-      return matchSearch && matchRegion;
-    });
-  } catch {
-    filteredBrokers = brokers;
-  }
+  const filteredBrokers = smartFilterBrokers(brokerSearch, brokerRegion, brokers);
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", background: T.bgSoft, fontFamily: T.font, minHeight: 0 }}>
@@ -738,6 +812,7 @@ export default function InsightsClient() {
                   suggestions={AI_SUGGESTIONS}
                   onSearch={q => setBrokerSearch(q)}
                   onClear={() => setBrokerSearch("")}
+                  resultCount={filteredBrokers.length}
                 />
               </div>
 
@@ -761,7 +836,7 @@ export default function InsightsClient() {
               <p style={{ fontSize: 12, color: T.text3, marginBottom: 10 }}>
                 {brokers.length === 0
                   ? "Loading brokers…"
-                  : `${filteredBrokers.length} broker${filteredBrokers.length !== 1 ? "s" : ""} found${brokerQ || brokerRegion !== "All" ? " · filtered" : ` of ${brokerTotal}`}`}
+                  : `${filteredBrokers.length} broker${filteredBrokers.length !== 1 ? "s" : ""} found${brokerSearch || brokerRegion !== "All" ? " · filtered" : ` of ${brokerTotal}`}`}
               </p>
             </div>
 
@@ -785,7 +860,7 @@ export default function InsightsClient() {
             </div>
 
             {/* Load more */}
-            {!brokersLoading && !brokerQ && brokerRegion === "All" && brokers.length < brokerTotal && (
+            {!brokersLoading && !brokerSearch && brokerRegion === "All" && brokers.length < brokerTotal && (
               <div style={{ padding: "12px 16px" }}>
                 <button onClick={() => setBrokerPage(p => p + 1)}
                   style={{
