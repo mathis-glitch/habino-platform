@@ -189,7 +189,13 @@ export default function BrokerProfilePage() {
     );
   }
 
-  const initials = broker.full_name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
+  const displayName = loggedIn
+    ? broker.full_name
+    : (() => {
+        const parts = broker.full_name.trim().split(" ");
+        return parts.length === 1 ? parts[0] : `${parts[0]} ${parts[parts.length - 1][0]}.`;
+      })();
+  const initials = displayName.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
   const phone    = maskPhone(broker.phone, loggedIn);
   const email    = maskEmail(broker.email, loggedIn);
   const wa       = maskPhone(broker.whatsapp, loggedIn);
@@ -224,7 +230,7 @@ export default function BrokerProfilePage() {
           <div style={{ position: "relative", flexShrink: 0 }}>
             {broker.avatar_url ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={broker.avatar_url} alt={broker.full_name} style={{ width: 76, height: 76, borderRadius: 20, objectFit: "cover" }} />
+              <img src={broker.avatar_url} alt={displayName} style={{ width: 76, height: 76, borderRadius: 20, objectFit: "cover" }} />
             ) : (
               <div style={{ width: 76, height: 76, borderRadius: 20, background: `linear-gradient(135deg, ${G} 0%, #40916C 100%)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, fontWeight: 800, color: "#fff" }}>
                 {initials}
@@ -237,7 +243,7 @@ export default function BrokerProfilePage() {
             )}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 20, fontWeight: 800, color: T.text1, letterSpacing: -0.4, marginBottom: 2 }}>{broker.full_name}</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: T.text1, letterSpacing: -0.4, marginBottom: 2 }}>{displayName}</div>
             {broker.agency && (
               <div style={{ fontSize: 13, color: G, fontWeight: 600, marginBottom: 4 }}>{broker.agency}</div>
             )}
@@ -284,7 +290,7 @@ export default function BrokerProfilePage() {
         {/* Contact buttons */}
         {!loggedIn ? (
           <div style={{ background: GL, borderRadius: 14, padding: "14px 16px", textAlign: "center" }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: G, marginBottom: 4 }}>Sign in to contact {broker.full_name.split(" ")[0]}</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: G, marginBottom: 4 }}>Sign in to contact {displayName.split(" ")[0]}</div>
             <p style={{ fontSize: 12, color: T.text2, marginBottom: 12 }}>Create a free account to view contact details and send messages.</p>
             <div style={{ display: "flex", gap: 10 }}>
               <Link href="/auth/signup" style={{
@@ -355,7 +361,7 @@ export default function BrokerProfilePage() {
       <div style={{ padding: "0 16px 100px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, marginTop: 4 }}>
           <h2 style={{ fontSize: 16, fontWeight: 800, color: T.text1 }}>
-            Listings by {broker.full_name.split(" ")[0]}
+            Listings by {displayName.split(" ")[0]}
           </h2>
           <span style={{ fontSize: 12, color: T.text3 }}>{listings.length} active</span>
         </div>
