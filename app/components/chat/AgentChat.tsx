@@ -48,6 +48,9 @@ export function AgentChat() {
       ? pathname.replace("/properties/", "")
       : undefined;
 
+    // Add empty assistant placeholder so the bubble appears immediately
+    setMessages([...newMessages, { role: "assistant", content: "" }]);
+
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
@@ -58,14 +61,36 @@ export function AgentChat() {
         }),
       });
 
-      const data = await res.json();
-      const reply = data.reply || "Sorry, I couldn't generate a response.";
+      if (!res.ok || !res.body) throw new Error("Network error");
 
-      setMessages([...newMessages, { role: "assistant", content: reply }]);
+      // Read SSE stream — /api/chat sends: data: {"t":"chunk"}\n\n ... data: {"done":true}\n\n
+      const reader  = res.body.getReader();
+      const decoder = new TextDecoder();
+      let fullText  = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        for (const line of chunk.split("\n")) {
+          if (!line.startsWith("data: ")) continue;
+          try {
+            const payload = JSON.parse(line.slice(6));
+            if (payload.t) {
+              fullText += payload.t;
+              setMessages([...newMessages, { role: "assistant", content: fullText }]);
+            }
+          } catch { /* ignore malformed lines */ }
+        }
+      }
+
+      if (!fullText) {
+        setMessages([...newMessages, { role: "assistant", content: "Keine Antwort erhalten — bitte erneut versuchen." }]);
+      }
     } catch {
       setMessages([
         ...newMessages,
-        { role: "assistant", content: "Sorry, something went wrong. Please try again." },
+        { role: "assistant", content: "Verbindungsfehler. Bitte erneut versuchen." },
       ]);
     } finally {
       setLoading(false);

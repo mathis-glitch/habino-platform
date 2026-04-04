@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, Component } from "react";
 import { PriceTrendChart, DistrictChart } from "./MarktCharts";
+import { AIPanel } from "@/components/chat/AIPanel";
 
 // ── Error Boundary — catches render crashes in broker list ────────────────────
 class BrokerErrorBoundary extends Component<
@@ -729,71 +730,15 @@ export default function InsightsClient() {
 
             {/* ── AI Search Panel ── */}
             <div style={{ padding: "16px 16px 0" }}>
-              <div style={{
-                background: T.bg, borderRadius: 18,
-                border: `1px solid ${T.border}`,
-                boxShadow: "0 4px 20px rgba(0,0,0,0.07)",
-                overflow: "hidden", marginBottom: 12,
-              }}>
-                {/* Header */}
-                <div style={{ padding: "14px 16px 10px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 10, background: T.primaryL, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 16 }}>
-                    🤖
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: T.text1 }}>AI Broker Finder</div>
-                    <div style={{ fontSize: 11, color: T.text3 }}>Describe what you&apos;re looking for</div>
-                  </div>
-                  {aiThinking && (
-                    <div style={{ marginLeft: "auto", fontSize: 11, color: T.primary, fontWeight: 600 }}>
-                      Searching…
-                    </div>
-                  )}
-                </div>
-
-                {/* Input */}
-                <div style={{ padding: "10px 16px", display: "flex", gap: 8, alignItems: "center" }}>
-                  <input
-                    value={brokerAiQuery}
-                    onChange={e => { setBrokerAiQuery(e.target.value); setBrokerSearch(e.target.value); }}
-                    onKeyDown={e => e.key === "Enter" && handleAiSearch(brokerAiQuery)}
-                    placeholder="e.g. Luxury specialist in Bole with 5+ years…"
-                    style={{
-                      flex: 1, border: "none", outline: "none", background: "transparent",
-                      fontSize: 14, color: T.text1, fontFamily: T.font,
-                    }}
-                  />
-                  {brokerAiQuery ? (
-                    <button onClick={() => { setBrokerAiQuery(""); setBrokerSearch(""); }}
-                      style={{ background: "none", border: "none", cursor: "pointer", color: T.text3, padding: 4, display: "flex" }}>
-                      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" d="M6 18L18 6M6 6l12 12"/>
-                      </svg>
-                    </button>
-                  ) : (
-                    <button onClick={() => handleAiSearch(brokerAiQuery)}
-                      style={{ padding: "7px 14px", borderRadius: 10, background: T.primary, border: "none", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>
-                      Search
-                    </button>
-                  )}
-                </div>
-
-                {/* Suggestions */}
-                {!brokerAiQuery && (
-                  <div style={{ padding: "0 16px 14px", display: "flex", gap: 6, flexWrap: "wrap" }}>
-                    {AI_SUGGESTIONS.map(s => (
-                      <button key={s} onClick={() => handleAiSearch(s)}
-                        style={{
-                          padding: "5px 10px", borderRadius: 8,
-                          background: T.bgSoft, border: `1px solid ${T.border}`,
-                          fontSize: 11, fontWeight: 500, color: T.text2,
-                          cursor: "pointer", fontFamily: T.font,
-                        }}>
-                        {s}
-                      </button>
-                    ))}
-                  </div>
-                )}
+              <div style={{ marginBottom: 12 }}>
+                <AIPanel
+                  title="AI Broker Finder"
+                  subtitle="Describe who you're looking for"
+                  placeholder="e.g. Luxury specialist in Bole with 5+ years…"
+                  suggestions={AI_SUGGESTIONS}
+                  onSearch={q => setBrokerSearch(q)}
+                  onClear={() => setBrokerSearch("")}
+                />
               </div>
 
               {/* Region filter chips */}

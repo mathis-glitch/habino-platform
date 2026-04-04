@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 import { AuthGateModal } from "@/components/auth/AuthGateModal";
+import { AIPanel } from "@/components/chat/AIPanel";
 
 const T = {
   bg:       "#FFFFFF",
@@ -469,7 +470,6 @@ export default function ServicesClient() {
   const router = useRouter();
   const [activeCategory,   setActiveCategory]   = useState("all");
   const [aiQuery,          setAiQuery]           = useState("");
-  const [showSuggestions,  setShowSuggestions]   = useState(false);
   const [authGate,         setAuthGate]           = useState(false);
   const [selectedProvider, setSelectedProvider]  = useState<Provider | null>(null);
   const [dbProviders,      setDbProviders]        = useState<Provider[]>([]);
@@ -506,9 +506,16 @@ export default function ServicesClient() {
 
   const allProviders = dbProviders.length > 0 ? dbProviders : PROVIDERS;
 
-  const filtered = activeCategory === "all"
-    ? allProviders
-    : allProviders.filter(p => p.category === activeCategory);
+  const q = aiQuery.toLowerCase().trim();
+  const filtered = allProviders.filter(p => {
+    const matchCat = activeCategory === "all" || p.category === activeCategory;
+    const matchQ   = !q
+      || p.name.toLowerCase().includes(q)
+      || p.description.toLowerCase().includes(q)
+      || (p.tags ?? []).some(t => t.toLowerCase().includes(q))
+      || (p.districts ?? []).some(d => d.toLowerCase().includes(q));
+    return matchCat && matchQ;
+  });
 
   return (
     <>
@@ -529,64 +536,15 @@ export default function ServicesClient() {
         </div>
 
         {/* AI Panel */}
-        <div style={{ margin: "0 16px 16px", background: `linear-gradient(135deg, ${G} 0%, #1B4332 100%)`, borderRadius: 18, padding: 18, flexShrink: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-            <div style={{ width: 38, height: 38, borderRadius: 11, background: "rgba(255,255,255,0.18)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <svg width="18" height="18" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-              </svg>
-            </div>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>Habib — Service Assistant</div>
-              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.65)" }}>Describe what you need — I&apos;ll find the right provider</div>
-            </div>
-          </div>
-
-          <div style={{ position: "relative" }}>
-            <input
-              value={aiQuery}
-              onChange={e => { setAiQuery(e.target.value); setShowSuggestions(true); }}
-              onFocus={() => setShowSuggestions(true)}
-              onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-              placeholder="e.g. deep cleaning for 3-bedroom apartment…"
-              style={{
-                width: "100%", padding: "11px 44px 11px 14px",
-                borderRadius: 12, border: "none", outline: "none",
-                fontSize: 13, color: T.text1, background: "#fff",
-                boxSizing: "border-box" as const,
-              }}
-            />
-            <button onClick={() => setAuthGate(true)} style={{
-              position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
-              width: 30, height: 30, borderRadius: "50%",
-              background: G, border: "none", cursor: "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}>
-              <svg width="14" height="14" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                <line x1="22" y1="2" x2="11" y2="13" />
-                <polygon points="22 2 15 22 11 13 2 9 22 2" />
-              </svg>
-            </button>
-
-            {showSuggestions && (
-              <div style={{
-                position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0,
-                background: "#fff", borderRadius: 12,
-                boxShadow: "0 8px 30px rgba(0,0,0,0.15)", overflow: "hidden", zIndex: 10,
-              }}>
-                {AI_SUGGESTIONS.map(s => (
-                  <button key={s} onMouseDown={() => { setAiQuery(s); setShowSuggestions(false); }} style={{
-                    width: "100%", padding: "11px 14px", textAlign: "left",
-                    background: "none", border: "none", borderBottom: `1px solid ${T.border}`,
-                    fontSize: 13, color: T.text1, cursor: "pointer",
-                    display: "flex", alignItems: "center", gap: 8,
-                  }}>
-                    <span style={{ color: T.text3 }}>✦</span> {s}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+        <div style={{ margin: "0 16px 16px", flexShrink: 0 }}>
+          <AIPanel
+            title="Service Assistant"
+            subtitle="Describe what you need — I'll find the right provider"
+            placeholder="e.g. deep cleaning for 3-bedroom apartment…"
+            suggestions={AI_SUGGESTIONS}
+            onSearch={q => setAiQuery(q)}
+            onClear={() => setAiQuery("")}
+          />
         </div>
 
         {/* Category chips */}
