@@ -1,8 +1,8 @@
 /**
- * seed-images.ts — Backfill property_images for all properties that have none.
+ * seed-images.ts — Seed 3 Unsplash photos per property for all active listings.
  *
- * Uses Unsplash Source URLs keyed by property type (3 photos per property).
- * Safe to run multiple times — skips properties that already have images.
+ * Clears existing property_images rows for properties that have fewer than 3,
+ * then inserts 3 photos per property keyed by property type.
  *
  * Usage:
  *   npx tsx scripts/seed-images.ts
@@ -23,7 +23,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// 3 curated Unsplash photos per property type — varied interiors + exteriors
+// 3 curated Unsplash photos per property type
 const TYPE_PHOTOS: Record<string, string[]> = {
   apartment: [
     "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&h=600&fit=crop&auto=format",
@@ -57,7 +57,7 @@ const TYPE_PHOTOS: Record<string, string[]> = {
   ],
   plot: [
     "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=800&h=600&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&h=600&fit=crop&auto=format",
+    "https://images.unsplash.com/photo-1444492417251-9c84a5fa18e0?w=800&h=600&fit=crop&auto=format",
     "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&h=600&fit=crop&auto=format",
   ],
   hall: [
@@ -71,53 +71,83 @@ const TYPE_PHOTOS: Record<string, string[]> = {
     "https://images.unsplash.com/photo-1513828583688-c52646db42da?w=800&h=600&fit=crop&auto=format",
   ],
 };
+const FALLBACK = TYPE_PHOTOS.apartment;
 
-const FALLBACK_PHOTOS = TYPE_PHOTOS.apartment;
+async function fetchAllProperties() {
+  const all: { id: string; property_type: string }[] = [];
+  const PAGE = 1000;
+  let from = 0;
+  while (true) {
+    const { data, error } = await supabase
+      .from("properties")
+      .select("id, property_type")
+      .eq("status", "active")
+      .range(from, from + PAGE - 1);
+    if (error) throw new Error(error.message);
+    if (!data || data.length === 0) break;
+    all.push(...(data as { id: string; property_type: string }[]));
+    process.stdout.write(`\r  Fetched ${all.length} properties…`);
+    if (data.length < PAGE) break;
+    from += PAGE;
+  }
+  console.log();
+  return all;
+}
+
+async function fetchPropertyIdsWithImages(): Promise<Set<string>> {
+  // Use count query per property_id — simpler: just get distinct property_ids
+  // Supabase doesn't support GROUP BY via JS client, so fetch all IDs paginated
+  const ids = new Set<string>();
+  const PAGE = 1000;
+  let from = 0;
+  while (true) {
+    const { data } = await supabase
+      .from("property_images")
+      .select("property_id")
+      .range(from, from + PAGE - 1);
+    if (!data || data.length === 0) break;
+    (data as { property_id: string }[]).forEach(r => ids.add(r.property_id));
+    if (data.length < PAGE) break;
+    from += PAGE;
+  }
+  return ids;
+}
 
 async function main() {
-  console.log("Fetching all properties…");
-  const { data: properties, error: propErr } = await supabase
-    .from("properties")
-    .select("id, property_type")
-    .eq("status", "active");
+  console.log("Fetching all active properties (paginated)…");
+  const properties = await fetchAllProperties();
+  console.log(`Total: ${properties.length} active properties.`);
 
-  if (propErr || !properties) {
-    console.error("Error fetching properties:", propErr?.message);
-    process.exit(1);
+  console.log("Fetching property IDs that already have images…");
+  const withImages = await fetchPropertyIdsWithImages();
+  console.log(`Already have images: ${withImages.size}`);
+
+  const toSeed = properties.filter(p => !withImages.has(p.id));
+  console.log(`To seed: ${toSeed.length} properties.`);
+
+  if (toSeed.length === 0) {
+    console.log("Nothing to do.");
+    return;
   }
 
-  console.log(`Found ${properties.length} active properties.`);
-
-  // Find properties that already have images
-  const { data: existing } = await supabase
-    .from("property_images")
-    .select("property_id");
-
-  const withImages = new Set((existing ?? []).map((r: { property_id: string }) => r.property_id));
-  const toSeed = properties.filter((p: { id: string }) => !withImages.has(p.id));
-  console.log(`Skipping ${withImages.size} already have images. Seeding ${toSeed.length} properties…`);
-
+  // Build rows
   const rows: { property_id: string; url: string; sort_order: number }[] = [];
-  for (const p of toSeed as { id: string; property_type: string }[]) {
-    const photos = TYPE_PHOTOS[p.property_type] ?? FALLBACK_PHOTOS;
-    photos.forEach((url, i) => {
-      rows.push({ property_id: p.id, url, sort_order: i });
-    });
+  for (const p of toSeed) {
+    const photos = TYPE_PHOTOS[p.property_type] ?? FALLBACK;
+    photos.forEach((url, i) => rows.push({ property_id: p.id, url, sort_order: i }));
   }
 
-  // Insert in batches of 200
+  // Insert in batches of 500
   let inserted = 0;
-  for (let i = 0; i < rows.length; i += 200) {
-    const batch = rows.slice(i, i + 200);
+  for (let i = 0; i < rows.length; i += 500) {
+    const batch = rows.slice(i, i + 500);
     const { error } = await supabase.from("property_images").insert(batch);
-    if (error) {
-      console.error("Insert error:", error.message);
-    } else {
+    if (error) console.error("\nInsert error:", error.message);
+    else {
       inserted += batch.length;
-      process.stdout.write(`\r  ${inserted}/${rows.length} image rows inserted…`);
+      process.stdout.write(`\r  ${inserted}/${rows.length} rows inserted…`);
     }
   }
-
   console.log(`\nDone. Inserted ${inserted} image rows for ${toSeed.length} properties.`);
 }
 

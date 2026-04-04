@@ -80,6 +80,19 @@ export async function GET(request: NextRequest) {
     return                                    q.order("created_at", { ascending: false });
   }
 
+  // ── ids param: fetch specific properties by ID (e.g. saved listings) ────────
+  const idsParam = searchParams.get("ids");
+  if (idsParam) {
+    const ids = idsParam.split(",").map(s => s.trim()).filter(Boolean);
+    if (ids.length === 0) return NextResponse.json({ data: [], total: 0, page: 1, limit: ids.length });
+    const result = await supabase
+      .from("properties")
+      .select("*, images:property_images(id, url, sort_order)")
+      .eq("tenant_id", tenantId!)
+      .in("id", ids);
+    return NextResponse.json({ data: result.data ?? [], total: result.data?.length ?? 0, page: 1, limit: ids.length });
+  }
+
   // ── City / legacy filter (only when no bbox) ────────────────────────────────
   const citiesParam = searchParams.get("cities");
 

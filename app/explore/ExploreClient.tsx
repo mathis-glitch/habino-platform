@@ -540,6 +540,94 @@ function FilterPanel({ filters, onChange, onClose }: {
   );
 }
 
+// ── Saved Panel ───────────────────────────────────────────────────────────────
+function SavedPanel({
+  savedIds, onClose, onUnsave,
+}: {
+  savedIds: string[];
+  onClose: () => void;
+  onUnsave: (id: string) => void;
+}) {
+  const [items, setItems] = useState<Property[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (savedIds.length === 0) { setItems([]); return; }
+    setLoading(true);
+    // Fetch each saved property — batch via ids param
+    fetch(`/api/properties?ids=${savedIds.join(",")}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { setItems(data?.data ?? []); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [savedIds.join(",")]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <div
+      style={{ position: "absolute", inset: 0, zIndex: 300, background: "rgba(0,0,0,0.45)" }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          position: "absolute", bottom: 0, left: 0, right: 0,
+          background: T.bg, borderRadius: "24px 24px 0 0",
+          maxHeight: "82vh", display: "flex", flexDirection: "column",
+          boxShadow: T.shadowLg,
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Handle */}
+        <div style={{ width: 36, height: 4, borderRadius: 2, background: T.bgSoft2, margin: "12px auto 0" }} />
+
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 20px 12px" }}>
+          <div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: T.text1 }}>Saved</div>
+            <div style={{ fontSize: 12, color: T.text3, marginTop: 1 }}>
+              {savedIds.length === 0 ? "No saved listings yet" : `${savedIds.length} listing${savedIds.length !== 1 ? "s" : ""}`}
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            style={{ width: 32, height: 32, borderRadius: "50%", background: T.bgSoft, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+          >
+            <svg width="14" height="14" fill="none" stroke={T.text1} strokeWidth="2.5" viewBox="0 0 24 24">
+              <path strokeLinecap="round" d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Content */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "0 20px 40px" }}>
+          {savedIds.length === 0 ? (
+            <div style={{ padding: "40px 0", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
+              <div style={{ fontSize: 40, marginBottom: 12 }}>🤍</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: T.text1, marginBottom: 6 }}>Nothing saved yet</div>
+              <div style={{ fontSize: 13, color: T.text2, lineHeight: 1.6 }}>Tap the heart on any listing to save it here</div>
+            </div>
+          ) : loading ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 16, paddingTop: 4 }}>
+              {Array.from({ length: Math.min(savedIds.length, 3) }).map((_, i) => <Skeleton key={i} />)}
+            </div>
+          ) : items.length === 0 ? (
+            <div style={{ padding: "32px 0", textAlign: "center", color: T.text2, fontSize: 13 }}>
+              Could not load saved listings. Please try again.
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+              {items.map(p => (
+                <div key={p.id} style={{ position: "relative" }}>
+                  <PropCard p={p} saved={true} onSave={() => onUnsave(p.id)} />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function ExploreClient() {
   const [properties, setProperties] = useState<Property[]>([]);
@@ -549,8 +637,9 @@ export default function ExploreClient() {
   const [total, setTotal]           = useState(0);
   const [view, setView]             = useState<"list" | "map">("list");
   const [showFilters, setShowFilters] = useState(false);
+  const [showSaved, setShowSaved]   = useState(false);
   const [filters, setFilters]       = useState<Filters>({ minPrice: null, maxPrice: null, propertyType: "", bedrooms: null });
-  const { toggle, isSaved }         = useSavedListings();
+  const { saved, toggle, isSaved }  = useSavedListings();
 
   const chipListingType   = activeChip === "rent" || activeChip === "buy" ? activeChip : "";
   const chipNeighbourhood = !chipListingType ? activeChip : "";
@@ -608,20 +697,55 @@ export default function ExploreClient() {
             </div>
             <div style={{ fontSize: 12, color: T.text3 }}>{greeting()}, Addis Abeba 👋</div>
           </div>
-          {/* Filter button */}
-          <button onClick={() => setShowFilters(true)} style={{
-            display: "flex", alignItems: "center", gap: 6,
-            padding: "9px 14px", borderRadius: 12,
-            border: `1.5px solid ${hasActiveFilters ? T.primary : T.borderMd}`,
-            background: hasActiveFilters ? T.primaryL : T.bg,
-            color: hasActiveFilters ? T.primary : T.text1,
-            fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: T.font,
-          }}>
-            <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 6h18M7 12h10M11 18h2" />
-            </svg>
-            Filter{hasActiveFilters ? " ●" : ""}
-          </button>
+          {/* Right buttons: Saved + Filter */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {/* Saved button */}
+            <button
+              onClick={() => setShowSaved(true)}
+              style={{
+                position: "relative",
+                width: 40, height: 40, borderRadius: 12,
+                border: `1.5px solid ${saved.length > 0 ? T.err : T.borderMd}`,
+                background: saved.length > 0 ? "rgba(255,69,58,0.07)" : T.bg,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                cursor: "pointer",
+              }}
+            >
+              <svg width="16" height="16"
+                fill={saved.length > 0 ? T.err : "none"}
+                stroke={saved.length > 0 ? T.err : T.text2}
+                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                viewBox="0 0 24 24">
+                <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
+              </svg>
+              {saved.length > 0 && (
+                <div style={{
+                  position: "absolute", top: -5, right: -5,
+                  minWidth: 17, height: 17, borderRadius: 9,
+                  background: T.err, border: "2px solid #fff",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 10, fontWeight: 700, color: "#fff", padding: "0 3px",
+                }}>
+                  {saved.length > 9 ? "9+" : saved.length}
+                </div>
+              )}
+            </button>
+
+            {/* Filter button */}
+            <button onClick={() => setShowFilters(true)} style={{
+              display: "flex", alignItems: "center", gap: 6,
+              padding: "9px 14px", borderRadius: 12,
+              border: `1.5px solid ${hasActiveFilters ? T.primary : T.borderMd}`,
+              background: hasActiveFilters ? T.primaryL : T.bg,
+              color: hasActiveFilters ? T.primary : T.text1,
+              fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: T.font,
+            }}>
+              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 6h18M7 12h10M11 18h2" />
+              </svg>
+              Filter{hasActiveFilters ? " ●" : ""}
+            </button>
+          </div>
         </div>
 
         <AISearchBar
@@ -758,6 +882,15 @@ export default function ExploreClient() {
       {/* ── Filter panel overlay ── */}
       {showFilters && (
         <FilterPanel filters={filters} onChange={setFilters} onClose={() => setShowFilters(false)} />
+      )}
+
+      {/* ── Saved panel overlay ── */}
+      {showSaved && (
+        <SavedPanel
+          savedIds={saved}
+          onClose={() => setShowSaved(false)}
+          onUnsave={(id) => toggle(id)}
+        />
       )}
     </div>
   );
