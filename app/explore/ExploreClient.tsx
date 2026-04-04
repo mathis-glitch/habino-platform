@@ -969,29 +969,47 @@ export default function ExploreClient() {
         </div>
       </div>
 
-      {/* ── Filter chips ── */}
-      <div style={{ padding: "0 20px 14px", display: "flex", flexDirection: "column", gap: 8 }}>
-        {/* Row 1: Listing type (mutually exclusive) */}
-        <div style={{ display: "flex", gap: 8 }}>
+      {/* ── Filter chips — all mixed in one wrapping row, colour-coded by category ── */}
+      <div style={{ padding: "0 20px 14px" }}>
+        <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+
+          {/* Listing type — dark charcoal */}
           {LISTING_TYPE_CHIPS.map((chip) => {
             const active = chipListingType === chip.key;
             return (
               <button key={chip.key} onClick={() => setChipListingType(active ? "" : chip.key as "rent"|"buy")} style={{
-                padding: "8px 18px", borderRadius: T.rFull,
-                border: `1.5px solid ${active ? T.text1 : T.borderMd}`,
-                background: active ? T.text1 : T.bg,
-                fontSize: 13, fontWeight: 600,
-                color: active ? "#fff" : T.text1,
+                padding: "7px 14px", borderRadius: T.rFull,
+                border: `1.5px solid ${active ? "#1A1A2E" : "rgba(26,26,46,0.18)"}`,
+                background: active ? "#1A1A2E" : "rgba(26,26,46,0.06)",
+                fontSize: 12, fontWeight: 700,
+                color: active ? "#fff" : "#1A1A2E",
                 whiteSpace: "nowrap", cursor: "pointer", transition: "all .15s", fontFamily: T.font,
               }}>
                 {chip.label}
               </button>
             );
           })}
-        </div>
 
-        {/* Row 2: Districts (multi-select) */}
-        <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+          {/* Property types — amber */}
+          {PROPERTY_TYPE_CHIPS.map((chip) => {
+            const active = chipPropertyTypes.includes(chip.key);
+            return (
+              <button key={chip.key} onClick={() => setChipPropertyTypes(prev =>
+                active ? prev.filter(t => t !== chip.key) : [...prev, chip.key]
+              )} style={{
+                padding: "7px 14px", borderRadius: T.rFull,
+                border: `1.5px solid ${active ? "#B45309" : "rgba(180,83,9,0.22)"}`,
+                background: active ? "#B45309" : "rgba(180,83,9,0.07)",
+                fontSize: 12, fontWeight: 600,
+                color: active ? "#fff" : "#B45309",
+                whiteSpace: "nowrap", cursor: "pointer", transition: "all .15s", fontFamily: T.font,
+              }}>
+                {chip.label}
+              </button>
+            );
+          })}
+
+          {/* Districts — green */}
           {DISTRICT_CHIPS.map((district) => {
             const active = chipNeighbourhoods.includes(district);
             return (
@@ -999,38 +1017,18 @@ export default function ExploreClient() {
                 active ? prev.filter(d => d !== district) : [...prev, district]
               )} style={{
                 padding: "7px 13px", borderRadius: T.rFull,
-                border: `1.5px solid ${active ? T.primary : T.borderMd}`,
-                background: active ? T.primaryL : T.bg,
+                border: `1.5px solid ${active ? T.primary : "rgba(45,106,79,0.22)"}`,
+                background: active ? T.primary : "rgba(45,106,79,0.07)",
                 fontSize: 12, fontWeight: 500,
-                color: active ? T.primary : T.text2,
+                color: active ? "#fff" : T.primary,
                 whiteSpace: "nowrap", cursor: "pointer", transition: "all .15s", fontFamily: T.font,
               }}>
                 {district}
               </button>
             );
           })}
-        </div>
 
-        {/* Row 3: Property types (multi-select) */}
-        <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
-          {PROPERTY_TYPE_CHIPS.map((chip) => {
-            const active = chipPropertyTypes.includes(chip.key);
-            return (
-              <button key={chip.key} onClick={() => setChipPropertyTypes(prev =>
-                active ? prev.filter(t => t !== chip.key) : [...prev, chip.key]
-              )} style={{
-                padding: "7px 13px", borderRadius: T.rFull,
-                border: `1.5px solid ${active ? T.primary : T.borderMd}`,
-                background: active ? T.primaryL : T.bg,
-                fontSize: 12, fontWeight: 500,
-                color: active ? T.primary : T.text2,
-                whiteSpace: "nowrap", cursor: "pointer", transition: "all .15s", fontFamily: T.font,
-              }}>
-                {chip.label}
-              </button>
-            );
-          })}
-          {/* Clear all chips */}
+          {/* Clear all */}
           {(chipListingType || chipNeighbourhoods.length > 0 || chipPropertyTypes.length > 0) && (
             <button onClick={() => { setChipListingType(""); setChipNeighbourhoods([]); setChipPropertyTypes([]); }} style={{
               padding: "7px 13px", borderRadius: T.rFull,

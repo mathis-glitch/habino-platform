@@ -1016,44 +1016,42 @@ export default function InsightsClient() {
                 />
               </div>
 
-              {/* ── Chips (mixed: speciality + districts together) ── */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 7, marginBottom: 10 }}>
-                <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
-                  {/* Speciality chips */}
-                  {BROKER_SPEC_CHIPS.map(chip => {
-                    const active = brokerSpecialities.includes(chip.key);
-                    return (
-                      <button key={chip.key}
-                        onClick={() => setBrokerSpecialities(prev => active ? prev.filter(s => s !== chip.key) : [...prev, chip.key])}
-                        style={{
-                          padding: "7px 12px", borderRadius: 20,
-                          border: `1.5px solid ${active ? T.primary : T.border2}`,
-                          background: active ? T.primaryL : T.bg,
-                          color: active ? T.primary : T.text2,
-                          fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: T.font, whiteSpace: "nowrap",
-                        }}>
-                        {chip.label}
-                      </button>
-                    );
-                  })}
-                  {/* District chips — inline with speciality */}
-                  {BROKER_DISTRICTS.map(d => {
-                    const active = brokerDistricts.includes(d);
-                    return (
-                      <button key={d}
-                        onClick={() => setBrokerDistricts(prev => active ? prev.filter(x => x !== d) : [...prev, d])}
-                        style={{
-                          padding: "6px 11px", borderRadius: 20,
-                          border: `1.5px solid ${active ? T.primary : T.border2}`,
-                          background: active ? T.primaryL : T.bg,
-                          color: active ? T.primary : T.text2,
-                          fontSize: 11, fontWeight: 500, cursor: "pointer", fontFamily: T.font, whiteSpace: "nowrap",
-                        }}>
-                        {d}
-                      </button>
-                    );
-                  })}
-                </div>
+              {/* ── Chips — all mixed, colour-coded by category ── */}
+              <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 10 }}>
+                {/* Speciality chips — violet */}
+                {BROKER_SPEC_CHIPS.map(chip => {
+                  const active = brokerSpecialities.includes(chip.key);
+                  return (
+                    <button key={chip.key}
+                      onClick={() => setBrokerSpecialities(prev => active ? prev.filter(s => s !== chip.key) : [...prev, chip.key])}
+                      style={{
+                        padding: "7px 13px", borderRadius: 20,
+                        border: `1.5px solid ${active ? "#4F46E5" : "rgba(79,70,229,0.22)"}`,
+                        background: active ? "#4F46E5" : "rgba(79,70,229,0.07)",
+                        color: active ? "#fff" : "#4F46E5",
+                        fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: T.font, whiteSpace: "nowrap", transition: "all .15s",
+                      }}>
+                      {chip.label}
+                    </button>
+                  );
+                })}
+                {/* District chips — green */}
+                {BROKER_DISTRICTS.map(d => {
+                  const active = brokerDistricts.includes(d);
+                  return (
+                    <button key={d}
+                      onClick={() => setBrokerDistricts(prev => active ? prev.filter(x => x !== d) : [...prev, d])}
+                      style={{
+                        padding: "7px 12px", borderRadius: 20,
+                        border: `1.5px solid ${active ? T.primary : "rgba(45,106,79,0.22)"}`,
+                        background: active ? T.primary : "rgba(45,106,79,0.07)",
+                        color: active ? "#fff" : T.primary,
+                        fontSize: 12, fontWeight: 500, cursor: "pointer", fontFamily: T.font, whiteSpace: "nowrap", transition: "all .15s",
+                      }}>
+                      {d}
+                    </button>
+                  );
+                })}
               </div>
 
               {/* ── Result count + Filter + Reset ── */}
