@@ -584,15 +584,20 @@ export default function ServicesClient() {
     setServiceAiSuggestion(null);
     try {
       const items = localFiltered.map(p => ({
-        id:          p.id,
-        name:        p.name,
-        category:    p.category,
-        description: p.description,
-        tags:        p.tags ?? [],
-        districts:   p.districts ?? [],
-        rating:      p.rating,
-        verified:    p.verified,
+        id:           p.id,
+        name:         p.name,
+        category:     p.category,
+        description:  p.description,
+        tags:         p.tags ?? [],
+        highlights:   p.highlights ?? [],
+        languages:    p.languages ?? [],
+        districts:    p.districts ?? [],
+        rating:       p.rating,
+        reviews:      p.reviews,
+        verified:     p.verified,
         responseTime: p.responseTime,
+        workingHours: p.workingHours,
+        staff:        p.staff,
       }));
       const res  = await fetch("/api/ai-search", {
         method:  "POST",

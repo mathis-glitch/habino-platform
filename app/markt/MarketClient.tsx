@@ -525,14 +525,15 @@ export default function InsightsClient() {
     setBrokerAiSuggestion(null);
     try {
       const items = filteredBrokers.map(b => ({
-        id:         b.id,
-        name:       b.full_name,
-        agency:     b.agency,
-        speciality: Array.isArray(b.speciality) ? b.speciality : [],
-        districts:  Array.isArray(b.districts)  ? b.districts  : [],
-        years_exp:  b.years_exp,
-        rating:     b.rating != null ? Number(b.rating) : null,
-        verified:   b.verified,
+        id:             b.id,
+        name:           b.full_name,
+        agency:         b.agency,
+        speciality:     Array.isArray(b.speciality) ? b.speciality : [],
+        districts:      Array.isArray(b.districts)  ? b.districts  : [],
+        years_exp:      b.years_exp,
+        rating:         b.rating != null ? Number(b.rating) : null,
+        verified:       b.verified,
+        listings_count: b.listings_count,
       }));
       const res  = await fetch("/api/ai-search", {
         method:  "POST",
