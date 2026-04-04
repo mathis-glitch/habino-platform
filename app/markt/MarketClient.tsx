@@ -414,6 +414,18 @@ export default function InsightsClient() {
   const stats = getStats(usage, district);
   const micro = getMicro(district);
 
+  const brokerQ = brokerSearch.toLowerCase().trim();
+  const filteredBrokers = brokers.filter(b => {
+    const matchSearch = !brokerQ
+      || (b.full_name ?? "").toLowerCase().includes(brokerQ)
+      || (b.speciality ?? "").toLowerCase().includes(brokerQ)
+      || (b.agency ?? "").toLowerCase().includes(brokerQ)
+      || (b.districts ?? []).some(d => d.toLowerCase().includes(brokerQ));
+    const matchRegion = brokerRegion === "All"
+      || (b.districts ?? []).some(d => d.toLowerCase().includes(brokerRegion.toLowerCase()));
+    return matchSearch && matchRegion;
+  });
+
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", background: T.bgSoft, fontFamily: T.font, minHeight: 0 }}>
       <style>{`
@@ -724,20 +736,7 @@ export default function InsightsClient() {
       )}
 
       {/* ── Brokers tab ── */}
-      {tab === "brokers" && (() => {
-        const q = brokerSearch.toLowerCase().trim();
-        const filtered = brokers.filter(b => {
-          const matchSearch = !q
-            || (b.full_name ?? "").toLowerCase().includes(q)
-            || (b.speciality ?? "").toLowerCase().includes(q)
-            || (b.agency ?? "").toLowerCase().includes(q)
-            || (b.districts ?? []).some(d => d.toLowerCase().includes(q));
-          const matchRegion = brokerRegion === "All"
-            || (b.districts ?? []).some(d => d.toLowerCase().includes(brokerRegion.toLowerCase()));
-          return matchSearch && matchRegion;
-        });
-
-        return (
+      {tab === "brokers" && (
           <div style={{ flex: 1, overflowY: "auto", paddingBottom: 100 }}>
 
             {/* ── AI Search Panel ── */}
@@ -839,7 +838,7 @@ export default function InsightsClient() {
               <p style={{ fontSize: 12, color: T.text3, marginBottom: 10 }}>
                 {brokers.length === 0
                   ? "Loading brokers…"
-                  : `${filtered.length} broker${filtered.length !== 1 ? "s" : ""} found${q || brokerRegion !== "All" ? " · filtered" : ` of ${brokerTotal}`}`}
+                  : `${filteredBrokers.length} broker${filteredBrokers.length !== 1 ? "s" : ""} found${brokerQ || brokerRegion !== "All" ? " · filtered" : ` of ${brokerTotal}`}`}
               </p>
             </div>
 
@@ -849,19 +848,19 @@ export default function InsightsClient() {
                 Array.from({ length: 5 }).map((_, i) => (
                   <div key={i} style={{ height: 130, borderRadius: 18, background: T.bgSoft2 }} />
                 ))
-              ) : filtered.length === 0 ? (
+              ) : filteredBrokers.length === 0 ? (
                 <div style={{ padding: "40px 0", textAlign: "center" }}>
                   <div style={{ fontSize: 32, marginBottom: 10 }}>🔍</div>
                   <div style={{ fontSize: 15, fontWeight: 700, color: T.text1, marginBottom: 6 }}>No brokers found</div>
                   <div style={{ fontSize: 13, color: T.text2 }}>Try a different search or region filter</div>
                 </div>
               ) : (
-                filtered.map(b => <BrokerCard key={b.id} broker={b} />)
+                filteredBrokers.map(b => <BrokerCard key={b.id} broker={b} />)
               )}
             </div>
 
             {/* Load more */}
-            {!brokersLoading && !q && brokerRegion === "All" && brokers.length < brokerTotal && (
+            {!brokersLoading && !brokerQ && brokerRegion === "All" && brokers.length < brokerTotal && (
               <div style={{ padding: "12px 16px" }}>
                 <button onClick={() => setBrokerPage(p => p + 1)}
                   style={{
@@ -878,8 +877,7 @@ export default function InsightsClient() {
               <div style={{ textAlign: "center", padding: "12px 0", fontSize: 13, color: T.text3 }}>Loading…</div>
             )}
           </div>
-        );
-      })()}
+      )}
     </div>
   );
 }
