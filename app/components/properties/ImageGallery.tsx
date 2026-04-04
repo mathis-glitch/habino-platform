@@ -7,8 +7,9 @@ interface GalleryImage { id: string; url: string; sort_order?: number }
 const G = "#2D6A4F";
 
 export function ImageGallery({ images, title }: { images: GalleryImage[]; title: string }) {
-  const [active, setActive]   = useState(0);
+  const [active, setActive]     = useState(0);
   const [lightbox, setLightbox] = useState(false);
+  const [imgErrors, setImgErrors] = useState<Set<string>>(new Set());
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
   const didSwipe    = useRef(false);
@@ -55,12 +56,22 @@ export function ImageGallery({ images, title }: { images: GalleryImage[]; title:
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={images[active].url}
-          alt={title}
-          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-        />
+        {imgErrors.has(images[active].url) ? (
+          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "#F0F7F4" }}>
+            <svg width="52" height="52" fill="none" stroke={G} strokeWidth={1} viewBox="0 0 24 24" style={{ opacity: 0.3 }}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+              <polyline strokeLinecap="round" strokeLinejoin="round" points="9 22 9 12 15 12 15 22" />
+            </svg>
+          </div>
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={images[active].url}
+            alt={title}
+            onError={() => setImgErrors(prev => new Set([...prev, images[active].url]))}
+            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+          />
+        )}
 
         {images.length > 1 && (
           <>

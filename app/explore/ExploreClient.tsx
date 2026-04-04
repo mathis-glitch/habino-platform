@@ -120,7 +120,7 @@ function brokerPhoto(name: string) {
 // ── Property Card ─────────────────────────────────────────────────────────────
 function PropCard({ p, saved, onSave }: { p: Property; saved: boolean; onSave: () => void }) {
   const { main, suffix } = fmtPrice(p.price, p.currency, p.listing_type);
-  const [imgErr, setImgErr] = useState(false);
+  const [imgErrors, setImgErrors] = useState<Set<string>>(new Set());
   const [imgIdx, setImgIdx] = useState(0);
   const touchStartX = useRef(0);
   const didSwipe    = useRef(false);
@@ -163,11 +163,11 @@ function PropCard({ p, saved, onSave }: { p: Property; saved: boolean; onSave: (
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        {currentImg && !imgErr ? (
+        {currentImg && !imgErrors.has(currentImg) ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={currentImg} alt={p.title}
-            onError={() => setImgErr(true)}
+            onError={() => setImgErrors(prev => new Set([...prev, currentImg]))}
             style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
           />
         ) : (
