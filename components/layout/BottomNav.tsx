@@ -9,7 +9,7 @@ const INACTIVE = "#9CA3AF";
 const TABS = [
   {
     href: "/explore",
-    label: "Explore",
+    label: "Property",
     icon: (active: boolean) => (
       <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.7} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
         <circle cx="11" cy="11" r="8" />
