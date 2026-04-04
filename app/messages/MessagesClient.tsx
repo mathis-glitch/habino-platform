@@ -291,6 +291,41 @@ export default function MessagesClient() {
     } finally { setSending(false); }
   };
 
+  // Auth gate — not logged in
+  if (!loading && !userId) {
+    return (
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: T.bg, fontFamily: T.font, padding: "32px 24px", textAlign: "center" }}>
+        <div style={{ width: 64, height: 64, borderRadius: 20, background: "rgba(45,106,79,0.08)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 20 }}>
+          <svg width="28" height="28" fill="none" stroke="#2D6A4F" strokeWidth="1.8" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+          </svg>
+        </div>
+        <h2 style={{ fontSize: 20, fontWeight: 800, color: T.text1, marginBottom: 8, letterSpacing: -0.4 }}>Sign in to view messages</h2>
+        <p style={{ fontSize: 14, color: T.text2, lineHeight: 1.6, maxWidth: 280, marginBottom: 28 }}>
+          Your conversations with brokers and agents are private. Sign in to access them.
+        </p>
+        <a href="/auth/signup" style={{
+          display: "block", width: "100%", maxWidth: 280,
+          padding: "13px 0", borderRadius: 14,
+          background: "#2D6A4F", color: "#fff",
+          fontSize: 15, fontWeight: 700, textDecoration: "none",
+          marginBottom: 10,
+        }}>
+          Create account
+        </a>
+        <a href="/auth/login" style={{
+          display: "block", width: "100%", maxWidth: 280,
+          padding: "13px 0", borderRadius: 14,
+          background: "rgba(45,106,79,0.08)", color: "#2D6A4F",
+          fontSize: 15, fontWeight: 700, textDecoration: "none",
+          border: "1.5px solid rgba(45,106,79,0.18)",
+        }}>
+          Sign in
+        </a>
+      </div>
+    );
+  }
+
   // Mobile: show thread if active, otherwise show list
   if (activeConv && userId) {
     return (

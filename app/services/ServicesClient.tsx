@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { createBrowserClient } from "@supabase/ssr";
 import { AuthGateModal } from "@/components/auth/AuthGateModal";
 
 const T = {
@@ -185,7 +186,68 @@ const PROVIDERS = [
   },
 ];
 
-type Provider = typeof PROVIDERS[0];
+// DB-backed provider shape (superset of hardcoded)
+interface Provider {
+  id: string;
+  name: string;
+  category: string;
+  rating: number;
+  reviews: number;
+  reviews_count?: number;
+  price: string;
+  priceNum?: number;
+  price_from?: number;
+  price_unit?: string;
+  currency?: string;
+  description: string;
+  tags: string[];
+  photo: string;
+  photo_url?: string;
+  verified: boolean;
+  responseTime: string;
+  response_time?: string;
+  districts: string[];
+  service_areas?: string[];
+  workingHours: string;
+  working_hours?: string;
+  phone: string;
+  email?: string;
+  whatsapp?: string;
+  founded: string;
+  founded_year?: string;
+  staff: string;
+  team_size?: string;
+  languages: string[];
+  highlights: string[];
+}
+
+function dbToProvider(d: Record<string, unknown>): Provider {
+  const priceFrom = (d.price_from as number) ?? 0;
+  const unit = (d.price_unit as string) ?? "session";
+  return {
+    id:           d.id as string,
+    name:         (d.name as string) ?? "",
+    category:     (d.category as string) ?? "",
+    rating:       (d.rating as number) ?? 4.5,
+    reviews:      (d.reviews_count as number) ?? 0,
+    price:        priceFrom > 0 ? `From ETB ${priceFrom.toLocaleString()}/${unit}` : "Price on request",
+    priceNum:     priceFrom,
+    description:  (d.description as string) ?? "",
+    tags:         (d.tags as string[]) ?? [],
+    photo:        (d.photo_url as string) ?? PROVIDERS[0].photo,
+    verified:     (d.verified as boolean) ?? false,
+    responseTime: (d.response_time as string) ?? "< 4 hours",
+    districts:    (d.service_areas as string[]) ?? [],
+    workingHours: (d.working_hours as string) ?? "",
+    phone:        (d.phone as string) ?? "",
+    email:        (d.email as string) ?? undefined,
+    whatsapp:     (d.whatsapp as string) ?? undefined,
+    founded:      (d.founded_year as string) ?? "",
+    staff:        (d.team_size as string) ?? "",
+    languages:    (d.languages as string[]) ?? [],
+    highlights:   (d.highlights as string[]) ?? [],
+  };
+}
 
 const AI_SUGGESTIONS = [
   "Deep cleaning before moving in",
@@ -220,7 +282,9 @@ function VerifiedBadge() {
 }
 
 // ── Provider Detail Modal ─────────────────────────────────────────────────────
-function ProviderDetail({ provider, onClose, onContact }: { provider: Provider; onClose: () => void; onContact: () => void }) {
+function ProviderDetail({ provider, onClose, onContact, loggedIn }: { provider: Provider; onClose: () => void; onContact: () => void; loggedIn: boolean }) {
+  const phone = maskPhone(provider.phone, loggedIn);
+  const wa    = provider.whatsapp ? maskPhone(provider.whatsapp, loggedIn) : phone;
   return (
     <>
       <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 8000, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(3px)" }} />
@@ -309,22 +373,45 @@ function ProviderDetail({ provider, onClose, onContact }: { provider: Provider; 
             </div>
           </div>
 
-          {/* CTA */}
-          <button onClick={onContact} style={{
-            width: "100%", padding: "14px 0", borderRadius: 14, border: "none",
-            background: G, color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer",
-            boxShadow: "0 4px 16px rgba(45,106,79,0.35)", marginBottom: 10,
-          }}>
-            Request service
-          </button>
-          <a href={`tel:${provider.phone}`} onClick={(e) => { e.preventDefault(); onContact(); }} style={{
-            display: "block", width: "100%", padding: "12px 0", borderRadius: 14,
-            background: T.primaryL, color: G, fontSize: 14, fontWeight: 600,
-            textDecoration: "none", textAlign: "center",
-            boxSizing: "border-box",
-          }}>
-            📞 {provider.phone}
-          </a>
+          {/* CTA — auth-aware */}
+          {!loggedIn ? (
+            <div style={{ background: T.primaryL, borderRadius: 14, padding: "16px", textAlign: "center", marginBottom: 4 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: G, marginBottom: 4 }}>Sign in to contact</div>
+              <p style={{ fontSize: 12, color: T.text2, marginBottom: 12 }}>Create a free account to view contact details and book services.</p>
+              <button onClick={onContact} style={{ width: "100%", padding: "12px 0", borderRadius: 12, border: "none", background: G, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+                Sign up — it&apos;s free
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {/* WhatsApp */}
+              <a href={`https://wa.me/${(provider.whatsapp || provider.phone)?.replace(/\D/g, "")}`}
+                target="_blank" rel="noopener noreferrer"
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+                  padding: "14px 0", borderRadius: 14, textDecoration: "none",
+                  background: "#25D366", color: "#fff", fontSize: 14, fontWeight: 700,
+                  boxShadow: "0 4px 16px rgba(37,211,102,0.3)",
+                }}>
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                </svg>
+                WhatsApp — {wa}
+              </a>
+              {/* Call */}
+              <a href={`tel:${provider.phone}`} style={{
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+                padding: "13px 0", borderRadius: 14, textDecoration: "none",
+                background: G, color: "#fff", fontSize: 14, fontWeight: 700,
+                boxShadow: "0 4px 16px rgba(45,106,79,0.3)",
+              }}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.0 1.18 2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
+                </svg>
+                Call — {phone}
+              </a>
+            </div>
+          )}
         </div>
       </div>
     </>
@@ -371,6 +458,12 @@ function ProviderCard({ provider, onOpen }: { provider: Provider; onOpen: () => 
   );
 }
 
+function maskPhone(phone: string, loggedIn: boolean) {
+  if (!phone) return phone;
+  if (loggedIn) return phone;
+  return phone.slice(0, 7) + " xxx xxxx";
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function ServicesClient() {
   const router = useRouter();
@@ -379,10 +472,43 @@ export default function ServicesClient() {
   const [showSuggestions,  setShowSuggestions]   = useState(false);
   const [authGate,         setAuthGate]           = useState(false);
   const [selectedProvider, setSelectedProvider]  = useState<Provider | null>(null);
+  const [dbProviders,      setDbProviders]        = useState<Provider[]>([]);
+  const [loadingDb,        setLoadingDb]          = useState(true);
+  const [loggedIn,         setLoggedIn]           = useState(false);
+
+  // Auth check
+  useEffect(() => {
+    const sb = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    );
+    sb.auth.getUser().then(({ data }) => setLoggedIn(!!data.user));
+  }, []);
+
+  // Fetch all providers from DB on mount (paginated: fetch up to 500)
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/services?limit=200&page=1").then(r => r.json()),
+      fetch("/api/services?limit=200&page=2").then(r => r.json()),
+      fetch("/api/services?limit=200&page=3").then(r => r.json()),
+    ])
+      .then(([p1, p2, p3]) => {
+        const all = [
+          ...(p1.data ?? []),
+          ...(p2.data ?? []),
+          ...(p3.data ?? []),
+        ].map(dbToProvider);
+        setDbProviders(all.length > 0 ? all : PROVIDERS);
+      })
+      .catch(() => setDbProviders(PROVIDERS))
+      .finally(() => setLoadingDb(false));
+  }, []);
+
+  const allProviders = dbProviders.length > 0 ? dbProviders : PROVIDERS;
 
   const filtered = activeCategory === "all"
-    ? PROVIDERS
-    : PROVIDERS.filter(p => p.category === activeCategory);
+    ? allProviders
+    : allProviders.filter(p => p.category === activeCategory);
 
   return (
     <>
@@ -490,7 +616,11 @@ export default function ServicesClient() {
             {activeCategory !== "all" ? ` in ${CATEGORIES.find(c => c.key === activeCategory)?.label}` : " available"}
           </div>
 
-          {filtered.map(provider => (
+          {loadingDb ? (
+            [1,2,3].map(i => (
+              <div key={i} style={{ height: 88, borderRadius: 18, background: "#F3F4F6", marginBottom: 12 }} />
+            ))
+          ) : filtered.map(provider => (
             <ProviderCard key={provider.id} provider={provider} onOpen={() => setSelectedProvider(provider)} />
           ))}
 
@@ -516,6 +646,7 @@ export default function ServicesClient() {
       {selectedProvider && (
         <ProviderDetail
           provider={selectedProvider}
+          loggedIn={loggedIn}
           onClose={() => setSelectedProvider(null)}
           onContact={() => { setSelectedProvider(null); setAuthGate(true); }}
         />

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { createBrowserClient } from "@supabase/ssr";
 import dynamic from "next/dynamic";
 import type { Property } from "@/lib/types";
 import { useSavedListings } from "@/app/hooks/useSavedListings";
@@ -117,8 +118,14 @@ function brokerPhoto(name: string) {
   return BROKER_PHOTOS[hash % BROKER_PHOTOS.length];
 }
 
+function maskName(name: string): string {
+  const parts = name.trim().split(" ");
+  if (parts.length === 1) return parts[0];
+  return `${parts[0]} ${parts[parts.length - 1][0]}.`;
+}
+
 // ── Property Card ─────────────────────────────────────────────────────────────
-function PropCard({ p, saved, onSave }: { p: Property; saved: boolean; onSave: () => void }) {
+function PropCard({ p, saved, onSave, isLoggedIn }: { p: Property; saved: boolean; onSave: () => void; isLoggedIn: boolean }) {
   const { main, suffix } = fmtPrice(p.price, p.currency, p.listing_type);
   const [imgErrors, setImgErrors] = useState<Set<string>>(new Set());
   const [imgIdx, setImgIdx] = useState(0);
@@ -247,6 +254,7 @@ function PropCard({ p, saved, onSave }: { p: Property; saved: boolean; onSave: (
         {/* Row 2: Broker photo + name */}
         {(() => {
           const name = brokerName(p);
+          const displayName = isLoggedIn ? name : maskName(name);
           return (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
@@ -254,7 +262,7 @@ function PropCard({ p, saved, onSave }: { p: Property; saved: boolean; onSave: (
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={brokerPhoto(name)}
-                    alt={name}
+                    alt={displayName}
                     style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover", display: "block", border: "1.5px solid rgba(0,0,0,0.07)" }}
                   />
                   <div style={{
@@ -268,7 +276,7 @@ function PropCard({ p, saved, onSave }: { p: Property; saved: boolean; onSave: (
                     </svg>
                   </div>
                 </div>
-                <span style={{ fontSize: 12, color: T.text2, fontWeight: 500 }}>{name}</span>
+                <span style={{ fontSize: 12, color: T.text2, fontWeight: 500 }}>{displayName}</span>
               </div>
               <a
                 href="/markt#brokers"
@@ -542,11 +550,12 @@ function FilterPanel({ filters, onChange, onClose }: {
 
 // ── Saved Panel ───────────────────────────────────────────────────────────────
 function SavedPanel({
-  savedIds, onClose, onUnsave,
+  savedIds, onClose, onUnsave, isLoggedIn,
 }: {
   savedIds: string[];
   onClose: () => void;
   onUnsave: (id: string) => void;
+  isLoggedIn: boolean;
 }) {
   const [items, setItems] = useState<Property[]>([]);
   const [loading, setLoading] = useState(false);
@@ -617,7 +626,7 @@ function SavedPanel({
             <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
               {items.map(p => (
                 <div key={p.id} style={{ position: "relative" }}>
-                  <PropCard p={p} saved={true} onSave={() => onUnsave(p.id)} />
+                  <PropCard p={p} saved={true} onSave={() => onUnsave(p.id)} isLoggedIn={isLoggedIn} />
                 </div>
               ))}
             </div>
@@ -639,7 +648,16 @@ export default function ExploreClient() {
   const [showFilters, setShowFilters] = useState(false);
   const [showSaved, setShowSaved]   = useState(false);
   const [filters, setFilters]       = useState<Filters>({ minPrice: null, maxPrice: null, propertyType: "", bedrooms: null });
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const { saved, toggle, isSaved }  = useSavedListings();
+
+  useEffect(() => {
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+    supabase.auth.getUser().then(({ data }) => setIsLoggedIn(!!data.user));
+  }, []);
 
   const chipListingType   = activeChip === "rent" || activeChip === "buy" ? activeChip : "";
   const chipNeighbourhood = !chipListingType ? activeChip : "";
@@ -872,7 +890,7 @@ export default function ExploreClient() {
                 </div>
               )
               : properties.map((p) => (
-                <PropCard key={p.id} p={p} saved={isSaved(p.id)} onSave={() => toggle(p.id)} />
+                <PropCard key={p.id} p={p} saved={isSaved(p.id)} onSave={() => toggle(p.id)} isLoggedIn={isLoggedIn} />
               ))
             }
           </div>
@@ -890,6 +908,7 @@ export default function ExploreClient() {
           savedIds={saved}
           onClose={() => setShowSaved(false)}
           onUnsave={(id) => toggle(id)}
+          isLoggedIn={isLoggedIn}
         />
       )}
     </div>

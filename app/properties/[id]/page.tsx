@@ -149,6 +149,12 @@ export default async function PropertyDetailPage({
 
   const supabase = createServiceClient();
 
+  // Check if user is logged in (server-side)
+  const { createClient: createAuthClient } = await import("@/lib/supabase/server");
+  const authClient = createAuthClient();
+  const { data: { user } } = await authClient.auth.getUser();
+  const isLoggedIn = !!user;
+
   const { data: property } = await supabase
     .from("properties")
     .select("*, images:property_images(id, url, sort_order)")
@@ -173,6 +179,38 @@ export default async function PropertyDetailPage({
     .neq("id", id)
     .limit(3);
 
+  // Look up broker profile by name for profile page link
+  const agentName = resolveBrokerName(property);
+  const { data: brokerProfile } = await supabase
+    .from("broker_profiles")
+    .select("id, full_name, avatar_url, agency, verified")
+    .eq("tenant_id", tenantId)
+    .eq("full_name", agentName)
+    .maybeSingle();
+
+  // Privacy masking helpers
+  function maskPhone(phone: string | null): string | null {
+    if (!phone) return null;
+    if (isLoggedIn) return phone;
+    return phone.slice(0, 7) + " xxx xxxx";
+  }
+  function maskEmail(email: string | null): string | null {
+    if (!email) return null;
+    if (isLoggedIn) return email;
+    const [local, domain] = email.split("@");
+    return `${local[0]}***@${domain}`;
+  }
+  function maskName(name: string): string {
+    if (isLoggedIn) return name;
+    const parts = name.trim().split(" ");
+    if (parts.length === 1) return parts[0];
+    return `${parts[0]} ${parts[parts.length - 1][0]}.`;
+  }
+
+  const displayAgentName  = maskName(agentName);
+  const displayAgentPhone = maskPhone(property.agent_phone);
+  const displayAgentEmail = maskEmail(property.agent_email);
+
   const specs = [
     property.bedrooms  > 0 && { icon: "🛏", label: "Bedrooms",  value: property.bedrooms },
     property.bathrooms > 0 && { icon: "🚿", label: "Bathrooms", value: property.bathrooms },
@@ -182,7 +220,6 @@ export default async function PropertyDetailPage({
   const typeLabel    = PROP_TYPE_LABELS[property.property_type] ?? property.property_type;
   const location     = [property.neighbourhood, property.city].filter(Boolean).join(", ");
   const isRent       = property.listing_type === "rent";
-  const agentName    = resolveBrokerName(property);
   const districtInfo = getDistrictInfo(property.neighbourhood, property.city);
 
   // Nearby properties for map
@@ -272,22 +309,19 @@ export default async function PropertyDetailPage({
           )}
 
           {/* ── Broker card ── */}
-          <div style={{
-              display: "flex", alignItems: "center", gap: 12,
-              padding: "12px 14px", borderRadius: 14, marginBottom: 20,
-              background: GL, border: `1px solid rgba(45,106,79,0.12)`,
-            }}>
+          <div style={{ borderRadius: 18, overflow: "hidden", marginBottom: 20, border: `1px solid rgba(45,106,79,0.12)` }}>
+            {/* Broker info row */}
+            <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", background: GL }}>
               <div style={{ position: "relative", flexShrink: 0 }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={brokerPhoto(agentName)}
-                  alt={agentName}
-                  style={{ width: 44, height: 44, borderRadius: 12, objectFit: "cover", display: "block" }}
+                  src={brokerProfile?.avatar_url ?? brokerPhoto(agentName)}
+                  alt={displayAgentName}
+                  style={{ width: 48, height: 48, borderRadius: 13, objectFit: "cover", display: "block" }}
                 />
                 <div style={{
-                  position: "absolute", bottom: -2, right: -2,
-                  width: 16, height: 16, borderRadius: "50%",
-                  background: G, border: "2px solid #fff",
+                  position: "absolute", bottom: -2, right: -2, width: 16, height: 16,
+                  borderRadius: "50%", background: G, border: "2px solid #fff",
                   display: "flex", alignItems: "center", justifyContent: "center",
                 }}>
                   <svg width="8" height="8" viewBox="0 0 10 10" fill="none">
@@ -296,35 +330,97 @@ export default async function PropertyDetailPage({
                 </div>
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: "#1A1A2E" }}>{agentName}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 1 }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "#1A1A2E" }}>{displayAgentName}</span>
                   <VerifiedBadge />
                 </div>
-                <div style={{ fontSize: 12, color: "#6B7280" }}>Licensed Real Estate Agent</div>
-                {property.agent_phone && (
-                  <div style={{ fontSize: 12, color: G, fontWeight: 500, marginTop: 1 }}>{property.agent_phone}</div>
+                <div style={{ fontSize: 12, color: "#6B7280" }}>
+                  {brokerProfile?.agency ?? "Licensed Real Estate Agent"}
+                </div>
+                {displayAgentPhone && (
+                  <div style={{ fontSize: 11, color: G, fontWeight: 500, marginTop: 2 }}>
+                    {isLoggedIn ? displayAgentPhone : "Sign in to view number"}
+                  </div>
                 )}
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
-                {property.agent_phone && (
+              {brokerProfile && (
+                <Link href={`/brokers/${brokerProfile.id}`} style={{
+                  padding: "7px 12px", borderRadius: 10,
+                  background: "#fff", color: G, border: `1px solid rgba(45,106,79,0.25)`,
+                  fontSize: 11, fontWeight: 700, textDecoration: "none", flexShrink: 0,
+                }}>
+                  Profile →
+                </Link>
+              )}
+            </div>
+
+            {/* Contact buttons */}
+            {!isLoggedIn ? (
+              <div style={{ padding: "14px 16px", background: "#fff", borderTop: `1px solid rgba(45,106,79,0.08)` }}>
+                <p style={{ fontSize: 12, color: "#6B7280", marginBottom: 10, textAlign: "center" }}>
+                  🔒 Sign in to contact {displayAgentName.split(" ")[0]} and view full details
+                </p>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <a href="/auth/signup" style={{
+                    flex: 1, padding: "11px 0", borderRadius: 12, background: G, color: "#fff",
+                    textAlign: "center", fontSize: 13, fontWeight: 700, textDecoration: "none",
+                  }}>Sign up free</a>
+                  <a href="/auth/login" style={{
+                    flex: 1, padding: "11px 0", borderRadius: 12,
+                    background: "#fff", color: G, border: `1.5px solid rgba(45,106,79,0.25)`,
+                    textAlign: "center", fontSize: 13, fontWeight: 600, textDecoration: "none",
+                  }}>Log in</a>
+                </div>
+              </div>
+            ) : (
+              <div style={{ padding: "12px 16px 14px", background: "#fff", borderTop: `1px solid rgba(45,106,79,0.08)`, display: "flex", gap: 10 }}>
+                {/* WhatsApp */}
+                {displayAgentPhone && (
+                  <a href={`https://wa.me/${property.agent_phone?.replace(/\D/g, "")}`}
+                    target="_blank" rel="noopener noreferrer"
+                    style={{
+                      flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
+                      padding: "12px 0", borderRadius: 12, textDecoration: "none",
+                      background: "#25D366", color: "#fff", fontSize: 13, fontWeight: 700,
+                      boxShadow: "0 3px 12px rgba(37,211,102,0.3)",
+                    }}>
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                    </svg>
+                    WhatsApp
+                  </a>
+                )}
+                {/* Call */}
+                {displayAgentPhone && (
                   <a href={`tel:${property.agent_phone}`} style={{
-                    padding: "7px 14px", borderRadius: 10, background: G, color: "#fff",
-                    fontSize: 12, fontWeight: 700, textDecoration: "none", textAlign: "center",
+                    flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
+                    padding: "12px 0", borderRadius: 12, textDecoration: "none",
+                    background: G, color: "#fff", fontSize: 13, fontWeight: 700,
+                    boxShadow: "0 3px 12px rgba(45,106,79,0.3)",
                   }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.0 1.18 2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
+                    </svg>
                     Call
                   </a>
                 )}
-                {property.agent_email && (
+                {/* Email */}
+                {displayAgentEmail && (
                   <a href={`mailto:${property.agent_email}`} style={{
-                    padding: "7px 14px", borderRadius: 10, background: "#fff", color: G,
-                    fontSize: 12, fontWeight: 600, textDecoration: "none", textAlign: "center",
-                    border: `1px solid rgba(45,106,79,0.2)`,
+                    flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
+                    padding: "12px 0", borderRadius: 12, textDecoration: "none",
+                    background: "#F7F7F7", color: "#1A1A2E", border: "1.5px solid rgba(0,0,0,0.08)",
+                    fontSize: 13, fontWeight: 600,
                   }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+                    </svg>
                     Email
                   </a>
                 )}
               </div>
-            </div>
+            )}
+          </div>
 
           {/* Specs row */}
           {specs.length > 0 && (
