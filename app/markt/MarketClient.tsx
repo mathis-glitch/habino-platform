@@ -152,15 +152,6 @@ const INSIGHT_TABS = [
 ];
 
 // Fallback broker data (used while DB loads)
-const BROKERS_FALLBACK = [
-  { id: "1", name: "Selam Tadesse", region: "Bole, Kazanchis", phone: "+251 91 234 5678", specialty: "Luxury Residential", deals: 48, photo: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=160&h=160&fit=crop&crop=face" },
-  { id: "2", name: "Dawit Bekele",  region: "CMC, Yeka",       phone: "+251 92 345 6789", specialty: "Commercial & Office", deals: 36, photo: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=160&h=160&fit=crop&crop=face" },
-  { id: "3", name: "Hana Girma",    region: "Sarbet, Lideta",  phone: "+251 93 456 7890", specialty: "Buy & Investment",   deals: 29, photo: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=160&h=160&fit=crop&crop=face" },
-  { id: "4", name: "Abel Mekonnen", region: "Piassa, Arada",   phone: "+251 94 567 8901", specialty: "Land & Plots",       deals: 54, photo: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=160&h=160&fit=crop&crop=face" },
-  { id: "5", name: "Tigist Haile",  region: "Megenagna, Bole", phone: "+251 95 678 9012", specialty: "Expat & NGO Rentals",deals: 41, photo: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=160&h=160&fit=crop&crop=face" },
-  { id: "6", name: "Yonas Alemu",   region: "Nifas Silk-Lafto",phone: "+251 96 789 0123", specialty: "New Developments",   deals: 22, photo: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=160&h=160&fit=crop&crop=face" },
-];
-
 type DbBroker = {
   id: string;
   full_name: string;
@@ -175,85 +166,199 @@ type DbBroker = {
   phone: string | null;
 };
 
+// ── Gender detection from first name ─────────────────────────────────────────
+const FEMALE_NAMES = new Set([
+  "selam","hana","tigist","meron","makda","eden","liya","selamawit","mihret","yeshi",
+  "almaz","hiwot","bethlehem","rahel","sara","sofia","grace","aisha","fatima","amina",
+  "abeba","chaltu","dagne","fikerte","genet","hirut","kedist","lemlem","mekdes","nigest",
+  "rediet","senait","tirhas","winta","zewditu","haben","lidat","saron","tsion","yordanos",
+]);
+function isFemale(fullName: string): boolean {
+  const first = fullName.trim().split(" ")[0].toLowerCase();
+  return FEMALE_NAMES.has(first);
+}
+
+// ── Gender avatar SVGs ────────────────────────────────────────────────────────
+function AvatarMale({ size = 56 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 56 56" fill="none">
+      <rect width="56" height="56" rx="14" fill="#E8EDF0"/>
+      {/* Head */}
+      <circle cx="28" cy="20" r="10" fill="#C4CDD4"/>
+      {/* Shoulders */}
+      <path d="M10 52c0-9.941 8.059-18 18-18s18 8.059 18 18" fill="#C4CDD4"/>
+    </svg>
+  );
+}
+function AvatarFemale({ size = 56 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 56 56" fill="none">
+      <rect width="56" height="56" rx="14" fill="#EDE8F0"/>
+      {/* Head */}
+      <circle cx="28" cy="20" r="10" fill="#C4B8D4"/>
+      {/* Hair bun */}
+      <circle cx="28" cy="11" r="5" fill="#C4B8D4"/>
+      {/* Shoulders — slightly narrower */}
+      <path d="M12 52c0-8.837 7.163-16 16-16s16 7.163 16 16" fill="#C4B8D4"/>
+    </svg>
+  );
+}
+
+// ── Achievement badges ────────────────────────────────────────────────────────
+type Badge = { label: string; color: string; bg: string };
+function getBadges(b: DbBroker): Badge[] {
+  const badges: Badge[] = [];
+  if (b.verified) badges.push({ label: "Verified", color: T.primary, bg: T.primaryL });
+  const rating = typeof b.rating === "number" ? b.rating : 0;
+  if (rating >= 4.8) badges.push({ label: "Top Rated", color: "#92400E", bg: "#FEF3C7" });
+  const yrs = b.years_experience ?? 0;
+  if (yrs >= 7) badges.push({ label: "Senior Expert", color: "#1E40AF", bg: "#DBEAFE" });
+  else if (yrs >= 3) badges.push({ label: "Experienced", color: "#1E40AF", bg: "#EFF6FF" });
+  const spec = (b.speciality ?? "").toLowerCase();
+  if (spec.includes("luxury")) badges.push({ label: "Luxury", color: "#6D28D9", bg: "#EDE9FE" });
+  if (spec.includes("commercial")) badges.push({ label: "Commercial", color: "#9A3412", bg: "#FFEDD5" });
+  if (spec.includes("land") || spec.includes("plot")) badges.push({ label: "Land & Plots", color: "#065F46", bg: "#D1FAE5" });
+  if (spec.includes("expat") || spec.includes("ngo")) badges.push({ label: "Expat Specialist", color: "#0E7490", bg: "#CFFAFE" });
+  if ((b.listings_count ?? 0) >= 30) badges.push({ label: "High Volume", color: "#374151", bg: "#F3F4F6" });
+  return badges.slice(0, 3);
+}
+
+// ── Usage type tags ───────────────────────────────────────────────────────────
+const USAGE_TAGS: Record<string, string[]> = {
+  "Luxury Residential": ["Residential", "Luxury"],
+  "Commercial & Office": ["Commercial", "Office"],
+  "Buy & Investment": ["Investment", "Buy"],
+  "Land & Plots": ["Land", "Plots"],
+  "Expat & NGO Rentals": ["Rental", "Expat"],
+  "New Developments": ["New Build", "Off-Plan"],
+  "Residential Sales": ["Residential", "Sales"],
+  "Property Management": ["Management", "Rental"],
+  "Industrial": ["Industrial", "Warehouse"],
+};
+function getUsageTags(speciality: string | null): string[] {
+  if (!speciality) return [];
+  return USAGE_TAGS[speciality] ?? [speciality];
+}
+
+// ── Broker Card ───────────────────────────────────────────────────────────────
 function BrokerCard({ broker }: { broker: DbBroker }) {
-  const [imgErr, setImgErr] = useState(false);
-  const name   = broker.full_name ?? "Agent";
-  const region = broker.districts?.slice(0, 2).join(", ") ?? "Addis Abeba";
-  const photo  = broker.avatar_url ?? "";
-  const deals  = broker.listings_count ?? 0;
-  const rating = typeof broker.rating === "number" ? broker.rating : null;
+  const name    = broker.full_name ?? "Agent";
+  const female  = isFemale(name);
+  const deals   = broker.listings_count ?? 0;
+  const rating  = typeof broker.rating === "number" ? broker.rating : null;
+  const badges  = getBadges(broker);
+  const usage   = getUsageTags(broker.speciality);
+  const regions = (broker.districts ?? []).slice(0, 3);
+
   return (
     <a href={`/brokers/${broker.id}`} style={{ textDecoration: "none" }}>
-    <div style={{
-      background: T.bg,
-      border: `1px solid ${T.border}`,
-      borderRadius: 16,
-      padding: 16,
-      display: "flex",
-      gap: 14,
-      alignItems: "flex-start",
-      boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
-    }}>
-      {/* Avatar */}
-      <div style={{ width: 56, height: 56, borderRadius: 14, overflow: "hidden", flexShrink: 0, background: T.bgSoft2 }}>
-        {photo && !imgErr ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={photo} alt={name} onError={() => setImgErr(true)}
-            style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-        ) : (
-          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center",
-            background: T.primaryL, color: T.primary, fontSize: 20, fontWeight: 700 }}>
-            {name[0] ?? "?"}
-          </div>
-        )}
-      </div>
+      <div style={{
+        background: T.bg, border: `1px solid ${T.border}`,
+        borderRadius: 18, overflow: "hidden",
+        boxShadow: "0 2px 12px rgba(0,0,0,0.05)",
+      }}>
+        {/* Top accent strip based on gender */}
+        <div style={{ height: 3, background: female ? "linear-gradient(90deg,#C4B8D4,#9B7EC8)" : "linear-gradient(90deg,#2D6A4F,#40916C)" }} />
 
-      {/* Info */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-          <span style={{ fontWeight: 700, fontSize: 15, color: T.text1 }}>{name}</span>
-          {broker.verified && (
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <circle cx="7" cy="7" r="7" fill={T.primary} />
-              <path d="M4 7l2 2 4-4" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          )}
-        </div>
-        <div style={{ fontSize: 12, color: T.text3, marginBottom: 6 }}>{region}</div>
-        {broker.speciality && (
-          <div style={{
-            display: "inline-block", padding: "2px 8px", borderRadius: 6,
-            background: T.primaryL, color: T.primary, fontSize: 11, fontWeight: 600, marginBottom: 8,
-          }}>
-            {broker.speciality}
+        <div style={{ padding: "14px 16px 16px", display: "flex", gap: 14, alignItems: "flex-start" }}>
+          {/* Avatar placeholder */}
+          <div style={{ flexShrink: 0 }}>
+            {female ? <AvatarFemale /> : <AvatarMale />}
           </div>
-        )}
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          {rating !== null && (
-            <div style={{
-              display: "flex", alignItems: "center", gap: 4,
-              padding: "6px 10px", borderRadius: 10, background: T.primaryL,
-              fontSize: 12, fontWeight: 600, color: T.primary,
-            }}>
-              <svg width="11" height="11" fill={T.primary} viewBox="0 0 24 24">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-              </svg>
-              {rating.toFixed(1)}
+
+          {/* Info */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {/* Name + verified */}
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 1 }}>
+              <span style={{ fontWeight: 700, fontSize: 15, color: T.text1 }}>{name}</span>
+              {broker.verified && (
+                <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+                  <circle cx="7.5" cy="7.5" r="7.5" fill={female ? "#6D28D9" : T.primary}/>
+                  <path d="M4.5 7.5l2 2 4-4" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              )}
             </div>
-          )}
-          <div style={{
-            display: "flex", alignItems: "center", gap: 4,
-            padding: "6px 10px", borderRadius: 10, background: T.bgSoft2,
-            fontSize: 12, fontWeight: 600, color: T.text2,
-          }}>
-            {deals} listings
-          </div>
-          <div style={{ marginLeft: "auto", fontSize: 12, fontWeight: 600, color: T.primary }}>
-            Profile →
+
+            {/* Agency */}
+            {broker.agency && (
+              <div style={{ fontSize: 11, color: T.text3, marginBottom: 6 }}>{broker.agency}</div>
+            )}
+
+            {/* Achievement badges */}
+            {badges.length > 0 && (
+              <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 8 }}>
+                {badges.map(badge => (
+                  <span key={badge.label} style={{
+                    padding: "2px 7px", borderRadius: 6,
+                    fontSize: 10, fontWeight: 700,
+                    color: badge.color, background: badge.bg,
+                  }}>
+                    {badge.label}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Usage type tags */}
+            {usage.length > 0 && (
+              <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 6 }}>
+                {usage.map(u => (
+                  <span key={u} style={{
+                    padding: "2px 7px", borderRadius: 6,
+                    fontSize: 10, fontWeight: 600,
+                    color: "#374151", background: "#F3F4F6",
+                    border: "1px solid #E5E7EB",
+                  }}>
+                    {u}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Region tags */}
+            {regions.length > 0 && (
+              <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 10 }}>
+                {regions.map(r => (
+                  <span key={r} style={{
+                    display: "flex", alignItems: "center", gap: 3,
+                    padding: "2px 7px", borderRadius: 6,
+                    fontSize: 10, fontWeight: 600,
+                    color: T.primary, background: T.primaryL,
+                  }}>
+                    <svg width="8" height="8" fill="none" stroke={T.primary} strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"/>
+                    </svg>
+                    {r}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Stats row */}
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              {rating !== null && (
+                <div style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 12, fontWeight: 700, color: "#92400E" }}>
+                  <svg width="11" height="11" fill="#F59E0B" viewBox="0 0 24 24">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                  </svg>
+                  {rating.toFixed(1)}
+                </div>
+              )}
+              <div style={{ fontSize: 12, color: T.text3 }}>·</div>
+              <div style={{ fontSize: 12, color: T.text2, fontWeight: 600 }}>{deals} listings</div>
+              {(broker.years_experience ?? 0) > 0 && (
+                <>
+                  <div style={{ fontSize: 12, color: T.text3 }}>·</div>
+                  <div style={{ fontSize: 12, color: T.text2 }}>{broker.years_experience}y exp</div>
+                </>
+              )}
+              <div style={{ marginLeft: "auto", fontSize: 12, fontWeight: 700, color: T.primary }}>
+                View →
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
     </a>
   );
 }
@@ -262,11 +367,34 @@ export default function InsightsClient() {
   const [district, setDistrict] = useState("All Districts");
   const [usage,    setUsage]    = useState("residential");
   const [tab,      setTab]      = useState("market");
-  const [brokers,  setBrokers]  = useState<DbBroker[]>([]);
+  const [brokers,      setBrokers]      = useState<DbBroker[]>([]);
   const [brokersLoading, setBrokersLoading] = useState(false);
-  const [brokerPage, setBrokerPage] = useState(1);
-  const [brokerTotal, setBrokerTotal] = useState(0);
+  const [brokerPage,   setBrokerPage]   = useState(1);
+  const [brokerTotal,  setBrokerTotal]  = useState(0);
+  const [brokerSearch, setBrokerSearch] = useState("");
+  const [brokerRegion, setBrokerRegion] = useState("All");
+  const [brokerAiQuery, setBrokerAiQuery] = useState("");
+  const [aiThinking,   setAiThinking]   = useState(false);
   const BROKER_LIMIT = 20;
+
+  const AI_SUGGESTIONS = [
+    "Luxury apartment specialist in Bole",
+    "Commercial property broker CMC",
+    "Broker with 5+ years experience",
+    "Top rated agent for rentals",
+    "Land and plots specialist",
+  ];
+
+  const BROKER_REGIONS = ["All", "Bole", "CMC", "Kazanchis", "Sarbet", "Megenagna", "Piassa", "Yeka", "Nifas Silk"];
+
+  function handleAiSearch(q: string) {
+    setBrokerAiQuery(q);
+    setAiThinking(true);
+    setTimeout(() => {
+      setBrokerSearch(q);
+      setAiThinking(false);
+    }, 600);
+  }
 
   useEffect(() => {
     if (tab !== "brokers") return;
@@ -288,6 +416,12 @@ export default function InsightsClient() {
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", background: T.bgSoft, fontFamily: T.font, minHeight: 0 }}>
+      <style>{`
+        @keyframes bounce {
+          0%, 80%, 100% { transform: scaleY(1); }
+          40% { transform: scaleY(1.6); }
+        }
+      `}</style>
 
       {/* ── Header ── */}
       <div style={{ padding: "52px 20px 0", background: T.bg }}>
@@ -590,36 +724,162 @@ export default function InsightsClient() {
       )}
 
       {/* ── Brokers tab ── */}
-      {tab === "brokers" && (
-        <div style={{ flex: 1, overflowY: "auto", padding: "16px 16px 100px", display: "flex", flexDirection: "column", gap: 12 }}>
-          <p style={{ fontSize: 13, color: T.text2, margin: "0 0 4px" }}>
-            {brokerTotal > 0 ? `${brokerTotal} verified brokers in Addis Abeba` : "Verified brokers in Addis Abeba"}
-          </p>
-          {brokers.length === 0 ? (
-            Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} style={{ height: 96, borderRadius: 16, background: T.bgSoft2 }} />
-            ))
-          ) : (
-            brokers.map((b) => <BrokerCard key={b.id} broker={b} />)
-          )}
-          {/* Load more */}
-          {!brokersLoading && brokers.length > 0 && brokers.length < brokerTotal && (
-            <button
-              onClick={() => setBrokerPage(p => p + 1)}
-              style={{
-                padding: "12px 0", borderRadius: 12, border: `1.5px solid ${T.border2}`,
-                background: T.bg, color: T.primary, fontSize: 14, fontWeight: 700,
-                cursor: "pointer", fontFamily: T.font,
-              }}
-            >
-              Load more ({brokerTotal - brokers.length} remaining)
-            </button>
-          )}
-          {brokersLoading && brokers.length > 0 && (
-            <div style={{ textAlign: "center", padding: "8px 0", fontSize: 13, color: T.text3 }}>Loading…</div>
-          )}
-        </div>
-      )}
+      {tab === "brokers" && (() => {
+        const q = brokerSearch.toLowerCase().trim();
+        const filtered = brokers.filter(b => {
+          const matchSearch = !q
+            || (b.full_name ?? "").toLowerCase().includes(q)
+            || (b.speciality ?? "").toLowerCase().includes(q)
+            || (b.agency ?? "").toLowerCase().includes(q)
+            || (b.districts ?? []).some(d => d.toLowerCase().includes(q));
+          const matchRegion = brokerRegion === "All"
+            || (b.districts ?? []).some(d => d.toLowerCase().includes(brokerRegion.toLowerCase()));
+          return matchSearch && matchRegion;
+        });
+
+        return (
+          <div style={{ flex: 1, overflowY: "auto", paddingBottom: 100 }}>
+
+            {/* ── AI Search Panel ── */}
+            <div style={{ padding: "16px 16px 0" }}>
+              <div style={{
+                background: T.bg, borderRadius: 18,
+                border: `1px solid ${T.border}`,
+                boxShadow: "0 4px 20px rgba(0,0,0,0.07)",
+                overflow: "hidden", marginBottom: 12,
+              }}>
+                {/* Header */}
+                <div style={{ padding: "14px 16px 10px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 10, background: T.primaryL, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <svg width="16" height="16" fill="none" stroke={T.primary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <path d="M12 2a2 2 0 012 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 017 7h1a1 1 0 010 2h-1v1a2 2 0 01-2 2H5a2 2 0 01-2-2v-1H2a1 1 0 010-2h1a7 7 0 017-7h1V5.73A2 2 0 0110 4a2 2 0 012-2z"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: T.text1 }}>AI Broker Finder</div>
+                    <div style={{ fontSize: 11, color: T.text3 }}>Describe what you&apos;re looking for</div>
+                  </div>
+                  {aiThinking && (
+                    <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: T.primary }}>
+                      <div style={{ display: "flex", gap: 3 }}>
+                        {[0,1,2].map(i => (
+                          <div key={i} style={{
+                            width: 5, height: 5, borderRadius: "50%", background: T.primary,
+                            animation: `bounce 1s ${i * 0.15}s infinite`,
+                          }}/>
+                        ))}
+                      </div>
+                      Searching…
+                    </div>
+                  )}
+                </div>
+
+                {/* Input */}
+                <div style={{ padding: "10px 16px", display: "flex", gap: 8, alignItems: "center" }}>
+                  <input
+                    value={brokerAiQuery}
+                    onChange={e => { setBrokerAiQuery(e.target.value); setBrokerSearch(e.target.value); }}
+                    onKeyDown={e => e.key === "Enter" && handleAiSearch(brokerAiQuery)}
+                    placeholder="e.g. Luxury specialist in Bole with 5+ years…"
+                    style={{
+                      flex: 1, border: "none", outline: "none", background: "transparent",
+                      fontSize: 14, color: T.text1, fontFamily: T.font,
+                    }}
+                  />
+                  {brokerAiQuery ? (
+                    <button onClick={() => { setBrokerAiQuery(""); setBrokerSearch(""); }}
+                      style={{ background: "none", border: "none", cursor: "pointer", color: T.text3, padding: 4, display: "flex" }}>
+                      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" d="M6 18L18 6M6 6l12 12"/>
+                      </svg>
+                    </button>
+                  ) : (
+                    <button onClick={() => handleAiSearch(brokerAiQuery)}
+                      style={{ padding: "7px 14px", borderRadius: 10, background: T.primary, border: "none", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: T.font }}>
+                      Search
+                    </button>
+                  )}
+                </div>
+
+                {/* Suggestions */}
+                {!brokerAiQuery && (
+                  <div style={{ padding: "0 16px 14px", display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    {AI_SUGGESTIONS.map(s => (
+                      <button key={s} onClick={() => handleAiSearch(s)}
+                        style={{
+                          padding: "5px 10px", borderRadius: 8,
+                          background: T.bgSoft, border: `1px solid ${T.border}`,
+                          fontSize: 11, fontWeight: 500, color: T.text2,
+                          cursor: "pointer", fontFamily: T.font,
+                        }}>
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Region filter chips */}
+              <div style={{ display: "flex", gap: 7, overflowX: "auto", paddingBottom: 4, marginBottom: 12 }}>
+                {BROKER_REGIONS.map(r => (
+                  <button key={r} onClick={() => setBrokerRegion(r)}
+                    style={{
+                      padding: "6px 13px", borderRadius: 20, flexShrink: 0,
+                      border: `1.5px solid ${brokerRegion === r ? T.primary : T.border2}`,
+                      background: brokerRegion === r ? T.primary : T.bg,
+                      color: brokerRegion === r ? "#fff" : T.text2,
+                      fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: T.font,
+                    }}>
+                    {r}
+                  </button>
+                ))}
+              </div>
+
+              {/* Result count */}
+              <p style={{ fontSize: 12, color: T.text3, marginBottom: 10 }}>
+                {brokers.length === 0
+                  ? "Loading brokers…"
+                  : `${filtered.length} broker${filtered.length !== 1 ? "s" : ""} found${q || brokerRegion !== "All" ? " · filtered" : ` of ${brokerTotal}`}`}
+              </p>
+            </div>
+
+            {/* Broker list */}
+            <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 10 }}>
+              {brokers.length === 0 ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} style={{ height: 130, borderRadius: 18, background: T.bgSoft2 }} />
+                ))
+              ) : filtered.length === 0 ? (
+                <div style={{ padding: "40px 0", textAlign: "center" }}>
+                  <div style={{ fontSize: 32, marginBottom: 10 }}>🔍</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: T.text1, marginBottom: 6 }}>No brokers found</div>
+                  <div style={{ fontSize: 13, color: T.text2 }}>Try a different search or region filter</div>
+                </div>
+              ) : (
+                filtered.map(b => <BrokerCard key={b.id} broker={b} />)
+              )}
+            </div>
+
+            {/* Load more */}
+            {!brokersLoading && !q && brokerRegion === "All" && brokers.length < brokerTotal && (
+              <div style={{ padding: "12px 16px" }}>
+                <button onClick={() => setBrokerPage(p => p + 1)}
+                  style={{
+                    width: "100%", padding: "12px 0", borderRadius: 12,
+                    border: `1.5px solid ${T.border2}`,
+                    background: T.bg, color: T.primary,
+                    fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: T.font,
+                  }}>
+                  Load more ({brokerTotal - brokers.length} remaining)
+                </button>
+              </div>
+            )}
+            {brokersLoading && brokers.length > 0 && (
+              <div style={{ textAlign: "center", padding: "12px 0", fontSize: 13, color: T.text3 }}>Loading…</div>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 }
