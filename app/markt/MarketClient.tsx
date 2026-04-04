@@ -177,9 +177,11 @@ type DbBroker = {
 
 function BrokerCard({ broker }: { broker: DbBroker }) {
   const [imgErr, setImgErr] = useState(false);
+  const name   = broker.full_name ?? "Agent";
   const region = broker.districts?.slice(0, 2).join(", ") ?? "Addis Abeba";
   const photo  = broker.avatar_url ?? "";
   const deals  = broker.listings_count ?? 0;
+  const rating = typeof broker.rating === "number" ? broker.rating : null;
   return (
     <a href={`/brokers/${broker.id}`} style={{ textDecoration: "none" }}>
     <div style={{
@@ -196,12 +198,12 @@ function BrokerCard({ broker }: { broker: DbBroker }) {
       <div style={{ width: 56, height: 56, borderRadius: 14, overflow: "hidden", flexShrink: 0, background: T.bgSoft2 }}>
         {photo && !imgErr ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={photo} alt={broker.full_name} onError={() => setImgErr(true)}
+          <img src={photo} alt={name} onError={() => setImgErr(true)}
             style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         ) : (
           <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center",
             background: T.primaryL, color: T.primary, fontSize: 20, fontWeight: 700 }}>
-            {broker.full_name[0]}
+            {name[0] ?? "?"}
           </div>
         )}
       </div>
@@ -209,7 +211,7 @@ function BrokerCard({ broker }: { broker: DbBroker }) {
       {/* Info */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-          <span style={{ fontWeight: 700, fontSize: 15, color: T.text1 }}>{broker.full_name}</span>
+          <span style={{ fontWeight: 700, fontSize: 15, color: T.text1 }}>{name}</span>
           {broker.verified && (
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
               <circle cx="7" cy="7" r="7" fill={T.primary} />
@@ -227,7 +229,7 @@ function BrokerCard({ broker }: { broker: DbBroker }) {
           </div>
         )}
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          {broker.rating && (
+          {rating !== null && (
             <div style={{
               display: "flex", alignItems: "center", gap: 4,
               padding: "6px 10px", borderRadius: 10, background: T.primaryL,
@@ -236,7 +238,7 @@ function BrokerCard({ broker }: { broker: DbBroker }) {
               <svg width="11" height="11" fill={T.primary} viewBox="0 0 24 24">
                 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
               </svg>
-              {broker.rating.toFixed(1)}
+              {rating.toFixed(1)}
             </div>
           )}
           <div style={{
