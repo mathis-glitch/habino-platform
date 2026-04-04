@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import dynamic from "next/dynamic";
+import { AIDescribeInput } from "@/components/AIDescribeInput";
 
 const T = {
   bg: "#FFFFFF", bgSoft: "#F7F7F7", bgSoft2: "#EDEDED",
@@ -12,13 +13,14 @@ const T = {
   font: "'Inter',-apple-system,sans-serif",
 };
 
-// Steps
+// Steps — "describe" is step 0 (optional AI fast-fill)
 const STEPS = [
-  { id: "location", label: "Location",   icon: "📍" },
-  { id: "photos",   label: "Photos",     icon: "📷" },
-  { id: "ai",       label: "AI Review",  icon: "✨" },
-  { id: "details",  label: "Details",    icon: "📋" },
-  { id: "publish",  label: "Publish",    icon: "🚀" },
+  { id: "describe",  label: "Describe",  icon: "🎤" },
+  { id: "location",  label: "Location",  icon: "📍" },
+  { id: "photos",    label: "Photos",    icon: "📷" },
+  { id: "ai",        label: "AI Review", icon: "✨" },
+  { id: "details",   label: "Details",   icon: "📋" },
+  { id: "publish",   label: "Publish",   icon: "🚀" },
 ];
 
 const PROPERTY_TYPES = [
@@ -82,6 +84,10 @@ interface ListingDraft {
   year_built: string;
   amenities: string[];
   available_from: string;
+  furnished: string;
+  condition: string;
+  nearby_landmarks: string;
+  contact_preference: string;
   status: "draft" | "active";
 }
 
@@ -90,7 +96,8 @@ const EMPTY: ListingDraft = {
   lat: null, lng: null, images: [], ai_title: "", ai_description: "",
   ai_property_type: "", title: "", description: "", price: "", currency: "ETB",
   bedrooms: "", bathrooms: "", area_sqm: "", floor: "", floors_total: "",
-  year_built: "", amenities: [], available_from: "", status: "draft",
+  year_built: "", amenities: [], available_from: "", furnished: "",
+  condition: "", nearby_landmarks: "", contact_preference: "", status: "draft",
 };
 
 // ── Step indicator ────────────────────────────────────────────────────────────
@@ -603,6 +610,44 @@ function StepDetails({ draft, onChange, onNext, onBack }: {
         </div>
       </div>
 
+      {/* Furnished + Condition */}
+      {!isLand && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 700, color: T.text3, textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: 6 }}>Furnished</label>
+            <select value={draft.furnished} onChange={e => onChange({ furnished: e.target.value })}
+              style={{ width: "100%", padding: "12px 10px", borderRadius: 10, border: `1.5px solid ${draft.furnished ? T.primary : T.border2}`, fontSize: 14, color: T.text1, fontFamily: T.font, background: T.bg, outline: "none", boxSizing: "border-box" }}>
+              <option value="">Select…</option>
+              <option value="furnished">Fully furnished</option>
+              <option value="semi-furnished">Semi-furnished</option>
+              <option value="unfurnished">Unfurnished</option>
+            </select>
+          </div>
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 700, color: T.text3, textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: 6 }}>Condition</label>
+            <select value={draft.condition} onChange={e => onChange({ condition: e.target.value })}
+              style={{ width: "100%", padding: "12px 10px", borderRadius: 10, border: `1.5px solid ${draft.condition ? T.primary : T.border2}`, fontSize: 14, color: T.text1, fontFamily: T.font, background: T.bg, outline: "none", boxSizing: "border-box" }}>
+              <option value="">Select…</option>
+              <option value="new">Brand new</option>
+              <option value="renovated">Renovated</option>
+              <option value="good">Good condition</option>
+              <option value="needs-work">Needs work</option>
+            </select>
+          </div>
+        </div>
+      )}
+
+      {/* Nearby landmarks */}
+      <div>
+        <label style={{ fontSize: 12, fontWeight: 700, color: T.text3, textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: 6 }}>Nearby Landmarks</label>
+        <input
+          value={draft.nearby_landmarks}
+          onChange={e => onChange({ nearby_landmarks: e.target.value })}
+          placeholder="e.g. Near Bole Medhanialem, 5 min to Edna Mall"
+          style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: `1.5px solid ${draft.nearby_landmarks ? T.primary : T.border2}`, fontSize: 14, color: T.text1, fontFamily: T.font, boxSizing: "border-box", outline: "none" }}
+        />
+      </div>
+
       {/* Amenities */}
       <div>
         <div style={{ fontSize: 12, fontWeight: 700, color: T.text3, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>
@@ -805,11 +850,57 @@ export default function NewListingClient() {
 
       {/* Content */}
       <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 100px" }}>
-        {step === 0 && <StepLocation  draft={draft} onChange={update} onNext={() => setStep(1)} />}
-        {step === 1 && <StepPhotos   draft={draft} onChange={update} onNext={() => setStep(2)} onBack={() => setStep(0)} />}
-        {step === 2 && <StepAI       draft={draft} onChange={update} onNext={() => setStep(3)} onBack={() => setStep(1)} />}
-        {step === 3 && <StepDetails  draft={draft} onChange={update} onNext={() => setStep(4)} onBack={() => setStep(2)} />}
-        {step === 4 && <StepPublish  draft={draft} onChange={update} onBack={() => setStep(3)} />}
+        {step === 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            <AIDescribeInput
+              type="property"
+              onDraft={d => {
+                const coords = DISTRICT_COORDS[d.neighbourhood as string] ?? [9.005, 38.763];
+                update({
+                  listing_type:       String(d.listing_type || ""),
+                  property_type:      String(d.property_type || ""),
+                  neighbourhood:      String(d.neighbourhood || ""),
+                  lat:                d.neighbourhood ? coords[0] : null,
+                  lng:                d.neighbourhood ? coords[1] : null,
+                  title:              String(d.title || ""),
+                  description:        String(d.description || ""),
+                  price:              d.price != null ? String(d.price) : "",
+                  currency:           String(d.currency || "ETB"),
+                  bedrooms:           d.bedrooms != null ? String(d.bedrooms) : "",
+                  bathrooms:          d.bathrooms != null ? String(d.bathrooms) : "",
+                  area_sqm:           d.area_sqm != null ? String(d.area_sqm) : "",
+                  floor:              d.floor != null ? String(d.floor) : "",
+                  floors_total:       d.floors_total != null ? String(d.floors_total) : "",
+                  year_built:         d.year_built != null ? String(d.year_built) : "",
+                  amenities:          Array.isArray(d.amenities) ? d.amenities as string[] : [],
+                  available_from:     String(d.available_from || ""),
+                  furnished:          String(d.furnished || ""),
+                  condition:          String(d.condition || ""),
+                  nearby_landmarks:   String(d.nearby_landmarks || ""),
+                  contact_preference: String(d.contact_preference || ""),
+                  // Mark AI step as done
+                  ai_title:           String(d.title || ""),
+                  ai_description:     String(d.description || ""),
+                  ai_property_type:   String(d.property_type || ""),
+                });
+                setStep(1); // Jump to location (with pre-fill) — skip to photos if district already set
+              }}
+            />
+            <div style={{ textAlign: "center" }}>
+              <button onClick={() => setStep(1)} style={{
+                background: "none", border: "none", cursor: "pointer",
+                fontSize: 13, color: "#9CA3AF", fontFamily: T.font, textDecoration: "underline",
+              }}>
+                Skip and fill in manually →
+              </button>
+            </div>
+          </div>
+        )}
+        {step === 1 && <StepLocation  draft={draft} onChange={update} onNext={() => setStep(2)} onBack={() => setStep(0)} />}
+        {step === 2 && <StepPhotos    draft={draft} onChange={update} onNext={() => setStep(3)} onBack={() => setStep(1)} />}
+        {step === 3 && <StepAI        draft={draft} onChange={update} onNext={() => setStep(4)} onBack={() => setStep(2)} />}
+        {step === 4 && <StepDetails   draft={draft} onChange={update} onNext={() => setStep(5)} onBack={() => setStep(3)} />}
+        {step === 5 && <StepPublish   draft={draft} onChange={update} onBack={() => setStep(4)} />}
       </div>
     </div>
   );
