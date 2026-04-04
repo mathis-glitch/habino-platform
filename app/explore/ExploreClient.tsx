@@ -592,9 +592,9 @@ function SavedPanel({
     >
       <div
         style={{
-          position: "absolute", bottom: 0, left: 0, right: 0,
+          position: "absolute", top: "5%", left: 0, right: 0, bottom: 0,
           background: T.bg, borderRadius: "24px 24px 0 0",
-          maxHeight: "82vh", display: "flex", flexDirection: "column",
+          display: "flex", flexDirection: "column",
           boxShadow: T.shadowLg,
         }}
         onClick={e => e.stopPropagation()}
