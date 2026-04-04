@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PriceTrendChart, DistrictChart } from "./MarktCharts";
 
 // ── Light-mode design tokens (hardcoded — no CSS vars) ────────────────────────
@@ -151,19 +151,37 @@ const INSIGHT_TABS = [
   { key: "blog",    label: "Blog" },
 ];
 
-// Mock broker data
-const BROKERS = [
-  { id: "1", name: "Selam Tadesse", region: "Bole, Kazanchis", phone: "+251 91 234 5678", website: "habino.et/selam", specialty: "Luxury Residential", deals: 48, photo: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=160&h=160&fit=crop&crop=face" },
-  { id: "2", name: "Dawit Bekele",  region: "CMC, Yeka",        phone: "+251 92 345 6789", website: "habino.et/dawit",  specialty: "Commercial & Office",  deals: 36, photo: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=160&h=160&fit=crop&crop=face" },
-  { id: "3", name: "Hana Girma",    region: "Sarbet, Lideta",   phone: "+251 93 456 7890", website: "habino.et/hana",  specialty: "Buy & Investment",     deals: 29, photo: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=160&h=160&fit=crop&crop=face" },
-  { id: "4", name: "Abel Mekonnen", region: "Piassa, Arada",    phone: "+251 94 567 8901", website: "habino.et/abel",  specialty: "Land & Plots",         deals: 54, photo: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=160&h=160&fit=crop&crop=face" },
-  { id: "5", name: "Tigist Haile",  region: "Megenagna, Bole",  phone: "+251 95 678 9012", website: "habino.et/tigist", specialty: "Expat & NGO Rentals", deals: 41, photo: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=160&h=160&fit=crop&crop=face" },
-  { id: "6", name: "Yonas Alemu",   region: "Nifas Silk-Lafto", phone: "+251 96 789 0123", website: "habino.et/yonas",  specialty: "New Developments",     deals: 22, photo: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=160&h=160&fit=crop&crop=face" },
+// Fallback broker data (used while DB loads)
+const BROKERS_FALLBACK = [
+  { id: "1", name: "Selam Tadesse", region: "Bole, Kazanchis", phone: "+251 91 234 5678", specialty: "Luxury Residential", deals: 48, photo: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=160&h=160&fit=crop&crop=face" },
+  { id: "2", name: "Dawit Bekele",  region: "CMC, Yeka",       phone: "+251 92 345 6789", specialty: "Commercial & Office", deals: 36, photo: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=160&h=160&fit=crop&crop=face" },
+  { id: "3", name: "Hana Girma",    region: "Sarbet, Lideta",  phone: "+251 93 456 7890", specialty: "Buy & Investment",   deals: 29, photo: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=160&h=160&fit=crop&crop=face" },
+  { id: "4", name: "Abel Mekonnen", region: "Piassa, Arada",   phone: "+251 94 567 8901", specialty: "Land & Plots",       deals: 54, photo: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=160&h=160&fit=crop&crop=face" },
+  { id: "5", name: "Tigist Haile",  region: "Megenagna, Bole", phone: "+251 95 678 9012", specialty: "Expat & NGO Rentals",deals: 41, photo: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=160&h=160&fit=crop&crop=face" },
+  { id: "6", name: "Yonas Alemu",   region: "Nifas Silk-Lafto",phone: "+251 96 789 0123", specialty: "New Developments",   deals: 22, photo: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=160&h=160&fit=crop&crop=face" },
 ];
 
-function BrokerCard({ broker }: { broker: typeof BROKERS[0] }) {
+type DbBroker = {
+  id: string;
+  full_name: string;
+  avatar_url: string | null;
+  agency: string | null;
+  verified: boolean;
+  rating: number | null;
+  districts: string[] | null;
+  speciality: string | null;
+  years_experience: number | null;
+  listings_count: number | null;
+  phone: string | null;
+};
+
+function BrokerCard({ broker }: { broker: DbBroker }) {
   const [imgErr, setImgErr] = useState(false);
+  const region = broker.districts?.slice(0, 2).join(", ") ?? "Addis Abeba";
+  const photo  = broker.avatar_url ?? "";
+  const deals  = broker.listings_count ?? 0;
   return (
+    <a href={`/brokers/${broker.id}`} style={{ textDecoration: "none" }}>
     <div style={{
       background: T.bg,
       border: `1px solid ${T.border}`,
@@ -176,49 +194,65 @@ function BrokerCard({ broker }: { broker: typeof BROKERS[0] }) {
     }}>
       {/* Avatar */}
       <div style={{ width: 56, height: 56, borderRadius: 14, overflow: "hidden", flexShrink: 0, background: T.bgSoft2 }}>
-        {!imgErr ? (
+        {photo && !imgErr ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={broker.photo} alt={broker.name} onError={() => setImgErr(true)}
+          <img src={photo} alt={broker.full_name} onError={() => setImgErr(true)}
             style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         ) : (
           <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center",
             background: T.primaryL, color: T.primary, fontSize: 20, fontWeight: 700 }}>
-            {broker.name[0]}
+            {broker.full_name[0]}
           </div>
         )}
       </div>
 
       {/* Info */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 700, fontSize: 15, color: T.text1, marginBottom: 2 }}>{broker.name}</div>
-        <div style={{ fontSize: 12, color: T.text3, marginBottom: 6 }}>{broker.region}</div>
-        <div style={{
-          display: "inline-block", padding: "2px 8px", borderRadius: 6,
-          background: T.primaryL, color: T.primary, fontSize: 11, fontWeight: 600, marginBottom: 8,
-        }}>
-          {broker.specialty}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+          <span style={{ fontWeight: 700, fontSize: 15, color: T.text1 }}>{broker.full_name}</span>
+          {broker.verified && (
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <circle cx="7" cy="7" r="7" fill={T.primary} />
+              <path d="M4 7l2 2 4-4" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          )}
         </div>
+        <div style={{ fontSize: 12, color: T.text3, marginBottom: 6 }}>{region}</div>
+        {broker.speciality && (
+          <div style={{
+            display: "inline-block", padding: "2px 8px", borderRadius: 6,
+            background: T.primaryL, color: T.primary, fontSize: 11, fontWeight: 600, marginBottom: 8,
+          }}>
+            {broker.speciality}
+          </div>
+        )}
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <a href={`tel:${broker.phone}`}
-            style={{
-              flex: 1, padding: "8px 0", borderRadius: 10, border: `1.5px solid ${T.border2}`,
-              fontSize: 12, fontWeight: 600, color: T.text1, textAlign: "center", textDecoration: "none",
+          {broker.rating && (
+            <div style={{
+              display: "flex", alignItems: "center", gap: 4,
+              padding: "6px 10px", borderRadius: 10, background: T.primaryL,
+              fontSize: 12, fontWeight: 600, color: T.primary,
             }}>
-            📞 Call
-          </a>
+              <svg width="11" height="11" fill={T.primary} viewBox="0 0 24 24">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+              </svg>
+              {broker.rating.toFixed(1)}
+            </div>
+          )}
           <div style={{
             display: "flex", alignItems: "center", gap: 4,
-            padding: "8px 12px", borderRadius: 10, background: T.primaryL,
-            fontSize: 12, fontWeight: 600, color: T.primary,
+            padding: "6px 10px", borderRadius: 10, background: T.bgSoft2,
+            fontSize: 12, fontWeight: 600, color: T.text2,
           }}>
-            <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-            </svg>
-            {broker.deals} deals
+            {deals} listings
+          </div>
+          <div style={{ marginLeft: "auto", fontSize: 12, fontWeight: 600, color: T.primary }}>
+            Profile →
           </div>
         </div>
       </div>
     </div>
+    </a>
   );
 }
 
@@ -226,6 +260,26 @@ export default function InsightsClient() {
   const [district, setDistrict] = useState("All Districts");
   const [usage,    setUsage]    = useState("residential");
   const [tab,      setTab]      = useState("market");
+  const [brokers,  setBrokers]  = useState<DbBroker[]>([]);
+  const [brokersLoading, setBrokersLoading] = useState(false);
+  const [brokerPage, setBrokerPage] = useState(1);
+  const [brokerTotal, setBrokerTotal] = useState(0);
+  const BROKER_LIMIT = 20;
+
+  useEffect(() => {
+    if (tab !== "brokers") return;
+    setBrokersLoading(true);
+    fetch(`/api/brokers?limit=${BROKER_LIMIT}&page=${brokerPage}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d?.data) {
+          setBrokers(prev => brokerPage === 1 ? d.data : [...prev, ...d.data]);
+          setBrokerTotal(d.total ?? 0);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setBrokersLoading(false));
+  }, [tab, brokerPage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const stats = getStats(usage, district);
   const micro = getMicro(district);
@@ -536,8 +590,34 @@ export default function InsightsClient() {
       {/* ── Brokers tab ── */}
       {tab === "brokers" && (
         <div style={{ flex: 1, overflowY: "auto", padding: "16px 16px 100px", display: "flex", flexDirection: "column", gap: 12 }}>
-          <p style={{ fontSize: 13, color: T.text2, margin: "0 0 4px" }}>Verified brokers in Addis Abeba</p>
-          {BROKERS.map((b) => <BrokerCard key={b.id} broker={b} />)}
+          <p style={{ fontSize: 13, color: T.text2, margin: "0 0 4px" }}>
+            {brokerTotal > 0 ? `${brokerTotal} verified brokers in Addis Abeba` : "Verified brokers in Addis Abeba"}
+          </p>
+          {brokersLoading && brokers.length === 0 ? (
+            Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} style={{ height: 96, borderRadius: 16, background: T.bgSoft2 }} />
+            ))
+          ) : (
+            (brokers.length > 0 ? brokers : (BROKERS_FALLBACK as unknown as DbBroker[])).map((b) => (
+              <BrokerCard key={b.id} broker={b} />
+            ))
+          )}
+          {/* Load more */}
+          {!brokersLoading && brokers.length > 0 && brokers.length < brokerTotal && (
+            <button
+              onClick={() => setBrokerPage(p => p + 1)}
+              style={{
+                padding: "12px 0", borderRadius: 12, border: `1.5px solid ${T.border2}`,
+                background: T.bg, color: T.primary, fontSize: 14, fontWeight: 700,
+                cursor: "pointer", fontFamily: T.font,
+              }}
+            >
+              Load more ({brokerTotal - brokers.length} remaining)
+            </button>
+          )}
+          {brokersLoading && brokers.length > 0 && (
+            <div style={{ textAlign: "center", padding: "8px 0", fontSize: 13, color: T.text3 }}>Loading…</div>
+          )}
         </div>
       )}
     </div>
