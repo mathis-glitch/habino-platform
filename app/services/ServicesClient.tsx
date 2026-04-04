@@ -477,6 +477,9 @@ export default function ServicesClient() {
   const [showServiceFilters, setShowServiceFilters]  = useState(false);
   const [sfVerified,         setSfVerified]          = useState(false);
   const [sfMaxPrice,         setSfMaxPrice]          = useState<number | null>(null);
+  const [sfMinRating,        setSfMinRating]         = useState<number | null>(null);
+  const [sfResponseTime,     setSfResponseTime]      = useState<string | null>(null);
+  const [sfDistrict,         setSfDistrict]          = useState<string>("");
   const [authGate,         setAuthGate]           = useState(false);
   const [selectedProvider, setSelectedProvider]  = useState<Provider | null>(null);
   const [dbProviders,      setDbProviders]        = useState<Provider[]>([]);
@@ -583,6 +586,19 @@ export default function ServicesClient() {
     }
     if (sfVerified && !p.verified) return false;
     if (sfMaxPrice !== null && (p.priceNum ?? 0) > sfMaxPrice) return false;
+    if (sfMinRating !== null && (p.rating ?? 0) < sfMinRating) return false;
+    if (sfResponseTime) {
+      const rt = (p.responseTime || "").toLowerCase();
+      const hours = sfResponseTime === "1h" ? 1 : sfResponseTime === "2h" ? 2 : sfResponseTime === "4h" ? 4 : 99;
+      const rtMatch = rt.match(/(\d+)/);
+      const rtHours = rtMatch ? parseInt(rtMatch[1]) : 99;
+      if (rtHours > hours) return false;
+    }
+    if (sfDistrict) {
+      const areas = (p.districts ?? []).join(" ").toLowerCase();
+      const isWide = areas.includes("all districts") || areas.includes("addis ababa-wide") || areas.includes("addis abeba");
+      if (!isWide && !areas.includes(sfDistrict.toLowerCase())) return false;
+    }
     return true;
   });
 
@@ -695,7 +711,7 @@ export default function ServicesClient() {
             </div>
             {/* Filter button */}
             {(() => {
-              const hasF = sfVerified || sfMaxPrice !== null;
+              const hasF = sfVerified || sfMaxPrice !== null || sfMinRating !== null || sfResponseTime || sfDistrict;
               return (
                 <button onClick={() => setShowServiceFilters(true)} style={{
                   display: "flex", alignItems: "center", gap: 5,
@@ -713,10 +729,11 @@ export default function ServicesClient() {
               );
             })()}
             {/* Reset button */}
-            {(aiQuery || activeCategory !== "all" || serviceDistricts.length > 0 || sfVerified || sfMaxPrice !== null || serviceAiIds) && (
+            {(aiQuery || activeCategory !== "all" || serviceDistricts.length > 0 || sfVerified || sfMaxPrice !== null || sfMinRating !== null || sfResponseTime || sfDistrict || serviceAiIds) && (
               <button onClick={() => {
                 setAiQuery(""); setActiveCategory("all"); setServiceDistricts([]);
-                setSfVerified(false); setSfMaxPrice(null);
+                setSfVerified(false); setSfMaxPrice(null); setSfMinRating(null);
+                setSfResponseTime(null); setSfDistrict("");
                 setServiceAiIds(null); setServiceAiSuggestion(null);
               }} style={{
                 display: "flex", alignItems: "center", gap: 4,
@@ -764,15 +781,15 @@ export default function ServicesClient() {
             <div style={{ width: 36, height: 4, borderRadius: 2, background: "rgba(0,0,0,0.12)", margin: "0 auto 20px" }} />
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
               <div style={{ fontSize: 18, fontWeight: 700, color: T.text1 }}>Filters</div>
-              <button onClick={() => { setSfVerified(false); setSfMaxPrice(null); }}
+              <button onClick={() => { setSfVerified(false); setSfMaxPrice(null); setSfMinRating(null); setSfResponseTime(null); setSfDistrict(""); }}
                 style={{ fontSize: 13, fontWeight: 600, color: G, background: "none", border: "none", cursor: "pointer" }}>
                 Reset all
               </button>
             </div>
 
             {/* Verified */}
-            <div style={{ marginBottom: 24 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: T.text2, marginBottom: 10 }}>Provider Quality</div>
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: T.text2, marginBottom: 10 }}>Quality</div>
               <button onClick={() => setSfVerified(v => !v)} style={{
                 display: "flex", alignItems: "center", gap: 8,
                 padding: "10px 16px", borderRadius: 12, cursor: "pointer",
@@ -785,8 +802,67 @@ export default function ServicesClient() {
               </button>
             </div>
 
+            {/* Min rating */}
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: T.text2, marginBottom: 10 }}>Min. Rating</div>
+              <div style={{ display: "flex", gap: 8 }}>
+                {[null, 4.0, 4.5, 4.8].map(r => (
+                  <button key={String(r)} onClick={() => setSfMinRating(r)} style={{
+                    flex: 1, padding: "9px 0", borderRadius: 12,
+                    border: `1.5px solid ${sfMinRating === r ? G : T.border}`,
+                    background: sfMinRating === r ? "rgba(45,106,79,0.09)" : "#fff",
+                    color: sfMinRating === r ? G : T.text1,
+                    fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: T.font,
+                  }}>
+                    {r === null ? "Any" : `★ ${r}+`}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Response time */}
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: T.text2, marginBottom: 10 }}>Response Time</div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {[
+                  { key: null,  label: "Any"      },
+                  { key: "1h",  label: "< 1 hour" },
+                  { key: "2h",  label: "< 2 hours"},
+                  { key: "4h",  label: "< 4 hours"},
+                ].map(({ key, label }) => (
+                  <button key={String(key)} onClick={() => setSfResponseTime(key)} style={{
+                    flex: 1, padding: "9px 0", borderRadius: 12,
+                    border: `1.5px solid ${sfResponseTime === key ? G : T.border}`,
+                    background: sfResponseTime === key ? "rgba(45,106,79,0.09)" : "#fff",
+                    color: sfResponseTime === key ? G : T.text1,
+                    fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: T.font,
+                  }}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* District */}
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: T.text2, marginBottom: 10 }}>District</div>
+              <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+                {["", "Bole", "CMC", "Kazanchis", "Sarbet", "Megenagna", "Piassa", "Yeka", "Lideta", "Arada", "Kirkos"].map(d => (
+                  <button key={d || "all"} onClick={() => setSfDistrict(d)} style={{
+                    padding: "7px 13px", borderRadius: 20,
+                    border: `1.5px solid ${sfDistrict === d ? G : T.border}`,
+                    background: sfDistrict === d ? "rgba(45,106,79,0.09)" : "#fff",
+                    color: sfDistrict === d ? G : T.text1,
+                    fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: T.font, whiteSpace: "nowrap",
+                  }}>
+                    {d || "All"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Max price */}
-            <div style={{ marginBottom: 28 }}>
+            <div style={{ marginBottom: 24 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: T.text2, marginBottom: 10 }}>Max. Price (ETB / session)</div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 {[null, 500, 1000, 1500, 2000, 3000].map(p => (

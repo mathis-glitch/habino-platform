@@ -183,9 +183,9 @@ function ScoreBar({ score }: { score: number }) {
 }
 
 const INSIGHT_TABS = [
+  { key: "blog",    label: "Blog"   },
+  { key: "brokers", label: "Broker" },
   { key: "market",  label: "Market" },
-  { key: "brokers", label: "Brokers" },
-  { key: "blog",    label: "Blog" },
 ];
 
 // Fallback broker data (used while DB loads)
@@ -465,7 +465,7 @@ function BrokerCard({ broker }: { broker: DbBroker }) {
 export default function InsightsClient() {
   const [district, setDistrict] = useState("All Districts");
   const [usage,    setUsage]    = useState("residential");
-  const [tab,      setTab]      = useState("market");
+  const [tab,      setTab]      = useState("blog");
   const [brokers,      setBrokers]      = useState<DbBroker[]>([]);
   const [brokersLoading, setBrokersLoading] = useState(false);
   const [brokerPage,   setBrokerPage]   = useState(1);
@@ -593,14 +593,19 @@ export default function InsightsClient() {
     <div style={{ flex: 1, display: "flex", flexDirection: "column", background: T.bgSoft, fontFamily: T.font, minHeight: 0 }}>
       {/* ── Header ── */}
       <div style={{ padding: "52px 20px 0", background: T.bg }}>
-        <div style={{ marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ fontSize: 24, fontWeight: 800, color: T.text1, letterSpacing: -0.6 }}>Insights</div>
+        {/* Habino logo + wordmark */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+          <svg width="26" height="26" viewBox="0 0 32 32" fill="none">
+            <rect width="32" height="32" rx="9" fill={T.primary} />
+            <path d="M8 24V8h4v6.5h8V8h4v16h-4v-7h-8v7z" fill="#fff" />
+          </svg>
+          <span style={{ fontSize: 20, fontWeight: 800, color: T.primary, letterSpacing: -0.5, fontFamily: T.font }}>habino</span>
           <div style={{
-            padding: "3px 10px", borderRadius: 20, marginBottom: 2,
+            marginLeft: 4, padding: "3px 10px", borderRadius: 20,
             background: "rgba(255,159,10,0.1)", border: "1px solid rgba(255,159,10,0.2)",
             color: T.warn, fontSize: 10, fontWeight: 600,
           }}>
-            Addis Abeba
+            Insights
           </div>
         </div>
         <p style={{ fontSize: 13, color: T.text3, marginBottom: 16 }}>Real estate market data &amp; broker directory</p>
@@ -912,10 +917,10 @@ export default function InsightsClient() {
                 />
               </div>
 
-              {/* ── Chips + Filter row ── */}
+              {/* ── Chips (mixed: speciality + districts together) ── */}
               <div style={{ display: "flex", flexDirection: "column", gap: 7, marginBottom: 10 }}>
-                {/* Row 1: Speciality chips */}
                 <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+                  {/* Speciality chips */}
                   {BROKER_SPEC_CHIPS.map(chip => {
                     const active = brokerSpecialities.includes(chip.key);
                     return (
@@ -932,10 +937,7 @@ export default function InsightsClient() {
                       </button>
                     );
                   })}
-                </div>
-
-                {/* Row 2: District chips */}
-                <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+                  {/* District chips — inline with speciality */}
                   {BROKER_DISTRICTS.map(d => {
                     const active = brokerDistricts.includes(d);
                     return (
