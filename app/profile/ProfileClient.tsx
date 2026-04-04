@@ -524,6 +524,50 @@ export function ProfileClient() {
           </div>
         </div>
 
+        {/* ── Privacy & Data Rights (GDPR / Kenya DPA / UAE PDPL) ── */}
+        <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 20, overflow: "hidden" }}>
+          <div style={{ padding: "14px 18px", borderBottom: `1px solid ${T.border}` }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: T.text3, textTransform: "uppercase", letterSpacing: "0.08em" }}>Privacy & Your Rights</span>
+          </div>
+          {[
+            { label: "Access my data",          icon: "🔍", href: "/privacy/data-rights?type=access" },
+            { label: "Export my data (GDPR)",    icon: "📦", href: "/privacy/data-rights?type=export" },
+            { label: "Manage cookie consent",    icon: "🍪", href: null, action: () => { localStorage.removeItem("habino_cookie_consent"); window.location.reload(); } },
+            { label: "Your Data Rights portal",  icon: "⚖️", href: "/privacy/data-rights" },
+          ].map(({ label, icon, href, action }) =>
+            href ? (
+              <Link key={label} href={href} style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 18px", borderBottom: `1px solid ${T.border}`, textDecoration: "none" }}>
+                <span style={{ fontSize: 17 }}>{icon}</span>
+                <span style={{ flex: 1, fontSize: 13, color: T.text1, fontWeight: 500 }}>{label}</span>
+                <svg width="13" height="13" fill="none" stroke={T.text3} strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" d="M9 18l6-6-6-6"/></svg>
+              </Link>
+            ) : (
+              <button key={label} onClick={action} style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 18px", background: "none", border: "none", borderBottom: `1px solid ${T.border}`, width: "100%", cursor: "pointer", fontFamily: T.font, textAlign: "left" as const }}>
+                <span style={{ fontSize: 17 }}>{icon}</span>
+                <span style={{ flex: 1, fontSize: 13, color: T.text1, fontWeight: 500 }}>{label}</span>
+                <svg width="13" height="13" fill="none" stroke={T.text3} strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" d="M9 18l6-6-6-6"/></svg>
+              </button>
+            )
+          )}
+          {/* Delete account — prominent, destructive */}
+          <div style={{ padding: "14px 18px" }}>
+            <Link href="/privacy/data-rights?type=delete" style={{
+              display: "flex", alignItems: "center", gap: 10,
+              padding: "11px 14px", borderRadius: 12,
+              background: "rgba(255,69,58,0.07)",
+              border: "1px solid rgba(255,69,58,0.18)",
+              textDecoration: "none",
+            }}>
+              <span style={{ fontSize: 17 }}>🗑️</span>
+              <span style={{ flex: 1, fontSize: 13, color: T.err, fontWeight: 700 }}>Delete my account & data</span>
+              <svg width="13" height="13" fill="none" stroke={T.err} strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" d="M9 18l6-6-6-6"/></svg>
+            </Link>
+            <p style={{ fontSize: 10, color: T.text3, marginTop: 8, lineHeight: 1.6, textAlign: "center" }}>
+              GDPR Art. 17 · Kenya DPA s.35 · UAE PDPL Art. 17 — Your right to erasure
+            </p>
+          </div>
+        </div>
+
         <p style={{ fontSize: 11, color: T.text3, textAlign: "center" }}>Habino v2.0 · Addis Abeba</p>
       </div>
 

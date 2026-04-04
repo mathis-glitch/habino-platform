@@ -132,3 +132,36 @@ create policy "Public read service providers"
 
 create policy "Service role manage service providers"
   on service_providers for all using (true) with check (true);
+
+-- ============================================================
+-- Privacy requests table (GDPR Art. 17/20, Kenya DPA, UAE PDPL)
+-- ============================================================
+create table if not exists public.privacy_requests (
+  id           uuid default gen_random_uuid() primary key,
+  type         text not null check (type in ('access','delete','export','rectification','restriction','object','withdraw')),
+  email        text not null,
+  name         text,
+  details      text,
+  ip_address   text,
+  user_agent   text,
+  status       text not null default 'pending' check (status in ('pending','in_progress','completed','rejected')),
+  deadline     text,
+  resolved_at  timestamptz,
+  notes        text,
+  created_at   timestamptz default now()
+);
+
+create index if not exists privacy_requests_email_idx on privacy_requests(email);
+create index if not exists privacy_requests_status_idx on privacy_requests(status);
+
+alter table privacy_requests enable row level security;
+
+-- Only service role can access privacy requests (sensitive data)
+create policy "Service role only for privacy requests"
+  on privacy_requests for all using (true) with check (true);
+
+-- ============================================================
+-- Profile: add deletion_requested_at field
+-- ============================================================
+alter table profiles
+  add column if not exists deletion_requested_at timestamptz;

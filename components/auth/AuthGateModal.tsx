@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import Link from "next/link";
 
 const G  = "#2D6A4F";
 const GL = "rgba(45,106,79,0.10)";
@@ -101,9 +102,19 @@ export function AuthGateModal({ open, onClose, reason }: Props) {
         <button onClick={onClose} style={{
           display: "block", width: "100%", background: "none", border: "none",
           fontSize: 13, color: "#9CA3AF", cursor: "pointer",
+          marginBottom: 16,
         }}>
           Continue browsing
         </button>
+
+        {/* Legal links — required for App Store / GDPR */}
+        <p style={{ fontSize: 11, color: "#9CA3AF", textAlign: "center", lineHeight: 1.7 }}>
+          By signing up you agree to our{" "}
+          <Link href="/terms" style={{ color: G, fontWeight: 600 }}>Terms of Service</Link>
+          {" "}and{" "}
+          <Link href="/privacy" style={{ color: G, fontWeight: 600 }}>Privacy Policy</Link>.
+          We process your data in accordance with GDPR, Kenya DPA 2019, and UAE PDPL.
+        </p>
       </div>
     </>
   );

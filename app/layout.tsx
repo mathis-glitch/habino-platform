@@ -9,6 +9,7 @@ import { Tenant } from "@/lib/types";
 import BottomNav from "@/components/layout/BottomNav";
 import InstallPrompt from "@/components/pwa/InstallPrompt";
 import SplashScreen from "@/components/SplashScreen";
+import CookieBanner from "@/components/privacy/CookieBanner";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -115,6 +116,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
           <SplashScreen />
           <InstallPrompt />
+          <CookieBanner />
         </TenantProvider>
       </body>
     </html>
