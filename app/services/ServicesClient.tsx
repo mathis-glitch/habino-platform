@@ -506,16 +506,63 @@ export default function ServicesClient() {
 
   const allProviders = dbProviders.length > 0 ? dbProviders : PROVIDERS;
 
-  const q = aiQuery.toLowerCase().trim();
-  const filtered = allProviders.filter(p => {
-    const matchCat = activeCategory === "all" || p.category === activeCategory;
-    const matchQ   = !q
-      || p.name.toLowerCase().includes(q)
-      || p.description.toLowerCase().includes(q)
-      || (p.tags ?? []).some(t => t.toLowerCase().includes(q))
-      || (p.districts ?? []).some(d => d.toLowerCase().includes(q));
-    return matchCat && matchQ;
-  });
+  // NLP keyword filter — tokenize query and score providers
+  const SERVICE_STOP = new Set([
+    "a","an","the","for","in","at","my","me","i","need","want","looking","find",
+    "please","can","you","do","have","get","with","and","or","of","to","is","are",
+    "room","rooms","bedroom","bedrooms","house","apartment","home","flat","villa",
+    "service","services","help","provide","near","around","about",
+  ]);
+
+  // Category intent words → category key
+  const CAT_KEYWORDS: Record<string, string[]> = {
+    cleaning:  ["clean","cleaning","deep clean","wash","mop","sweep","sanitize","disinfect","scrub"],
+    garden:    ["garden","gardening","lawn","plant","landscape","trim","mow","tree","grass","flower","outdoor"],
+    household: ["household","housekeeper","cook","cooking","childcare","nanny","helper","daily help","chores"],
+    plumbing:  ["plumb","plumbing","pipe","leak","tap","drain","toilet","water","faucet"],
+    electric:  ["electric","electrical","wiring","power","socket","light","breaker","generator"],
+    moving:    ["move","moving","relocation","pack","packing","transport","furniture","shifting"],
+    security:  ["security","guard","cctv","camera","alarm","surveillance","protection","watchman"],
+    painting:  ["paint","painting","wall","interior","exterior","coat","brush"],
+    ac:        ["ac","air condition","aircon","appliance","fridge","refrigerator","hvac","cool","heat","repair"],
+    petcare:   ["pet","dog","cat","animal","vet","grooming","walk","kennel","petsit"],
+  };
+
+  function smartFilterServices(query: string, category: string, providers: typeof allProviders) {
+    const q = query.toLowerCase().trim();
+    const catFiltered = category === "all" ? providers : providers.filter(p => p.category === category);
+    if (!q) return catFiltered;
+
+    // Detect category intent from query
+    let impliedCat = "";
+    for (const [cat, kws] of Object.entries(CAT_KEYWORDS)) {
+      if (kws.some(kw => q.includes(kw))) { impliedCat = cat; break; }
+    }
+
+    // Extract meaningful keywords
+    const tokens = q.split(/[\s,+.!?-]+/)
+      .map(w => w.replace(/[^a-z0-9]/g, ""))
+      .filter(w => w.length > 2 && !SERVICE_STOP.has(w));
+
+    return catFiltered.filter(p => {
+      // Category intent: if query implies a different category, skip this provider
+      if (impliedCat && category === "all" && p.category !== impliedCat) return false;
+
+      if (tokens.length === 0) return true;
+      const haystack = [
+        p.name, p.description,
+        ...(p.tags ?? []),
+        ...(p.districts ?? []),
+        p.category,
+      ].join(" ").toLowerCase();
+
+      // At least half the keywords must match (generous scoring)
+      const hits = tokens.filter(t => haystack.includes(t)).length;
+      return hits >= Math.ceil(tokens.length / 2);
+    });
+  }
+
+  const filtered = smartFilterServices(aiQuery, activeCategory, allProviders);
 
   return (
     <>

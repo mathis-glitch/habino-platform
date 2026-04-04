@@ -300,11 +300,20 @@ function smartFilterBrokers(query: string, region: string, brokers: DbBroker[]):
 
   // Words left for general text search (remove parsed terms)
   const stopWords = new Set([
-    "years","year","yrs","yr","rating","stars","star","top","rated","best","highest",
-    "verified","luxury","commercial","office","land","plot","expat","ngo","rental","rent",
-    "new","development","management","invest","residential","apartment","house","villa",
-    "broker","agent","specialist","expert","in","at","for","the","and","with","from",
-    "über","mit","für","von","und","years+", ...KNOWN_DISTRICTS,
+    // parsed intent words
+    "years","year","yrs","yr","experience","exp","rating","stars","star",
+    "top","rated","best","highest","verified","luxury","commercial","office",
+    "land","plot","expat","ngo","rental","rent","new","development","management",
+    "invest","residential","apartment","house","villa","broker","agent",
+    "specialist","expert","years+",
+    // location prepositions
+    "near","around","close","nearby","in","at","for","the","and","with","from",
+    "who","has","have","that","which","a","an","is","are","was","were","be",
+    "me","my","please","show","find","looking","want","need","give","get",
+    "more","than","plus","minimum","min","max","about","can","you","do",
+    // German
+    "über","mit","für","von","und","suche","zeige","habe","gute","sehr",
+    ...KNOWN_DISTRICTS,
   ]);
   const freeWords = q.split(/[\s,+]+/)
     .map(w => w.replace(/[^a-z0-9äöü]/g, ""))

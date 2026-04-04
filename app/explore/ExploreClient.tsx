@@ -651,6 +651,45 @@ function SavedPanel({
   );
 }
 
+// ── NLP property query parser ─────────────────────────────────────────────────
+const NLP_DISTRICTS = [
+  "bole","cmc","kazanchis","sarbet","megenagna","piassa","yeka","lideta","arada",
+  "kirkos","kolfe","gulele","nifas silk","summit","gerji","ayat","jemo","saris",
+  "lebu","gofa","akaki","kality","lafto","ferensay",
+];
+
+function parsePropertyQuery(raw: string) {
+  const q = raw.toLowerCase().trim();
+
+  // listing_type
+  let listingType = "";
+  if (/\brent\b|\bfor\s+rent\b|\bto\s+rent\b|\bmiete\b/.test(q))      listingType = "rent";
+  else if (/\bbuy\b|\bfor\s+sale\b|\bpurchase\b|\bkauf\b/.test(q))    listingType = "buy";
+
+  // property_type
+  let propertyType = "";
+  if (/\bvilla\b/.test(q))                                             propertyType = "villa";
+  else if (/\bcommercial\b|\bshop\b|\bstore\b|\bretail\b|\bwarehouse\b/.test(q)) propertyType = "commercial";
+  else if (/\boffice\b|\bbuero\b/.test(q))                             propertyType = "office";
+  else if (/\bapartment\b|\bflat\b|\bwohnung\b|\bapt\b/.test(q))      propertyType = "apartment";
+  else if (/\bhouse\b|\bhome\b|\bdetached\b/.test(q))                  propertyType = "house";
+  else if (/\bland\b|\bplot\b|\bsite\b|\bgrundstück\b/.test(q))       propertyType = "land";
+  else if (/\bhall\b|\bwarehouse\b/.test(q))                           propertyType = "hall";
+
+  // neighbourhood — first match wins
+  const neighbourhood = NLP_DISTRICTS.find(d => q.includes(d)) ?? "";
+
+  // bedrooms
+  const bedroomM = q.match(/(\d+)\s*(?:bed(?:room)?s?|br\b|zimmer)/);
+  const bedrooms = bedroomM ? parseInt(bedroomM[1]) : null;
+
+  // price ceiling
+  const maxPriceM = q.match(/(?:under|below|max(?:imum)?|bis|unter)\s*([\d,]+)/);
+  const maxPrice = maxPriceM ? parseInt(maxPriceM[1].replace(/,/g, "")) : null;
+
+  return { listingType, propertyType, neighbourhood, bedrooms, maxPrice };
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function ExploreClient() {
   const [properties, setProperties] = useState<Property[]>([]);
@@ -681,7 +720,17 @@ export default function ExploreClient() {
     const params = new URLSearchParams();
     if (chipListingType)        params.set("type", chipListingType);
     if (chipNeighbourhood)      params.set("neighbourhood", chipNeighbourhood);
-    if (search.trim())          params.set("city", search.trim());
+
+    // NLP parse: extract structured filters from free-text query
+    if (search.trim()) {
+      const nlp = parsePropertyQuery(search);
+      if (nlp.listingType  && !chipListingType)  params.set("type",         nlp.listingType);
+      if (nlp.propertyType && !filters.propertyType) params.set("property_type", nlp.propertyType);
+      if (nlp.neighbourhood && !chipNeighbourhood)   params.set("neighbourhood", nlp.neighbourhood);
+      if (nlp.bedrooms     && !filters.bedrooms)     params.set("bedrooms",      String(nlp.bedrooms));
+      if (nlp.maxPrice     && !filters.maxPrice)     params.set("max_price",     String(nlp.maxPrice));
+    }
+
     if (filters.propertyType)   params.set("property_type", filters.propertyType);
     if (filters.minPrice)       params.set("min_price", String(filters.minPrice));
     if (filters.maxPrice)       params.set("max_price", String(filters.maxPrice));
