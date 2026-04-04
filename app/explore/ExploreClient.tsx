@@ -124,6 +124,15 @@ function maskName(name: string): string {
   return `${parts[0]} ${parts[parts.length - 1][0]}.`;
 }
 
+async function lookupBrokerId(name: string): Promise<string | null> {
+  try {
+    const res = await fetch(`/api/brokers?name=${encodeURIComponent(name)}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.data?.[0]?.id ?? null;
+  } catch { return null; }
+}
+
 // ── Property Card ─────────────────────────────────────────────────────────────
 function PropCard({ p, saved, onSave, isLoggedIn }: { p: Property; saved: boolean; onSave: () => void; isLoggedIn: boolean }) {
   const { main, suffix } = fmtPrice(p.price, p.currency, p.listing_type);
@@ -279,8 +288,13 @@ function PropCard({ p, saved, onSave, isLoggedIn }: { p: Property; saved: boolea
                 <span style={{ fontSize: 12, color: T.text2, fontWeight: 500 }}>{displayName}</span>
               </div>
               <a
-                href="/markt#brokers"
-                onClick={(e) => e.stopPropagation()}
+                href="#"
+                onClick={async (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  const id = await lookupBrokerId(name);
+                  if (id) window.location.href = `/brokers/${id}`;
+                }}
                 style={{ fontSize: 11, fontWeight: 600, color: T.primary, textDecoration: "none" }}
               >
                 Broker →

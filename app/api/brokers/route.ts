@@ -19,16 +19,21 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const page  = parseInt(searchParams.get("page")  || "1");
   const limit = parseInt(searchParams.get("limit") || "20");
+  const name  = searchParams.get("name") ?? "";
   const offset = (page - 1) * limit;
 
   const supabase = createServiceClient();
-  const { data, count, error } = await supabase
+  let query = supabase
     .from("broker_profiles")
     .select("*", { count: "exact" })
     .eq("tenant_id", tenantId)
     .order("verified", { ascending: false })
-    .order("rating", { ascending: false })
-    .range(offset, offset + limit - 1);
+    .order("rating", { ascending: false });
+
+  if (name) query = query.eq("full_name", name);
+  else query = query.range(offset, offset + limit - 1);
+
+  const { data, count, error } = await query;
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ data: data ?? [], total: count ?? 0, page, limit });

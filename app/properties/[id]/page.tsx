@@ -151,7 +151,7 @@ export default async function PropertyDetailPage({
 
   // Check if user is logged in (server-side)
   const { createClient: createAuthClient } = await import("@/lib/supabase/server");
-  const authClient = createAuthClient();
+  const authClient = await createAuthClient();
   const { data: { user } } = await authClient.auth.getUser();
   const isLoggedIn = !!user;
 
