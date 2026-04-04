@@ -466,6 +466,7 @@ export default function InsightsClient() {
   const [district, setDistrict] = useState("All Districts");
   const [usage,    setUsage]    = useState("residential");
   const [tab,      setTab]      = useState("blog");
+  const [blogOpen, setBlogOpen] = useState(false);
   const [brokers,      setBrokers]      = useState<DbBroker[]>([]);
   const [brokersLoading, setBrokersLoading] = useState(false);
   const [brokerPage,   setBrokerPage]   = useState(1);
@@ -818,99 +819,178 @@ export default function InsightsClient() {
       {tab === "blog" && (
         <div style={{ flex: 1, overflowY: "auto", padding: "16px 16px 100px", display: "flex", flexDirection: "column", gap: 20 }}>
 
-          {/* ── Hero intro card ── */}
-          <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 20, overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
-            {/* Cover image with gradient overlay */}
-            <div style={{ position: "relative", height: 200, background: "linear-gradient(135deg, #2D6A4F 0%, #1B4332 100%)", overflow: "hidden" }}>
-              {/* Decorative pattern */}
-              <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.08 }} viewBox="0 0 400 200" preserveAspectRatio="xMidYMid slice">
-                <circle cx="350" cy="30" r="120" fill="#fff" />
-                <circle cx="60" cy="180" r="90" fill="#fff" />
-                <circle cx="200" cy="100" r="60" fill="#fff" />
+          {/* ── Tappable preview card ── */}
+          <button
+            onClick={() => setBlogOpen(true)}
+            style={{
+              display: "block", width: "100%", textAlign: "left",
+              background: "none", border: "none", padding: 0, cursor: "pointer",
+            }}
+          >
+            <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 20, overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", transition: "box-shadow 0.15s" }}>
+              {/* Cover */}
+              <div style={{ position: "relative", height: 200, background: "linear-gradient(135deg, #2D6A4F 0%, #1B4332 100%)", overflow: "hidden" }}>
+                <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.08 }} viewBox="0 0 400 200" preserveAspectRatio="xMidYMid slice">
+                  <circle cx="350" cy="30" r="120" fill="#fff" />
+                  <circle cx="60" cy="180" r="90" fill="#fff" />
+                  <circle cx="200" cy="100" r="60" fill="#fff" />
+                </svg>
+                <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <svg width="38" height="38" viewBox="0 0 40 40" fill="none">
+                      <rect width="40" height="40" rx="12" fill="rgba(255,255,255,0.15)" />
+                      <path d="M10 28V18l10-8 10 8v10H24v-6h-8v6H10Z" fill="#fff" />
+                    </svg>
+                    <span style={{ fontSize: 28, fontWeight: 800, color: "#fff", letterSpacing: -0.5, fontFamily: T.font }}>Habino</span>
+                  </div>
+                  <span style={{ fontSize: 13, color: "rgba(255,255,255,0.75)", fontWeight: 500, fontFamily: T.font }}>Real Estate. Reimagined.</span>
+                </div>
+                <div style={{ position: "absolute", top: 14, left: 14, padding: "3px 10px", borderRadius: 20, background: "rgba(255,255,255,0.18)", backdropFilter: "blur(8px)", fontSize: 11, fontWeight: 700, color: "#fff" }}>
+                  Welcome Post
+                </div>
+                <div style={{ position: "absolute", top: 14, right: 14, padding: "3px 10px", borderRadius: 20, background: "rgba(255,255,255,0.18)", backdropFilter: "blur(8px)", fontSize: 11, color: "rgba(255,255,255,0.85)" }}>
+                  Apr 4, 2026 · 3 min read
+                </div>
+              </div>
+
+              {/* Preview text */}
+              <div style={{ padding: "18px 18px 20px" }}>
+                <h2 style={{ fontSize: 18, fontWeight: 800, color: T.text1, lineHeight: 1.35, marginBottom: 8, letterSpacing: -0.3 }}>
+                  Welcome to Habino — Finding Your Place Has Never Felt This Good
+                </h2>
+                <p style={{ fontSize: 13, color: T.text2, lineHeight: 1.65, marginBottom: 14, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                  We started Habino with one simple belief: finding a home or an investment in Addis Abeba should be exciting — not exhausting. The city is full of incredible spaces, brilliant brokers and talented service professionals. But discovering them has always been a struggle of scattered listings, unreliable contacts and endless phone calls that go nowhere.
+                </p>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, color: T.primary }}>
+                  <span style={{ fontSize: 13, fontWeight: 700 }}>Read article</span>
+                  <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                    <path d="M5 12h14M12 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </button>
+
+          {/* More posts coming soon */}
+          <div style={{ textAlign: "center", padding: "8px 0 4px" }}>
+            <p style={{ fontSize: 12, color: T.text3, margin: 0 }}>More articles coming soon — stay tuned ✦</p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Blog full-screen article overlay ── */}
+      {blogOpen && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 200,
+          background: T.bg, display: "flex", flexDirection: "column",
+          fontFamily: T.font,
+        }}>
+          {/* Sticky header */}
+          <div style={{
+            display: "flex", alignItems: "center", gap: 12,
+            padding: "14px 16px", borderBottom: `1px solid ${T.border}`,
+            background: T.bg, flexShrink: 0,
+          }}>
+            <button
+              onClick={() => setBlogOpen(false)}
+              style={{ background: T.bgSoft, border: "none", cursor: "pointer", borderRadius: 10, width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
+            >
+              <svg width="16" height="16" fill="none" stroke={T.text1} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                <path d="M19 12H5M12 19l-7-7 7-7" />
               </svg>
-              {/* Logo mark */}
+            </button>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 12, color: T.text3, margin: 0 }}>Blog · Welcome Post</p>
+            </div>
+          </div>
+
+          {/* Scrollable article */}
+          <div style={{ flex: 1, overflowY: "auto", paddingBottom: 40 }}>
+            {/* Hero banner */}
+            <div style={{ position: "relative", height: 220, background: "linear-gradient(135deg, #2D6A4F 0%, #1B4332 100%)", overflow: "hidden" }}>
+              <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.08 }} viewBox="0 0 400 220" preserveAspectRatio="xMidYMid slice">
+                <circle cx="350" cy="30" r="130" fill="#fff" />
+                <circle cx="60" cy="200" r="100" fill="#fff" />
+                <circle cx="200" cy="110" r="70" fill="#fff" />
+              </svg>
               <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <svg width="38" height="38" viewBox="0 0 40 40" fill="none">
+                  <svg width="42" height="42" viewBox="0 0 40 40" fill="none">
                     <rect width="40" height="40" rx="12" fill="rgba(255,255,255,0.15)" />
                     <path d="M10 28V18l10-8 10 8v10H24v-6h-8v6H10Z" fill="#fff" />
                   </svg>
-                  <span style={{ fontSize: 28, fontWeight: 800, color: "#fff", letterSpacing: -0.5, fontFamily: T.font }}>Habino</span>
+                  <span style={{ fontSize: 30, fontWeight: 800, color: "#fff", letterSpacing: -0.5, fontFamily: T.font }}>Habino</span>
                 </div>
                 <span style={{ fontSize: 13, color: "rgba(255,255,255,0.75)", fontWeight: 500, fontFamily: T.font }}>Real Estate. Reimagined.</span>
               </div>
-              {/* Tag */}
-              <div style={{ position: "absolute", top: 14, left: 14, padding: "3px 10px", borderRadius: 20, background: "rgba(255,255,255,0.18)", backdropFilter: "blur(8px)", fontSize: 11, fontWeight: 700, color: "#fff" }}>
-                Welcome Post
-              </div>
-              <div style={{ position: "absolute", top: 14, right: 14, padding: "3px 10px", borderRadius: 20, background: "rgba(255,255,255,0.18)", backdropFilter: "blur(8px)", fontSize: 11, color: "rgba(255,255,255,0.85)" }}>
-                Apr 4, 2026 · 3 min read
-              </div>
             </div>
 
-            {/* Content */}
-            <div style={{ padding: "20px 18px 22px" }}>
-              <h2 style={{ fontSize: 20, fontWeight: 800, color: T.text1, lineHeight: 1.35, marginBottom: 10, letterSpacing: -0.3 }}>
+            {/* Article body */}
+            <div style={{ padding: "24px 18px 0" }}>
+              <div style={{ display: "flex", gap: 8, marginBottom: 14, fontSize: 12, color: T.text3 }}>
+                <span>Apr 4, 2026</span><span>·</span><span>3 min read</span><span>·</span>
+                <span style={{ color: T.primary, fontWeight: 600 }}>Welcome Post</span>
+              </div>
+
+              <h1 style={{ fontSize: 22, fontWeight: 800, color: T.text1, lineHeight: 1.35, marginBottom: 16, letterSpacing: -0.4 }}>
                 Welcome to Habino — Finding Your Place Has Never Felt This Good
-              </h2>
-              <p style={{ fontSize: 14, color: T.text2, lineHeight: 1.7, marginBottom: 14 }}>
+              </h1>
+
+              <p style={{ fontSize: 15, color: T.text2, lineHeight: 1.75, marginBottom: 16 }}>
                 We started Habino with one simple belief: finding a home or an investment in Addis Abeba should be exciting — not exhausting. The city is full of incredible spaces, brilliant brokers and talented service professionals. But discovering them has always been a struggle of scattered listings, unreliable contacts and endless phone calls that go nowhere.
               </p>
 
               {/* Pull quote */}
-              <div style={{ borderLeft: `3px solid ${T.primary}`, paddingLeft: 14, marginBottom: 14 }}>
-                <p style={{ fontSize: 14, fontStyle: "italic", color: T.primary, lineHeight: 1.6, margin: 0, fontWeight: 600 }}>
+              <div style={{ borderLeft: `3px solid ${T.primary}`, paddingLeft: 16, marginBottom: 20 }}>
+                <p style={{ fontSize: 15, fontStyle: "italic", color: T.primary, lineHeight: 1.65, margin: 0, fontWeight: 600 }}>
                   "Habino brings everything you need — properties, brokers and services — into one beautifully simple platform."
                 </p>
               </div>
 
-              <p style={{ fontSize: 14, color: T.text2, lineHeight: 1.7, marginBottom: 14 }}>
+              <p style={{ fontSize: 15, color: T.text2, lineHeight: 1.75, marginBottom: 16 }}>
                 Whether you are a first-time renter searching for your dream apartment in Bole, a seasoned investor looking for the next opportunity in Lideta, or a homeowner ready to sell — Habino is built for you. Our AI-powered search understands what you are really looking for, not just what you typed.
               </p>
 
+              <h2 style={{ fontSize: 17, fontWeight: 700, color: T.text1, marginBottom: 12, marginTop: 8, letterSpacing: -0.2 }}>What Habino offers</h2>
+
               {/* Value points */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 18 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}>
                 {[
                   { icon: "🏠", label: "Smart Property Search", desc: "Browse thousands of verified listings across every district in Addis Abeba — filtered, ranked and sorted by AI." },
                   { icon: "🤝", label: "Trusted Broker Network", desc: "Connect directly with experienced, rated brokers who know the market inside out and put your interests first." },
                   { icon: "🔧", label: "Vetted Service Providers", desc: "From interior designers to legal advisors — find the right professionals to support every step of your property journey." },
                   { icon: "📊", label: "Market Intelligence", desc: "Stay ahead with data-driven insights, price trends and neighbourhood guides curated by our team of local experts." },
                 ].map(({ icon, label, desc }) => (
-                  <div key={label} style={{ display: "flex", gap: 12, padding: "12px 14px", background: T.bgSoft, borderRadius: 14 }}>
-                    <span style={{ fontSize: 22, flexShrink: 0, marginTop: 1 }}>{icon}</span>
+                  <div key={label} style={{ display: "flex", gap: 14, padding: "14px 16px", background: T.bgSoft, borderRadius: 16 }}>
+                    <span style={{ fontSize: 24, flexShrink: 0, marginTop: 1 }}>{icon}</span>
                     <div>
-                      <p style={{ fontSize: 13, fontWeight: 700, color: T.text1, margin: "0 0 3px" }}>{label}</p>
-                      <p style={{ fontSize: 12, color: T.text2, lineHeight: 1.55, margin: 0 }}>{desc}</p>
+                      <p style={{ fontSize: 14, fontWeight: 700, color: T.text1, margin: "0 0 4px" }}>{label}</p>
+                      <p style={{ fontSize: 13, color: T.text2, lineHeight: 1.6, margin: 0 }}>{desc}</p>
                     </div>
                   </div>
                 ))}
               </div>
 
-              <p style={{ fontSize: 14, color: T.text2, lineHeight: 1.7, marginBottom: 18 }}>
+              <p style={{ fontSize: 15, color: T.text2, lineHeight: 1.75, marginBottom: 20 }}>
                 Addis Abeba is one of Africa&apos;s fastest growing cities. Property here isn&apos;t just a transaction — it is a stake in something bigger. We believe everyone deserves access to the information, connections and tools that make that possible. That is what Habino is for.
               </p>
 
               {/* Closing CTA */}
-              <div style={{ background: `linear-gradient(135deg, rgba(45,106,79,0.08) 0%, rgba(45,106,79,0.04) 100%)`, borderRadius: 14, padding: "16px 16px", border: `1px solid rgba(45,106,79,0.15)`, textAlign: "center" }}>
-                <p style={{ fontSize: 14, fontWeight: 700, color: T.text1, margin: "0 0 4px" }}>This is just the beginning.</p>
-                <p style={{ fontSize: 13, color: T.text2, margin: "0 0 12px", lineHeight: 1.5 }}>
+              <div style={{ background: `linear-gradient(135deg, rgba(45,106,79,0.08) 0%, rgba(45,106,79,0.04) 100%)`, borderRadius: 16, padding: "20px 18px", border: `1px solid rgba(45,106,79,0.15)`, textAlign: "center", marginBottom: 8 }}>
+                <p style={{ fontSize: 15, fontWeight: 700, color: T.text1, margin: "0 0 6px" }}>This is just the beginning.</p>
+                <p style={{ fontSize: 13, color: T.text2, margin: "0 0 14px", lineHeight: 1.55 }}>
                   More properties, more brokers, more cities — and a lot more features on the way. We are glad you are here early.
                 </p>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 10, background: T.primary, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <svg width="16" height="16" viewBox="0 0 40 40" fill="none">
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                  <div style={{ width: 34, height: 34, borderRadius: 11, background: T.primary, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <svg width="17" height="17" viewBox="0 0 40 40" fill="none">
                       <path d="M10 28V18l10-8 10 8v10H24v-6h-8v6H10Z" fill="#fff" />
                     </svg>
                   </div>
-                  <span style={{ fontSize: 14, fontWeight: 800, color: T.primary, letterSpacing: -0.2, fontFamily: T.font }}>Team Habino</span>
+                  <span style={{ fontSize: 15, fontWeight: 800, color: T.primary, letterSpacing: -0.2, fontFamily: T.font }}>Team Habino</span>
                 </div>
               </div>
             </div>
-          </div>
-
-          {/* More posts coming soon */}
-          <div style={{ textAlign: "center", padding: "8px 0 4px" }}>
-            <p style={{ fontSize: 12, color: T.text3, margin: 0 }}>More articles coming soon — stay tuned ✦</p>
           </div>
         </div>
       )}
