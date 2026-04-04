@@ -183,9 +183,7 @@ function AvatarMale({ size = 56 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 56 56" fill="none">
       <rect width="56" height="56" rx="14" fill="#E8EDF0"/>
-      {/* Head */}
       <circle cx="28" cy="20" r="10" fill="#C4CDD4"/>
-      {/* Shoulders */}
       <path d="M10 52c0-9.941 8.059-18 18-18s18 8.059 18 18" fill="#C4CDD4"/>
     </svg>
   );
@@ -194,11 +192,8 @@ function AvatarFemale({ size = 56 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 56 56" fill="none">
       <rect width="56" height="56" rx="14" fill="#EDE8F0"/>
-      {/* Head */}
       <circle cx="28" cy="20" r="10" fill="#C4B8D4"/>
-      {/* Hair bun */}
       <circle cx="28" cy="11" r="5" fill="#C4B8D4"/>
-      {/* Shoulders — slightly narrower */}
       <path d="M12 52c0-8.837 7.163-16 16-16s16 7.163 16 16" fill="#C4B8D4"/>
     </svg>
   );
