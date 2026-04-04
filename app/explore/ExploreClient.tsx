@@ -343,11 +343,13 @@ function Skeleton() {
 }
 
 // ── AI Search Bar ─────────────────────────────────────────────────────────────
-function AISearchBar({ value, onChange, onSubmit, onSuggestion }: {
+function AISearchBar({ value, onChange, onSubmit, onSuggestion, aiLoading, aiSuggestion }: {
   value: string;
   onChange: (v: string) => void;
   onSubmit: () => void;
   onSuggestion: (s: string) => void;
+  aiLoading?: boolean;
+  aiSuggestion?: string | null;
 }) {
   const [focused, setFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -394,8 +396,8 @@ function AISearchBar({ value, onChange, onSubmit, onSuggestion }: {
               fontFamily: T.font,
             }}
           />
-          <div style={{ fontSize: 12, color: T.text3, marginTop: 2 }}>
-            {value ? "Tap search or press Enter" : "District · Type · Budget"}
+          <div style={{ fontSize: 12, color: aiLoading ? T.primary : T.text3, marginTop: 2, fontWeight: aiLoading ? 500 : 400 }}>
+            {aiLoading ? "✦ AI is analysing listings…" : value ? "Press Enter for AI search" : "District · Type · Budget"}
           </div>
         </div>
 
@@ -410,6 +412,18 @@ function AISearchBar({ value, onChange, onSubmit, onSuggestion }: {
           </svg>
         </div>
       </div>
+
+      {/* AI suggestion tip */}
+      {aiSuggestion && !aiLoading && (
+        <div style={{
+          marginTop: 8, padding: "8px 14px", borderRadius: 12,
+          background: T.primaryL, border: `1px solid rgba(45,106,79,0.15)`,
+          display: "flex", alignItems: "center", gap: 6,
+        }}>
+          <span style={{ fontSize: 13 }}>💡</span>
+          <span style={{ fontSize: 12, color: T.primary, fontWeight: 500 }}>{aiSuggestion}</span>
+        </div>
+      )}
 
       {/* AI Prompt suggestions */}
       {showSuggestions && (
@@ -697,6 +711,9 @@ export default function ExploreClient() {
   const [search, setSearch]         = useState("");
   const [activeChip, setActiveChip] = useState("");
   const [total, setTotal]           = useState(0);
+  const [propAiIds,       setPropAiIds]       = useState<string[] | null>(null);
+  const [propAiLoading,   setPropAiLoading]   = useState(false);
+  const [propAiSuggestion,setPropAiSuggestion] = useState<string | null>(null);
   const [view, setView]             = useState<"list" | "map">("list");
   const [showFilters, setShowFilters] = useState(false);
   const [showSaved, setShowSaved]   = useState(false);
@@ -752,6 +769,47 @@ export default function ExploreClient() {
   useEffect(() => { fetchProperties(); }, [fetchProperties]);
 
   const hasActiveFilters = filters.minPrice || filters.maxPrice || filters.propertyType || filters.bedrooms;
+
+  // If AI returned ranked IDs, reorder properties by those IDs (best matches first)
+  const displayProperties = propAiIds
+    ? [
+        ...propAiIds
+          .map(id => properties.find(p => p.id === id))
+          .filter((p): p is Property => !!p),
+        ...properties.filter(p => !propAiIds.includes(p.id)),
+      ]
+    : properties;
+
+  async function handlePropertyAISearch(query: string) {
+    if (!query.trim() || properties.length === 0) return;
+    setPropAiLoading(true);
+    setPropAiIds(null);
+    setPropAiSuggestion(null);
+    try {
+      const items = properties.map(p => ({
+        id:            p.id,
+        title:         p.title,
+        listing_type:  p.listing_type,
+        property_type: p.property_type,
+        neighbourhood: p.neighbourhood,
+        city:          p.city,
+        price:         p.price,
+        currency:      p.currency,
+        bedrooms:      p.bedrooms,
+        area_sqm:      p.area_sqm,
+        description:   p.description,
+      }));
+      const res  = await fetch("/api/ai-search", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ query, type: "property", items }),
+      });
+      const data = await res.json();
+      if (data.matchIds?.length > 0) setPropAiIds(data.matchIds);
+      if (data.suggestion)           setPropAiSuggestion(data.suggestion);
+    } catch { /* silent fallback */ }
+    finally  { setPropAiLoading(false); }
+  }
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", background: T.bg, fontFamily: T.font, position: "relative" }}>
@@ -831,9 +889,11 @@ export default function ExploreClient() {
 
         <AISearchBar
           value={search}
-          onChange={setSearch}
-          onSubmit={fetchProperties}
-          onSuggestion={(s) => setSearch(s)}
+          onChange={(v) => { setSearch(v); if (!v) { setPropAiIds(null); setPropAiSuggestion(null); } }}
+          onSubmit={async () => { await fetchProperties(); handlePropertyAISearch(search); }}
+          onSuggestion={(s) => { setSearch(s); setTimeout(() => handlePropertyAISearch(s), 300); }}
+          aiLoading={propAiLoading}
+          aiSuggestion={propAiSuggestion}
         />
       </div>
 
@@ -928,7 +988,7 @@ export default function ExploreClient() {
           <div style={{ display: "flex", flexDirection: "column", gap: 28, padding: "0 20px", paddingBottom: 120 }}>
             {loading
               ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} />)
-              : properties.length === 0
+              : displayProperties.length === 0
               ? (
                 <div style={{ padding: "48px 0", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
                   <div style={{
@@ -952,7 +1012,7 @@ export default function ExploreClient() {
                   </button>
                 </div>
               )
-              : properties.map((p) => (
+              : displayProperties.map((p) => (
                 <PropCard key={p.id} p={p} saved={isSaved(p.id)} onSave={() => toggle(p.id)} isLoggedIn={isLoggedIn} />
               ))
             }

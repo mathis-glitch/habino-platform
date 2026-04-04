@@ -468,8 +468,11 @@ function maskPhone(phone: string, loggedIn: boolean) {
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function ServicesClient() {
   const router = useRouter();
-  const [activeCategory,   setActiveCategory]   = useState("all");
-  const [aiQuery,          setAiQuery]           = useState("");
+  const [activeCategory,     setActiveCategory]     = useState("all");
+  const [aiQuery,            setAiQuery]             = useState("");
+  const [serviceAiIds,       setServiceAiIds]        = useState<string[] | null>(null);
+  const [serviceAiLoading,   setServiceAiLoading]    = useState(false);
+  const [serviceAiSuggestion,setServiceAiSuggestion] = useState<string | null>(null);
   const [authGate,         setAuthGate]           = useState(false);
   const [selectedProvider, setSelectedProvider]  = useState<Provider | null>(null);
   const [dbProviders,      setDbProviders]        = useState<Provider[]>([]);
@@ -562,7 +565,46 @@ export default function ServicesClient() {
     });
   }
 
-  const filtered = smartFilterServices(aiQuery, activeCategory, allProviders);
+  const localFiltered = smartFilterServices(aiQuery, activeCategory, allProviders);
+
+  // If AI returned ranked IDs, reorder localFiltered by those IDs
+  const filtered = serviceAiIds
+    ? [
+        ...serviceAiIds
+          .map(id => localFiltered.find(p => String(p.id) === id))
+          .filter((p): p is typeof allProviders[0] => !!p),
+        ...localFiltered.filter(p => !serviceAiIds.includes(String(p.id))),
+      ]
+    : localFiltered;
+
+  async function handleServiceAISearch(query: string) {
+    if (!query.trim()) return;
+    setServiceAiLoading(true);
+    setServiceAiIds(null);
+    setServiceAiSuggestion(null);
+    try {
+      const items = localFiltered.map(p => ({
+        id:          p.id,
+        name:        p.name,
+        category:    p.category,
+        description: p.description,
+        tags:        p.tags ?? [],
+        districts:   p.districts ?? [],
+        rating:      p.rating,
+        verified:    p.verified,
+        responseTime: p.responseTime,
+      }));
+      const res  = await fetch("/api/ai-search", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ query, type: "service", items }),
+      });
+      const data = await res.json();
+      if (data.matchIds?.length > 0) setServiceAiIds(data.matchIds);
+      if (data.suggestion)           setServiceAiSuggestion(data.suggestion);
+    } catch { /* silent fallback */ }
+    finally  { setServiceAiLoading(false); }
+  }
 
   return (
     <>
@@ -586,12 +628,15 @@ export default function ServicesClient() {
         <div style={{ margin: "0 16px 16px", flexShrink: 0 }}>
           <AIPanel
             title="Service Assistant"
-            subtitle="Describe what you need — I'll find the right provider"
-            placeholder="e.g. deep cleaning for 3-bedroom apartment…"
+            subtitle="Type to filter · Press Enter for AI ranking"
+            placeholder="e.g. deep cleaning Bole, emergency plumber…"
             suggestions={AI_SUGGESTIONS}
-            onSearch={q => setAiQuery(q)}
-            onClear={() => setAiQuery("")}
+            onSearch={q => { setAiQuery(q); if (!q) { setServiceAiIds(null); setServiceAiSuggestion(null); } }}
+            onSubmit={handleServiceAISearch}
+            onClear={() => { setAiQuery(""); setServiceAiIds(null); setServiceAiSuggestion(null); }}
             resultCount={filtered.length}
+            aiLoading={serviceAiLoading}
+            aiSuggestion={serviceAiSuggestion}
           />
         </div>
 

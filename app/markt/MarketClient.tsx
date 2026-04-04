@@ -472,6 +472,9 @@ export default function InsightsClient() {
   const [brokerTotal,  setBrokerTotal]  = useState(0);
   const [brokerSearch, setBrokerSearch] = useState("");
   const [brokerRegion, setBrokerRegion] = useState("All");
+  const [brokerAiIds,  setBrokerAiIds]  = useState<string[] | null>(null);
+  const [brokerAiLoading, setBrokerAiLoading] = useState(false);
+  const [brokerAiSuggestion, setBrokerAiSuggestion] = useState<string | null>(null);
   const BROKER_LIMIT = 20;
 
   const AI_SUGGESTIONS = [
@@ -504,6 +507,44 @@ export default function InsightsClient() {
   const micro = getMicro(district);
 
   const filteredBrokers = smartFilterBrokers(brokerSearch, brokerRegion, brokers);
+
+  // If AI returned ranked IDs, reorder filteredBrokers by those IDs
+  const displayBrokers = brokerAiIds
+    ? [
+        ...brokerAiIds
+          .map(id => filteredBrokers.find(b => String(b.id) === id))
+          .filter((b): b is DbBroker => !!b),
+        ...filteredBrokers.filter(b => !brokerAiIds.includes(String(b.id))),
+      ]
+    : filteredBrokers;
+
+  async function handleBrokerAISearch(query: string) {
+    if (!query.trim() || brokers.length === 0) return;
+    setBrokerAiLoading(true);
+    setBrokerAiIds(null);
+    setBrokerAiSuggestion(null);
+    try {
+      const items = filteredBrokers.map(b => ({
+        id:         b.id,
+        name:       b.full_name,
+        agency:     b.agency,
+        speciality: Array.isArray(b.speciality) ? b.speciality : [],
+        districts:  Array.isArray(b.districts)  ? b.districts  : [],
+        years_exp:  b.years_exp,
+        rating:     b.rating != null ? Number(b.rating) : null,
+        verified:   b.verified,
+      }));
+      const res  = await fetch("/api/ai-search", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ query, type: "broker", items }),
+      });
+      const data = await res.json();
+      if (data.matchIds?.length > 0) setBrokerAiIds(data.matchIds);
+      if (data.suggestion)           setBrokerAiSuggestion(data.suggestion);
+    } catch { /* silent fallback */ }
+    finally  { setBrokerAiLoading(false); }
+  }
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", background: T.bgSoft, fontFamily: T.font, minHeight: 0 }}>
@@ -816,12 +857,15 @@ export default function InsightsClient() {
               <div style={{ marginBottom: 12 }}>
                 <AIPanel
                   title="AI Broker Finder"
-                  subtitle="Describe who you're looking for"
+                  subtitle="Type to filter · Press Enter for AI ranking"
                   placeholder="e.g. Luxury specialist in Bole with 5+ years…"
                   suggestions={AI_SUGGESTIONS}
-                  onSearch={q => setBrokerSearch(q)}
-                  onClear={() => setBrokerSearch("")}
-                  resultCount={filteredBrokers.length}
+                  onSearch={q => { setBrokerSearch(q); if (!q) { setBrokerAiIds(null); setBrokerAiSuggestion(null); } }}
+                  onSubmit={handleBrokerAISearch}
+                  onClear={() => { setBrokerSearch(""); setBrokerAiIds(null); setBrokerAiSuggestion(null); }}
+                  resultCount={displayBrokers.length}
+                  aiLoading={brokerAiLoading}
+                  aiSuggestion={brokerAiSuggestion}
                 />
               </div>
 
@@ -855,15 +899,15 @@ export default function InsightsClient() {
                 Array.from({ length: 5 }).map((_, i) => (
                   <div key={i} style={{ height: 130, borderRadius: 18, background: T.bgSoft2 }} />
                 ))
-              ) : filteredBrokers.length === 0 ? (
+              ) : displayBrokers.length === 0 ? (
                 <div style={{ padding: "40px 0", textAlign: "center" }}>
                   <div style={{ fontSize: 32, marginBottom: 10 }}>🔍</div>
                   <div style={{ fontSize: 15, fontWeight: 700, color: T.text1, marginBottom: 6 }}>No brokers found</div>
-                  <div style={{ fontSize: 13, color: T.text2 }}>Try a different search or region filter</div>
+                  <div style={{ fontSize: 13, color: T.text2 }}>Try a different search or press Enter for AI search</div>
                 </div>
               ) : (
                 <BrokerErrorBoundary>
-                  {filteredBrokers.map(b => <BrokerCard key={b.id ?? Math.random()} broker={b} />)}
+                  {displayBrokers.map(b => <BrokerCard key={b.id ?? Math.random()} broker={b} />)}
                 </BrokerErrorBoundary>
               )}
             </div>
