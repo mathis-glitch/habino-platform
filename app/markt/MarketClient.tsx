@@ -166,84 +166,57 @@ type DbBroker = {
   phone: string | null;
 };
 
-// ── Gender detection from first name ─────────────────────────────────────────
+// ── Gender detection ──────────────────────────────────────────────────────────
 const FEMALE_NAMES = new Set([
   "selam","hana","tigist","meron","makda","eden","liya","selamawit","mihret","yeshi",
   "almaz","hiwot","bethlehem","rahel","sara","sofia","grace","aisha","fatima","amina",
   "abeba","chaltu","dagne","fikerte","genet","hirut","kedist","lemlem","mekdes","nigest",
   "rediet","senait","tirhas","winta","zewditu","haben","lidat","saron","tsion","yordanos",
 ]);
-function isFemale(fullName: string): boolean {
-  const first = fullName.trim().split(" ")[0].toLowerCase();
-  return FEMALE_NAMES.has(first);
+function isFemale(name: string): boolean {
+  return FEMALE_NAMES.has((name || "").trim().split(" ")[0].toLowerCase());
 }
 
-// ── Gender avatar SVGs ────────────────────────────────────────────────────────
-function AvatarMale({ size = 56 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 56 56" fill="none">
-      <rect width="56" height="56" rx="14" fill="#E8EDF0"/>
-      <circle cx="28" cy="20" r="10" fill="#C4CDD4"/>
-      <path d="M10 52c0-9.941 8.059-18 18-18s18 8.059 18 18" fill="#C4CDD4"/>
-    </svg>
-  );
-}
-function AvatarFemale({ size = 56 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 56 56" fill="none">
-      <rect width="56" height="56" rx="14" fill="#EDE8F0"/>
-      <circle cx="28" cy="20" r="10" fill="#C4B8D4"/>
-      <circle cx="28" cy="11" r="5" fill="#C4B8D4"/>
-      <path d="M12 52c0-8.837 7.163-16 16-16s16 7.163 16 16" fill="#C4B8D4"/>
-    </svg>
-  );
-}
-
-// ── Achievement badges ────────────────────────────────────────────────────────
-type Badge = { label: string; color: string; bg: string };
-function getBadges(b: DbBroker): Badge[] {
-  const badges: Badge[] = [];
-  if (b.verified) badges.push({ label: "Verified", color: T.primary, bg: T.primaryL });
-  const rating = typeof b.rating === "number" ? b.rating : 0;
-  if (rating >= 4.8) badges.push({ label: "Top Rated", color: "#92400E", bg: "#FEF3C7" });
+function getBadges(b: DbBroker): string[] {
+  const out: string[] = [];
+  if (b.verified) out.push("Verified");
+  if ((b.rating ?? 0) >= 4.8) out.push("Top Rated");
   const yrs = b.years_experience ?? 0;
-  if (yrs >= 7) badges.push({ label: "Senior Expert", color: "#1E40AF", bg: "#DBEAFE" });
-  else if (yrs >= 3) badges.push({ label: "Experienced", color: "#1E40AF", bg: "#EFF6FF" });
+  if (yrs >= 7) out.push("Senior Expert");
+  else if (yrs >= 3) out.push("Experienced");
   const spec = (b.speciality ?? "").toLowerCase();
-  if (spec.includes("luxury")) badges.push({ label: "Luxury", color: "#6D28D9", bg: "#EDE9FE" });
-  if (spec.includes("commercial")) badges.push({ label: "Commercial", color: "#9A3412", bg: "#FFEDD5" });
-  if (spec.includes("land") || spec.includes("plot")) badges.push({ label: "Land & Plots", color: "#065F46", bg: "#D1FAE5" });
-  if (spec.includes("expat") || spec.includes("ngo")) badges.push({ label: "Expat Specialist", color: "#0E7490", bg: "#CFFAFE" });
-  if ((b.listings_count ?? 0) >= 30) badges.push({ label: "High Volume", color: "#374151", bg: "#F3F4F6" });
-  return badges.slice(0, 3);
+  if (spec.includes("luxury")) out.push("Luxury");
+  if (spec.includes("commercial")) out.push("Commercial");
+  if (spec.includes("land") || spec.includes("plot")) out.push("Land");
+  if (spec.includes("expat")) out.push("Expat");
+  if ((b.listings_count ?? 0) >= 30) out.push("High Volume");
+  return out.slice(0, 3);
 }
 
-// ── Usage type tags ───────────────────────────────────────────────────────────
-const USAGE_TAGS: Record<string, string[]> = {
-  "Luxury Residential": ["Residential", "Luxury"],
-  "Commercial & Office": ["Commercial", "Office"],
-  "Buy & Investment": ["Investment", "Buy"],
-  "Land & Plots": ["Land", "Plots"],
-  "Expat & NGO Rentals": ["Rental", "Expat"],
-  "New Developments": ["New Build", "Off-Plan"],
-  "Residential Sales": ["Residential", "Sales"],
-  "Property Management": ["Management", "Rental"],
-  "Industrial": ["Industrial", "Warehouse"],
+const USAGE_MAP: Record<string, string> = {
+  "Luxury Residential": "Residential · Luxury",
+  "Commercial & Office": "Commercial · Office",
+  "Buy & Investment": "Investment · Buy",
+  "Land & Plots": "Land · Plots",
+  "Expat & NGO Rentals": "Rental · Expat",
+  "New Developments": "New Build · Off-Plan",
+  "Residential Sales": "Residential · Sales",
+  "Property Management": "Management · Rental",
 };
-function getUsageTags(speciality: string | null): string[] {
-  if (!speciality) return [];
-  return USAGE_TAGS[speciality] ?? [speciality];
-}
 
 // ── Broker Card ───────────────────────────────────────────────────────────────
 function BrokerCard({ broker }: { broker: DbBroker }) {
-  const name    = broker.full_name ?? "Agent";
+  const name    = broker.full_name || "Agent";
   const female  = isFemale(name);
   const deals   = broker.listings_count ?? 0;
   const rating  = typeof broker.rating === "number" ? broker.rating : null;
   const badges  = getBadges(broker);
-  const usage   = getUsageTags(broker.speciality);
-  const regions = (broker.districts ?? []).slice(0, 3);
+  const usageLabel = broker.speciality ? (USAGE_MAP[broker.speciality] ?? broker.speciality) : null;
+  const districts = Array.isArray(broker.districts) ? broker.districts.slice(0, 3) : [];
+  const accentColor = female ? "#9B7EC8" : T.primary;
+  const avatarBg    = female ? "#EDE8F0" : "#E8EDF0";
+  const avatarFg    = female ? "#C4B8D4" : "#C4CDD4";
+  const initials    = name.split(" ").map((n: string) => n[0] || "").join("").slice(0, 2).toUpperCase();
 
   return (
     <a href={`/brokers/${broker.id}`} style={{ textDecoration: "none" }}>
@@ -252,104 +225,84 @@ function BrokerCard({ broker }: { broker: DbBroker }) {
         borderRadius: 18, overflow: "hidden",
         boxShadow: "0 2px 12px rgba(0,0,0,0.05)",
       }}>
-        {/* Top accent strip based on gender */}
-        <div style={{ height: 3, background: female ? "linear-gradient(90deg,#C4B8D4,#9B7EC8)" : "linear-gradient(90deg,#2D6A4F,#40916C)" }} />
-
+        <div style={{ height: 3, background: accentColor }} />
         <div style={{ padding: "14px 16px 16px", display: "flex", gap: 14, alignItems: "flex-start" }}>
+
           {/* Avatar placeholder */}
-          <div style={{ flexShrink: 0 }}>
-            {female ? <AvatarFemale /> : <AvatarMale />}
+          <div style={{
+            width: 52, height: 52, borderRadius: 14, flexShrink: 0,
+            background: avatarBg, display: "flex", alignItems: "center", justifyContent: "center",
+            position: "relative",
+          }}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: avatarFg }}>{initials}</div>
+            {broker.verified && (
+              <div style={{
+                position: "absolute", bottom: -3, right: -3,
+                width: 16, height: 16, borderRadius: "50%",
+                background: accentColor, border: "2px solid #fff",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#fff" }} />
+              </div>
+            )}
           </div>
 
           {/* Info */}
           <div style={{ flex: 1, minWidth: 0 }}>
-            {/* Name + verified */}
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 1 }}>
-              <span style={{ fontWeight: 700, fontSize: 15, color: T.text1 }}>{name}</span>
-              {broker.verified && (
-                <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
-                  <circle cx="7.5" cy="7.5" r="7.5" fill={female ? "#6D28D9" : T.primary}/>
-                  <path d="M4.5 7.5l2 2 4-4" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              )}
-            </div>
-
-            {/* Agency */}
+            <div style={{ fontWeight: 700, fontSize: 15, color: T.text1, marginBottom: 2 }}>{name}</div>
             {broker.agency && (
               <div style={{ fontSize: 11, color: T.text3, marginBottom: 6 }}>{broker.agency}</div>
             )}
 
-            {/* Achievement badges */}
+            {/* Badges */}
             {badges.length > 0 && (
-              <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 8 }}>
+              <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 6 }}>
                 {badges.map(badge => (
-                  <span key={badge.label} style={{
+                  <span key={badge} style={{
                     padding: "2px 7px", borderRadius: 6,
                     fontSize: 10, fontWeight: 700,
-                    color: badge.color, background: badge.bg,
+                    color: accentColor, background: female ? "#EDE9FE" : T.primaryL,
                   }}>
-                    {badge.label}
+                    {badge}
                   </span>
                 ))}
               </div>
             )}
 
-            {/* Usage type tags */}
-            {usage.length > 0 && (
-              <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 6 }}>
-                {usage.map(u => (
-                  <span key={u} style={{
-                    padding: "2px 7px", borderRadius: 6,
-                    fontSize: 10, fontWeight: 600,
-                    color: "#374151", background: "#F3F4F6",
-                    border: "1px solid #E5E7EB",
-                  }}>
-                    {u}
-                  </span>
-                ))}
-              </div>
+            {/* Usage label */}
+            {usageLabel && (
+              <div style={{ fontSize: 11, color: T.text2, marginBottom: 5 }}>{usageLabel}</div>
             )}
 
-            {/* Region tags */}
-            {regions.length > 0 && (
-              <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 10 }}>
-                {regions.map(r => (
+            {/* Districts */}
+            {districts.length > 0 && (
+              <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 8 }}>
+                {districts.map((r: string) => (
                   <span key={r} style={{
-                    display: "flex", alignItems: "center", gap: 3,
-                    padding: "2px 7px", borderRadius: 6,
+                    padding: "2px 8px", borderRadius: 6,
                     fontSize: 10, fontWeight: 600,
-                    color: T.primary, background: T.primaryL,
+                    color: accentColor, background: female ? "#EDE9FE" : T.primaryL,
                   }}>
-                    <svg width="8" height="8" fill="none" stroke={T.primary} strokeWidth="2" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"/>
-                    </svg>
                     {r}
                   </span>
                 ))}
               </div>
             )}
 
-            {/* Stats row */}
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {/* Stats */}
+            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
               {rating !== null && (
-                <div style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 12, fontWeight: 700, color: "#92400E" }}>
-                  <svg width="11" height="11" fill="#F59E0B" viewBox="0 0 24 24">
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                  </svg>
-                  {rating.toFixed(1)}
-                </div>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#92400E" }}>
+                  ★ {rating.toFixed(1)}
+                </span>
               )}
-              <div style={{ fontSize: 12, color: T.text3 }}>·</div>
-              <div style={{ fontSize: 12, color: T.text2, fontWeight: 600 }}>{deals} listings</div>
+              <span style={{ fontSize: 12, color: T.text2 }}>{deals} listings</span>
               {(broker.years_experience ?? 0) > 0 && (
-                <>
-                  <div style={{ fontSize: 12, color: T.text3 }}>·</div>
-                  <div style={{ fontSize: 12, color: T.text2 }}>{broker.years_experience}y exp</div>
-                </>
+                <span style={{ fontSize: 12, color: T.text3 }}>{broker.years_experience}y exp</span>
               )}
-              <div style={{ marginLeft: "auto", fontSize: 12, fontWeight: 700, color: T.primary }}>
+              <span style={{ marginLeft: "auto", fontSize: 12, fontWeight: 700, color: accentColor }}>
                 View →
-              </div>
+              </span>
             </div>
           </div>
         </div>
@@ -423,13 +376,6 @@ export default function InsightsClient() {
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", background: T.bgSoft, fontFamily: T.font, minHeight: 0 }}>
-      <style>{`
-        @keyframes bounce {
-          0%, 80%, 100% { transform: scaleY(1); }
-          40% { transform: scaleY(1.6); }
-        }
-      `}</style>
-
       {/* ── Header ── */}
       <div style={{ padding: "52px 20px 0", background: T.bg }}>
         <div style={{ marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}>
@@ -744,25 +690,15 @@ export default function InsightsClient() {
               }}>
                 {/* Header */}
                 <div style={{ padding: "14px 16px 10px", borderBottom: `1px solid ${T.border}`, display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 10, background: T.primaryL, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <svg width="16" height="16" fill="none" stroke={T.primary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                      <path d="M12 2a2 2 0 012 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 017 7h1a1 1 0 010 2h-1v1a2 2 0 01-2 2H5a2 2 0 01-2-2v-1H2a1 1 0 010-2h1a7 7 0 017-7h1V5.73A2 2 0 0110 4a2 2 0 012-2z"/>
-                    </svg>
+                  <div style={{ width: 32, height: 32, borderRadius: 10, background: T.primaryL, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 16 }}>
+                    🤖
                   </div>
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 700, color: T.text1 }}>AI Broker Finder</div>
                     <div style={{ fontSize: 11, color: T.text3 }}>Describe what you&apos;re looking for</div>
                   </div>
                   {aiThinking && (
-                    <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: T.primary }}>
-                      <div style={{ display: "flex", gap: 3 }}>
-                        {[0,1,2].map(i => (
-                          <div key={i} style={{
-                            width: 5, height: 5, borderRadius: "50%", background: T.primary,
-                            animation: `bounce 1s ${i * 0.15}s infinite`,
-                          }}/>
-                        ))}
-                      </div>
+                    <div style={{ marginLeft: "auto", fontSize: 11, color: T.primary, fontWeight: 600 }}>
                       Searching…
                     </div>
                   )}
