@@ -593,14 +593,12 @@ export default function InsightsClient() {
           <p style={{ fontSize: 13, color: T.text2, margin: "0 0 4px" }}>
             {brokerTotal > 0 ? `${brokerTotal} verified brokers in Addis Abeba` : "Verified brokers in Addis Abeba"}
           </p>
-          {brokersLoading && brokers.length === 0 ? (
+          {brokers.length === 0 ? (
             Array.from({ length: 6 }).map((_, i) => (
               <div key={i} style={{ height: 96, borderRadius: 16, background: T.bgSoft2 }} />
             ))
           ) : (
-            (brokers.length > 0 ? brokers : (BROKERS_FALLBACK as unknown as DbBroker[])).map((b) => (
-              <BrokerCard key={b.id} broker={b} />
-            ))
+            brokers.map((b) => <BrokerCard key={b.id} broker={b} />)
           )}
           {/* Load more */}
           {!brokersLoading && brokers.length > 0 && brokers.length < brokerTotal && (
