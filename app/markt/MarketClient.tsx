@@ -591,7 +591,7 @@ export default function InsightsClient() {
   }
 
   return (
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", background: T.bgSoft, fontFamily: T.font, minHeight: 0 }}>
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", background: T.bgSoft, fontFamily: T.font, minHeight: 0, position: "relative", overflow: "hidden" }}>
       {/* ── Header ── */}
       <div style={{ padding: "52px 20px 0", background: T.bg }}>
         {/* Habino logo + wordmark */}
@@ -881,7 +881,7 @@ export default function InsightsClient() {
       {/* ── Blog full-screen article overlay ── */}
       {blogOpen && (
         <div style={{
-          position: "fixed", inset: 0, zIndex: 200,
+          position: "absolute", inset: 0, zIndex: 200,
           background: T.bg, display: "flex", flexDirection: "column",
           fontFamily: T.font,
         }}>
