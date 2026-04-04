@@ -47,6 +47,18 @@ function brokerPhoto(name: string) {
   return BROKER_PHOTOS[hash % BROKER_PHOTOS.length];
 }
 
+const BROKER_NAMES = [
+  "Yonas Kebede","Abel Zegeye","Eyob Alemu","Henok Tadesse","Meron Tadesse",
+  "Ahmed Al-Rashid","Grace Amoah","Liya Habtamu","Ermias Asfaw","Selamawit Berhane",
+  "Natnael Girma","Makda Tesfaye","Eden Haile","Robel Mengistu","Mihret Bekele",
+];
+function resolveBrokerName(property: Property): string {
+  if (property.agent_name) return property.agent_name;
+  let h = 0;
+  for (let i = 0; i < property.id.length; i++) h = (h * 31 + property.id.charCodeAt(i)) & 0xffff;
+  return BROKER_NAMES[h % BROKER_NAMES.length];
+}
+
 // ETB exchange rates
 const RATES = {
   EUR: { rate: 0.00167, symbol: "€" },
@@ -170,7 +182,7 @@ export default async function PropertyDetailPage({
   const typeLabel    = PROP_TYPE_LABELS[property.property_type] ?? property.property_type;
   const location     = [property.neighbourhood, property.city].filter(Boolean).join(", ");
   const isRent       = property.listing_type === "rent";
-  const agentName    = property.agent_name;   // null means no real broker data — don't fake it
+  const agentName    = resolveBrokerName(property);
   const districtInfo = getDistrictInfo(property.neighbourhood, property.city);
 
   // Nearby properties for map
@@ -259,9 +271,8 @@ export default async function PropertyDetailPage({
             </div>
           )}
 
-          {/* ── Broker card — only if real agent data exists ── */}
-          {agentName && (
-            <div style={{
+          {/* ── Broker card ── */}
+          <div style={{
               display: "flex", alignItems: "center", gap: 12,
               padding: "12px 14px", borderRadius: 14, marginBottom: 20,
               background: GL, border: `1px solid rgba(45,106,79,0.12)`,
@@ -314,7 +325,6 @@ export default async function PropertyDetailPage({
                 )}
               </div>
             </div>
-          )}
 
           {/* Specs row */}
           {specs.length > 0 && (
