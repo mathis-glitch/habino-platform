@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { AuthGateModal } from "@/components/auth/AuthGateModal";
 
 const T = {
@@ -372,6 +373,7 @@ function ProviderCard({ provider, onOpen }: { provider: Provider; onOpen: () => 
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function ServicesClient() {
+  const router = useRouter();
   const [activeCategory,   setActiveCategory]   = useState("all");
   const [aiQuery,          setAiQuery]           = useState("");
   const [showSuggestions,  setShowSuggestions]   = useState(false);
@@ -499,7 +501,7 @@ export default function ServicesClient() {
             <p style={{ fontSize: 13, color: T.text2, lineHeight: 1.6, marginBottom: 14 }}>
               Offer your services to hundreds of Habino users across Addis Ababa.
             </p>
-            <button onClick={() => setAuthGate(true)} style={{
+            <button onClick={() => router.push("/services/new")} style={{
               padding: "10px 24px", borderRadius: 12,
               background: G, color: "#fff", border: "none",
               fontSize: 13, fontWeight: 700, cursor: "pointer",

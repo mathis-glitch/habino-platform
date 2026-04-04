@@ -46,10 +46,11 @@ const TABS = [
   },
   {
     href: "/profile",
-    label: "Profile",
+    label: "habino",
     icon: (active: boolean) => (
-      <svg width="24" height="24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth={active ? 0 : 1.7} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-        <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z" />
+      <svg width="26" height="26" viewBox="0 0 32 32" fill="none">
+        <rect width="32" height="32" rx="8" fill={active ? GREEN : "none"} stroke={active ? "none" : INACTIVE} strokeWidth="1.5" />
+        <path d="M8 24V8h4v6.5h8V8h4v16h-4v-7h-8v7z" fill={active ? "#fff" : INACTIVE} />
       </svg>
     ),
   },
