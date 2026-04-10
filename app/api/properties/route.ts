@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { PropertyFilters } from "@/lib/types";
+import OpenAI from "openai";
+
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 
 // GET /api/properties — public listing feed
 export async function GET(request: NextRequest) {
@@ -23,6 +26,60 @@ export async function GET(request: NextRequest) {
   }
 
   const { searchParams } = new URL(request.url);
+
+  // ── Semantic search: ?q= natural language query ────────────────────────────
+  const q = searchParams.get("q")?.trim();
+  if (q) {
+    // Embed the user's query and find semantically similar properties
+    let semanticIds: string[] = [];
+    try {
+      const embResponse = await openai.embeddings.create({
+        model: "text-embedding-3-small",
+        input: q,
+      });
+      const queryEmbedding = embResponse.data[0].embedding;
+
+      const supabase = createServiceClient();
+      const { data: matches } = await supabase.rpc("search_properties_semantic", {
+        query_embedding:  queryEmbedding,
+        tenant_id_filter: tenantId,
+        match_count:      30,
+        threshold:        0.35,
+      });
+
+      if (matches && matches.length > 0) {
+        semanticIds = matches.map((m: { id: string }) => m.id);
+      }
+    } catch {
+      // If embedding fails, fall through to regular keyword search
+    }
+
+    if (semanticIds.length > 0) {
+      // Fetch full property data for the matched IDs, preserving similarity order
+      const supabase = createServiceClient();
+      const { data: props } = await supabase
+        .from("properties")
+        .select("*, images:property_images(id, url, sort_order)")
+        .eq("tenant_id", tenantId!)
+        .eq("status", "active")
+        .in("id", semanticIds);
+
+      // Re-sort to match semantic order (Supabase .in() doesn't preserve order)
+      const ordered = semanticIds
+        .map(id => props?.find(p => p.id === id))
+        .filter(Boolean);
+
+      return NextResponse.json({
+        data:  ordered,
+        total: ordered.length,
+        page:  1,
+        limit: ordered.length,
+        semantic: true,
+      });
+    }
+    // If no semantic matches, fall through to regular filter search below
+  }
+
   const filters: PropertyFilters = {
     listing_type:  (searchParams.get("type") as any)      || undefined,
     property_type: (searchParams.get("property_type") as any) || undefined,
