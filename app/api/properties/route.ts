@@ -248,5 +248,29 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  // Generate embedding in the background — don't block the response
+  embedProperty(data).catch(() => {});
+
   return NextResponse.json(data, { status: 201 });
+}
+
+// ── Background embedding helper ────────────────────────────────────────────────
+async function embedProperty(p: Record<string, unknown>) {
+  try {
+    const text = [
+      p.title, p.property_type,
+      p.listing_type === "rent" ? "for rent" : "for sale",
+      p.bedrooms ? `${p.bedrooms} bedrooms` : null,
+      p.area_sqm ? `${p.area_sqm} sqm` : null,
+      p.neighbourhood, p.city,
+      p.description ? String(p.description).slice(0, 500) : null,
+    ].filter(Boolean).join(". ");
+
+    const res  = await openai.embeddings.create({ model: "text-embedding-3-small", input: text });
+    const vec  = res.data[0].embedding;
+    const supabase = createServiceClient();
+    await supabase.from("properties").update({ embedding: vec as unknown as string }).eq("id", p.id);
+  } catch {
+    // Non-critical — backfill script can re-run to catch failures
+  }
 }

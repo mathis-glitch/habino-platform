@@ -177,6 +177,44 @@ function formatRows(rows: Record<string, unknown>[]) {
   }));
 }
 
+// ── Load user search preferences from DB ─────────────────────────────────────
+async function loadPreferences(userId: string, tenantId: string): Promise<Record<string, unknown> | null> {
+  try {
+    const supabase = createServiceClient();
+    const { data } = await supabase
+      .from("user_search_sessions")
+      .select("preferences")
+      .eq("user_id", userId)
+      .eq("tenant_id", tenantId)
+      .single();
+    return (data?.preferences as Record<string, unknown>) ?? null;
+  } catch { return null; }
+}
+
+// ── Persist preferences extracted from a tool call ───────────────────────────
+async function savePreferences(
+  userId: string,
+  tenantId: string,
+  input: SearchInput,
+) {
+  try {
+    const supabase = createServiceClient();
+    const prefs: Record<string, unknown> = {};
+    if (input.listing_type)  prefs.listing_type  = input.listing_type;
+    if (input.neighbourhood) prefs.neighbourhood = input.neighbourhood;
+    if (input.property_type) prefs.property_type = input.property_type;
+    if (input.min_bedrooms)  prefs.bedrooms      = input.min_bedrooms;
+    if (input.max_price)     prefs.max_price     = input.max_price;
+    if (input.city)          prefs.city          = input.city;
+    await supabase.from("user_search_sessions").upsert({
+      user_id:    userId,
+      tenant_id:  tenantId,
+      preferences: prefs,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "user_id,tenant_id" });
+  } catch { /* non-critical */ }
+}
+
 // ── POST /api/chat ────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   // ✅ Tenant from middleware-injected header — always scoped correctly
@@ -193,6 +231,29 @@ export async function POST(req: NextRequest) {
   const rawMsgs: Array<{ role: string; content: string }> = body.messages ?? [];
   if (!rawMsgs.length) {
     return new Response(JSON.stringify({ error: "No messages" }), { status: 400 });
+  }
+
+  // ── Resolve user from Authorization header (optional) ────────────────────
+  let userId: string | null = null;
+  const authHeader = req.headers.get("authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    try {
+      const supabase = createServiceClient();
+      const { data } = await supabase.auth.getUser(authHeader.slice(7));
+      userId = data.user?.id ?? null;
+    } catch { /* anonymous session */ }
+  }
+
+  // ── Load stored preferences and inject into system prompt ─────────────────
+  let systemPrompt = SYSTEM_PROMPT;
+  if (userId) {
+    const prefs = await loadPreferences(userId, tenantId);
+    if (prefs && Object.keys(prefs).length > 0) {
+      const prefLines = Object.entries(prefs)
+        .map(([k, v]) => `  - ${k}: ${v}`)
+        .join("\n");
+      systemPrompt += `\n\nUSER PREFERENCES (from previous sessions — use as context, not strict filter):\n${prefLines}\nIf relevant, acknowledge their previous search naturally (e.g. "Still looking for apartments in Bole?").`;
+    }
   }
 
   const initMsgs: Anthropic.MessageParam[] = rawMsgs.map(m => ({
@@ -224,7 +285,7 @@ export async function POST(req: NextRequest) {
               stream = anthropic.messages.stream({
                 model:      "claude-sonnet-4-6",
                 max_tokens: 1024,
-                system:     SYSTEM_PROMPT,
+                system:     systemPrompt,
                 tools:      TOOLS,
                 messages:   currentMsgs,
               });
@@ -261,6 +322,8 @@ export async function POST(req: NextRequest) {
             const rows  = await execSearch(tb.input as SearchInput, tenantId);
             foundProperties = rows;
             toolResult = JSON.stringify({ count: rows.length, results: formatRows(rows) });
+            // Persist search preferences for this user
+            if (userId) savePreferences(userId, tenantId, tb.input as SearchInput);
           } catch (e) {
             const errMsg = String(e);
             console.error("[chat/search_properties] error:", errMsg, "tenant:", tenantId, "input:", JSON.stringify(tb.input));
