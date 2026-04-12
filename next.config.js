@@ -23,11 +23,15 @@ const nextConfig = {
   },
 };
 
-module.exports = withSentryConfig(nextConfig, {
-  org: process.env.SENTRY_ORG,
-  project: process.env.SENTRY_PROJECT,
-  silent: true,
-  widenClientFileUpload: true,
-  hideSourceMaps: true,
-  disableLogger: true,
-});
+// Only wrap with Sentry if auth token is configured (skip in CI without secrets)
+if (process.env.SENTRY_AUTH_TOKEN) {
+  module.exports = withSentryConfig(nextConfig, {
+    org: process.env.SENTRY_ORG ?? "habino",
+    project: process.env.SENTRY_PROJECT ?? "habino-platform",
+    silent: true,
+    widenClientFileUpload: true,
+    hideSourceMaps: true,
+  });
+} else {
+  module.exports = nextConfig;
+}

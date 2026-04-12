@@ -39,3 +39,6 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           NEXT_PUBLIC_ROOT_DOMAIN: habino.app
           NEXT_PUBLIC_DEV_TENANT_SLUG: demo
+          # Sentry — leave empty in CI; real token only on Vercel for source maps
+          SENTRY_AUTH_TOKEN: ""
+          SENTRY_SUPPRESS_GLOBAL_ERROR_HANDLER_FILE_WARNING: "1"
