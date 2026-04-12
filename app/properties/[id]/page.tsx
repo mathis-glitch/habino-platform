@@ -500,6 +500,21 @@ export default async function PropertyDetailPage({
             </div>
           </div>
 
+          {/* ── What's Nearby — from OSM POI data ── */}
+          {property.nearby_text && (
+            <div style={{ marginBottom: 24 }}>
+              <h2 style={{ fontSize: 15, fontWeight: 700, color: "#1A1A2E", marginBottom: 12 }}>What&apos;s nearby</h2>
+              <div style={{ background: "#F0FDF4", borderRadius: 12, padding: "14px 16px", border: "1px solid #BBF7D0" }}>
+                {(property.nearby_text as string).split(" · ").map((item: string, i: number) => (
+                  <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: i < (property.nearby_text as string).split(" · ").length - 1 ? 10 : 0 }}>
+                    <span style={{ fontSize: 14, flexShrink: 0 }}>📍</span>
+                    <span style={{ fontSize: 13, color: "#166534", lineHeight: 1.5 }}>{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* ── Neighbourhood ── */}
           {districtInfo && (
             <div style={{ marginBottom: 24 }}>
