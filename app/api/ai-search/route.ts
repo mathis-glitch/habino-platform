@@ -3,124 +3,85 @@ import { NextRequest, NextResponse } from "next/server";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+const MARKET_CONTEXT = `
+You are a real estate search assistant for Habino, operating in Addis Ababa, Ethiopia.
+Market context:
+- Premium: Bole, Kazanchis, Old Airport → expats, luxury, ETB 40k–120k/mo rent
+- Mid-tier: CMC, Megenagna, Sarbet → growing middle class
+- Affordable: Yeka, Lideta, Kolfe, Piassa, Arada → local buyers
+- New builds: Ayat, Jemo, Lebu, Saris → investment, condos
+- "Compound" = house with private garden (very desirable)
+- "Condominium" = government housing scheme (affordable)
+- Currency: Ethiopian Birr (ETB). Buy: ETB 2M–50M+
+`;
+
+const TYPE_FIELDS: Record<string, string> = {
+  property: "id, title, listing_type (buy/rent), property_type, neighbourhood, price (ETB), bedrooms, area_sqm, description",
+  broker:   "id, full_name, agency, speciality[], districts[], years_exp, rating, verified",
+  service:  "id, name, category, description, tags[], rating, verified, responseTime",
+};
+
 /**
  * POST /api/ai-search
- *
- * Two-step AI search:
- *  1. Query understanding — Claude expands the user's intent into structured signals
- *  2. Ranking — Claude ranks items against the understood intent
- *
- * Returns { matchIds: string[], suggestion: string | null, intent: object }
+ * Single-call AI search — intent + ranking + insight in one pass.
+ * Returns { matchIds, insight, suggestion }
  */
 export async function POST(req: NextRequest) {
   try {
-    const { query, type, items } = (await req.json()) as {
+    const { query, type = "property", items } = (await req.json()) as {
       query: string;
-      type: "property" | "broker" | "service";
+      type?: "property" | "broker" | "service";
       items: Array<Record<string, unknown>>;
     };
 
     if (!query?.trim() || !items?.length) {
-      return NextResponse.json({ matchIds: [], suggestion: null });
+      return NextResponse.json({ matchIds: [], insight: null, suggestion: null });
     }
 
-    // ── Step 1: Understand query intent ──────────────────────────────────────
-    const intentSystem = `You are an expert real estate search assistant for Habino, operating in Addis Ababa, Ethiopia.
+    // Trim items to keep prompt short → faster & cheaper
+    const trimmed = items.slice(0, 18);
 
-Market context you must know:
-- Premium districts: Bole, Kazanchis, Old Airport → high prices, expats, luxury
-- Mid-tier: CMC, Megenagna, Sarbet, Summit, Gerji → growing middle class
-- Affordable: Yeka, Lideta, Kolfe, Piassa, Arada → local buyers/renters
-- New developments: Ayat, Jemo, Lebu, Saris → new builds, investment
-- Currency: Ethiopian Birr (ETB). Typical rent: ETB 15,000–120,000/mo. Buy: ETB 2M–50M+
-- "Compound" = house with garden/private yard — very desirable
-- "Condominium" = government housing scheme — affordable
-- Local languages: Amharic, Oromo. Expats speak English, some German/French
+    const system = `${MARKET_CONTEXT}
+Items have these fields: ${TYPE_FIELDS[type] ?? TYPE_FIELDS.property}
 
-Your task: Deeply understand what the user REALLY wants from their query.
-Think about unstated needs, synonyms, and implied requirements.
-
-Return ONLY valid JSON — no markdown:
+Given the user's search query and a list of items, respond with ONLY valid JSON (no markdown):
 {
-  "intent_summary": "one sentence describing what the user wants",
-  "property_types": ["villa","apartment","house","commercial","land","office","hall","plot"],
-  "listing_type": "rent|buy|",
-  "districts": ["district names they mentioned or implied"],
-  "price_max": null_or_number,
-  "bedrooms_min": null_or_number,
-  "key_signals": ["important keywords/phrases to match against"],
-  "implicit_needs": ["things not said explicitly but implied by context"],
-  "language": "en|de|am|other",
-  "suggestion": "short tip to improve query, or null"
-}`;
-
-    const intentMsg = await client.messages.create({
-      model:    "claude-sonnet-4-6",
-      max_tokens: 512,
-      system:   intentSystem,
-      messages: [{ role: "user", content: `User query: "${query}"\nSearch type: ${type}` }],
-    });
-
-    const intentRaw = intentMsg.content[0].type === "text" ? intentMsg.content[0].text.trim() : "{}";
-    const iStart = intentRaw.indexOf("{");
-    const iEnd   = intentRaw.lastIndexOf("}");
-    let intent: Record<string, unknown> = {};
-    try {
-      if (iStart !== -1 && iEnd !== -1) intent = JSON.parse(intentRaw.slice(iStart, iEnd + 1));
-    } catch { intent = {}; }
-
-    // ── Step 2: Rank items against understood intent ──────────────────────────
-    const typeContext = {
-      property: `Real estate listings in Addis Ababa. Fields: id, title, listing_type (buy/rent), property_type, neighbourhood, city, price (ETB), bedrooms, area_sqm, description.`,
-      broker:   `Real estate brokers/agents in Addis Ababa. Fields: id, name, agency, speciality (array), districts (array), years_exp, rating (0–5), verified.`,
-      service:  `Home & property service providers in Addis Ababa. Fields: id, name, category, description, tags, districts, rating, verified, responseTime.`,
-    }[type];
-
-    const rankSystem = `You are ranking ${type === "property" ? "real estate listings" : type === "broker" ? "real estate brokers" : "service providers"} for a user in Addis Ababa, Ethiopia.
-
-${typeContext}
-
-You have already analysed the user's intent:
-${JSON.stringify(intent, null, 2)}
-
-Your task: Look at each item carefully and rank them by how well they match the intent.
-Consider ALL fields — title, description, tags, districts, speciality, etc.
-Be generous: partial matches are better than returning nothing.
-
-Respond ONLY with valid JSON — no markdown:
-{"matchIds":["id1","id2",...],"reasoning":"1 sentence why these match"}
+  "matchIds": ["id1", "id2", ...],
+  "insight": "2-3 sentences: summarise what you found, key price/location observations, and one practical tip for the user",
+  "suggestion": "one short tip to refine the search if helpful, else null"
+}
 
 Rules:
-- matchIds: best match first, max 12 IDs
-- Include items that partially match — don't be too strict
-- If truly nothing matches, return []`;
+- matchIds: best match first, max 10 IDs. Be generous — partial matches are fine.
+- insight: conversational, helpful, specific to what was found. Mention price ranges, districts, or standout properties/brokers.
+- If nothing matches well, still return the closest items and explain why in insight.`;
 
-    const rankMsg = await client.messages.create({
-      model:    "claude-sonnet-4-6",
+    const msg = await client.messages.create({
+      model:      "claude-haiku-4-5-20251001",
       max_tokens: 512,
-      system:   rankSystem,
+      system,
       messages: [{
-        role: "user",
-        content: `Original query: "${query}"\n\nItems to rank:\n${JSON.stringify(items)}`,
+        role:    "user",
+        content: `Search query: "${query}"\nSearch type: ${type}\n\nItems:\n${JSON.stringify(trimmed)}`,
       }],
     });
 
-    const rankRaw = rankMsg.content[0].type === "text" ? rankMsg.content[0].text.trim() : "{}";
-    const rStart = rankRaw.indexOf("{");
-    const rEnd   = rankRaw.lastIndexOf("}");
-    let ranked: { matchIds?: unknown[]; reasoning?: string } = {};
+    const raw   = msg.content[0].type === "text" ? msg.content[0].text.trim() : "{}";
+    const start = raw.indexOf("{");
+    const end   = raw.lastIndexOf("}");
+    let result: { matchIds?: unknown[]; insight?: string; suggestion?: string | null } = {};
     try {
-      if (rStart !== -1 && rEnd !== -1) ranked = JSON.parse(rankRaw.slice(rStart, rEnd + 1));
-    } catch { ranked = {}; }
+      if (start !== -1 && end !== -1) result = JSON.parse(raw.slice(start, end + 1));
+    } catch { result = {}; }
 
     return NextResponse.json({
-      matchIds:   Array.isArray(ranked.matchIds) ? ranked.matchIds.map(String) : [],
-      suggestion: typeof intent.suggestion === "string" ? intent.suggestion : null,
-      intent,
+      matchIds:   Array.isArray(result.matchIds) ? result.matchIds.map(String) : [],
+      insight:    result.insight   ?? null,
+      suggestion: result.suggestion ?? null,
     });
 
   } catch (e) {
     console.error("[/api/ai-search]", e);
-    return NextResponse.json({ matchIds: [], suggestion: null }, { status: 500 });
+    return NextResponse.json({ matchIds: [], insight: null, suggestion: null }, { status: 500 });
   }
 }

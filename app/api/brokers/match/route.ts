@@ -39,51 +39,43 @@ export async function POST(request: NextRequest) {
 
   const supabase = createServiceClient();
 
-  // ── 1. Try semantic broker matching via pgvector ───────────────────────────
-  let brokers: Record<string, unknown>[] = [];
-  let usedSemantic = false;
+  // ── 1. Run embedding + fallback fetch in parallel ────────────────────────
+  const BROKER_FIELDS = "id, full_name, avatar_url, agency, bio, speciality, districts, property_types, years_exp, rating, verified, transaction_count, certifications, ai_summary";
 
-  try {
-    const embResponse = await openai.embeddings.create({
-      model: "text-embedding-3-small",
-      input: q,
-    });
-    const queryEmbedding = embResponse.data[0].embedding;
-
-    const { data: matches } = await supabase.rpc("search_brokers_semantic", {
-      query_embedding:  queryEmbedding,
-      tenant_id_filter: tenantId,
-      match_count:      5,
-      threshold:        0.30,
-    });
-
-    if (matches && matches.length > 0) {
-      const ids = matches.map((m: { id: string }) => m.id);
-      const { data } = await supabase
-        .from("broker_profiles")
-        .select("id, full_name, avatar_url, agency, bio, speciality, districts, property_types, years_exp, rating, verified, transaction_count, certifications, ai_summary")
-        .in("id", ids);
-
-      // Re-order by similarity score
-      brokers = ids
-        .map((id: string) => data?.find(b => b.id === id))
-        .filter(Boolean) as Record<string, unknown>[];
-      usedSemantic = true;
-    }
-  } catch {
-    // Embedding unavailable — fall through to top-rated fallback
-  }
-
-  // ── 2. Fallback: top-rated brokers ─────────────────────────────────────────
-  if (!usedSemantic || brokers.length === 0) {
-    const { data } = await supabase
-      .from("broker_profiles")
-      .select("id, full_name, avatar_url, agency, bio, speciality, districts, property_types, years_exp, rating, verified, transaction_count, certifications, ai_summary")
+  const [embResult, fallbackResult] = await Promise.allSettled([
+    openai.embeddings.create({ model: "text-embedding-3-small", input: q }),
+    supabase.from("broker_profiles").select(BROKER_FIELDS)
       .eq("tenant_id", tenantId)
       .order("verified", { ascending: false })
       .order("rating",   { ascending: false })
-      .limit(3);
-    brokers = data ?? [];
+      .limit(5),
+  ]);
+
+  let brokers: Record<string, unknown>[] = [];
+  let usedSemantic = false;
+
+  if (embResult.status === "fulfilled") {
+    try {
+      const queryEmbedding = embResult.value.data[0].embedding;
+      const { data: matches } = await supabase.rpc("search_brokers_semantic", {
+        query_embedding:  queryEmbedding,
+        tenant_id_filter: tenantId,
+        match_count:      5,
+        threshold:        0.30,
+      });
+      if (matches && matches.length > 0) {
+        const ids = matches.map((m: { id: string }) => m.id);
+        const { data } = await supabase
+          .from("broker_profiles").select(BROKER_FIELDS).in("id", ids);
+        brokers = ids.map((id: string) => data?.find(b => b.id === id)).filter(Boolean) as Record<string, unknown>[];
+        usedSemantic = true;
+      }
+    } catch { /* fall through */ }
+  }
+
+  // ── 2. Fallback: use already-fetched top-rated brokers ────────────────────
+  if (!usedSemantic || brokers.length === 0) {
+    brokers = fallbackResult.status === "fulfilled" ? (fallbackResult.value.data ?? []) : [];
   }
 
   if (brokers.length === 0) {
