@@ -131,10 +131,11 @@ function StepBar({ current }: { current: number }) {
 }
 
 // ── Location Step ─────────────────────────────────────────────────────────────
-function StepLocation({ draft, onChange, onNext }: {
+function StepLocation({ draft, onChange, onNext, onBack }: {
   draft: ListingDraft;
   onChange: (d: Partial<ListingDraft>) => void;
   onNext: () => void;
+  onBack?: () => void;
 }) {
   const [mapCoords, setMapCoords] = useState<[number, number]>(
     draft.lat && draft.lng ? [draft.lat, draft.lng] : [9.005, 38.763]

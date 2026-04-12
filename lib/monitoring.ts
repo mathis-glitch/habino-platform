@@ -17,7 +17,8 @@ export function captureError(err: unknown, context?: Record<string, string>) {
 /** Log a named event (replaces bare console.error in catch blocks) */
 export function captureMessage(msg: string, level: "info" | "warning" | "error" = "error") {
   if (process.env.NODE_ENV !== "production") {
-    console[level === "info" ? "log" : level]("[sentry]", msg);
+    const method = level === "info" ? "log" : level === "warning" ? "warn" : "error";
+    console[method]("[sentry]", msg);
     return;
   }
   Sentry.captureMessage(msg, level);

@@ -250,7 +250,7 @@ export default function BrokerProfilePage() {
             {broker.agency && (
               <div style={{ fontSize: 13, color: G, fontWeight: 600, marginBottom: 4 }}>{broker.agency}</div>
             )}
-            <StarRow rating={broker.rating} reviews={broker.reviews_count} />
+            <StarRow rating={broker.rating} reviews={broker.reviews_count ?? 0} />
           </div>
         </div>
 

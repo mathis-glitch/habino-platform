@@ -71,10 +71,11 @@ export async function GET(
     .eq("status", "active")
     .limit(100);
 
-  const rentProps  = (propStats ?? []).filter(p => p.listing_type === "rent");
-  const buyProps   = (propStats ?? []).filter(p => p.listing_type === "buy");
-  const avgRent    = rentProps.length > 0 ? Math.round(rentProps.reduce((s, p) => s + p.price, 0) / rentProps.length) : null;
-  const avgBuy     = buyProps.length  > 0 ? Math.round(buyProps.reduce((s, p)  => s + p.price, 0) / buyProps.length)  : null;
+  type PropStat = { listing_type: string | null; price: number | null; area_sqm: number | null };
+  const rentProps  = (propStats as PropStat[] ?? []).filter(p => p.listing_type === "rent");
+  const buyProps   = (propStats as PropStat[] ?? []).filter(p => p.listing_type === "buy");
+  const avgRent    = rentProps.length > 0 ? Math.round(rentProps.reduce((s: number, p: PropStat) => s + (p.price ?? 0), 0) / rentProps.length) : null;
+  const avgBuy     = buyProps.length  > 0 ? Math.round(buyProps.reduce((s: number, p: PropStat)  => s + (p.price ?? 0), 0) / buyProps.length)  : null;
 
   // ── Generate AI summary ───────────────────────────────────────────────────
   const context = [

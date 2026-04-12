@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
 
       // Re-sort to match semantic order (Supabase .in() doesn't preserve order)
       const ordered = semanticIds
-        .map(id => props?.find(p => p.id === id))
+        .map(id => props?.find((p: { id: string }) => p.id === id))
         .filter(Boolean);
 
       return NextResponse.json({

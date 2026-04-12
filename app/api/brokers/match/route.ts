@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
         const ids = matches.map((m: { id: string }) => m.id);
         const { data } = await supabase
           .from("broker_profiles").select(BROKER_FIELDS).in("id", ids);
-        brokers = ids.map((id: string) => data?.find(b => b.id === id)).filter(Boolean) as Record<string, unknown>[];
+        brokers = ids.map((id: string) => data?.find((b: { id: string }) => b.id === id)).filter(Boolean) as Record<string, unknown>[];
         usedSemantic = true;
       }
     } catch { /* fall through */ }

@@ -1,6 +1,15 @@
 import { NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 
+function esc(v: string | null | undefined): string {
+  if (v == null) return "";
+  const s = String(v);
+  if (s.includes(",") || s.includes('"') || s.includes("\n")) {
+    return `"${s.replace(/"/g, '""')}"`;
+  }
+  return s;
+}
+
 export async function GET() {
   // Auth check
   const supabase           = await createClient();
@@ -35,20 +44,11 @@ export async function GET() {
   ];
 
   for (const agent of agents ?? []) {
-    const refs       = (agent.referrals as any[]) ?? [];
+    const refs       = (agent.referrals as Record<string, unknown>[]) ?? [];
     const totalRefs  = refs.length;
-    const qualRefs   = refs.filter(r => r.status === "qualified").length;
-    const pendRefs   = refs.filter(r => r.status === "pending").length;
-    const points     = refs.reduce((s: number, r: any) => s + (r.points ?? 0), 0);
-
-    function esc(v: string | null | undefined): string {
-      if (v == null) return "";
-      const s = String(v);
-      if (s.includes(",") || s.includes('"') || s.includes("\n")) {
-        return `"${s.replace(/"/g, '""')}"`;
-      }
-      return s;
-    }
+    const qualRefs   = refs.filter(r => r["status"] === "qualified").length;
+    const pendRefs   = refs.filter(r => r["status"] === "pending").length;
+    const points     = refs.reduce((s: number, r) => s + ((r["points"] as number) ?? 0), 0);
 
     rows.push([
       esc(agent.id),
@@ -74,23 +74,17 @@ export async function GET() {
   ].join(","));
 
   for (const agent of agents ?? []) {
-    const refs = (agent.referrals as any[]) ?? [];
+    const refs = (agent.referrals as Record<string, unknown>[]) ?? [];
     for (const r of refs) {
-      function esc2(v: string | null | undefined): string {
-        if (v == null) return "";
-        const s = String(v);
-        if (s.includes(",") || s.includes('"') || s.includes("\n")) return `"${s.replace(/"/g, '""')}"`;
-        return s;
-      }
       rows.push([
-        esc2(agent.agent_code),
-        esc2(agent.full_name),
-        esc2(r.id),
-        esc2(r.type),
-        esc2(r.status),
-        String(r.points ?? 0),
-        esc2(r.registered_at),
-        esc2(r.qualified_at),
+        esc(agent.agent_code),
+        esc(agent.full_name),
+        esc(r["id"] as string),
+        esc(r["type"] as string),
+        esc(r["status"] as string),
+        String((r["points"] as number) ?? 0),
+        esc(r["registered_at"] as string),
+        esc(r["qualified_at"] as string),
       ].join(","));
     }
   }

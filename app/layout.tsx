@@ -9,7 +9,7 @@ import { Tenant } from "@/lib/types";
 import BottomNav from "@/components/layout/BottomNav";
 import SplashScreen from "@/components/SplashScreen";
 import CookieBanner from "@/components/privacy/CookieBanner";
-import { PostHogProvider } from "@/components/PostHogProvider";
+import { PostHogProvider } from "@/app/components/PostHogProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 

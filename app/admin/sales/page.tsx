@@ -22,12 +22,14 @@ export default async function SalesAdminPage() {
     .order("created_at", { ascending: false });
 
   // Aggregate stats
+  type Agent = NonNullable<typeof agents>[number];
+  type Ref   = { status?: string; points?: number };
   const totalAgents    = agents?.length ?? 0;
-  const activeAgents   = agents?.filter(a => a.status === "active").length ?? 0;
-  const pendingAgents  = agents?.filter(a => a.status === "pending").length ?? 0;
-  const totalReferrals = agents?.reduce((s, a) => s + (a.referrals?.length ?? 0), 0) ?? 0;
-  const qualifiedRefs  = agents?.reduce((s, a) => s + (a.referrals?.filter((r: any) => r.status === "qualified").length ?? 0), 0) ?? 0;
-  const totalPoints    = agents?.reduce((s, a) => s + (a.referrals?.reduce((ps: number, r: any) => ps + (r.points ?? 0), 0) ?? 0), 0) ?? 0;
+  const activeAgents   = agents?.filter((a: Agent) => a.status === "active").length ?? 0;
+  const pendingAgents  = agents?.filter((a: Agent) => a.status === "pending").length ?? 0;
+  const totalReferrals = agents?.reduce((s: number, a: Agent) => s + (a.referrals?.length ?? 0), 0) ?? 0;
+  const qualifiedRefs  = agents?.reduce((s: number, a: Agent) => s + ((a.referrals as Ref[] | null)?.filter(r => r.status === "qualified").length ?? 0), 0) ?? 0;
+  const totalPoints    = agents?.reduce((s: number, a: Agent) => s + ((a.referrals as Ref[] | null)?.reduce((ps: number, r: Ref) => ps + (r.points ?? 0), 0) ?? 0), 0) ?? 0;
 
   return (
     <>

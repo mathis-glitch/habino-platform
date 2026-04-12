@@ -102,7 +102,7 @@ function ContractModal({ contract, onClose, onGenerate, generating }: {
               { label: "Start",         val: new Date(contract.start_date).toLocaleDateString("en-US") },
               contract.end_date && { label: "End", val: new Date(contract.end_date).toLocaleDateString("en-US") },
               { label: "Jurisdiction",  val: contract.governing_law ?? contract.country_code },
-            ].filter(Boolean).map((item: { label: string; val: string } | null | false, i) => item && (
+            ].filter((x): x is { label: string; val: string } => Boolean(x)).map((item, i) => item && (
               <div key={i} style={{ background: "var(--surface2)", border: "1px solid var(--border)", borderRadius: 10, padding: "12px 14px" }}>
                 <p style={{ fontSize: 10, color: "var(--text-3)" }}>{item.label}</p>
                 <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)", marginTop: 3 }}>{item.val}</p>
@@ -164,7 +164,7 @@ function ContractModal({ contract, onClose, onGenerate, generating }: {
               {[
                 contract.signatures?.landlord && { label: "Landlord signed", date: contract.signatures.landlord.signed_at },
                 contract.signatures?.tenant   && { label: "Tenant signed",   date: contract.signatures.tenant.signed_at },
-              ].filter(Boolean).map((sig: { label: string; date: string } | null | false, i) => sig && (
+              ].filter((x): x is { label: string; date: string } => Boolean(x)).map((sig, i) => sig && (
                 <div key={i} style={{ background: "rgba(48,209,88,0.06)", border: "1px solid rgba(48,209,88,0.15)", borderRadius: 10, padding: "12px 14px" }}>
                   <p style={{ fontSize: 12, fontWeight: 600, color: "var(--ok)" }}>{sig.label}</p>
                   <p style={{ fontSize: 11, color: "var(--text-2)", marginTop: 3 }}>{new Date(sig.date).toLocaleString("en-US")}</p>

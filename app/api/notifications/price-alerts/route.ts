@@ -64,8 +64,9 @@ export async function POST(req: NextRequest) {
   if (!savedRows?.length) return NextResponse.json({ sent: 0 });
 
   // Filter to rows where price dropped
-  const dropped = savedRows.filter(row => {
-    const current = (row as any).properties?.price;
+  type SavedRow = typeof savedRows[number] & { properties: { id: string; title: string | null; price: number; currency: string; neighbourhood: string | null; city: string } };
+  const dropped = (savedRows as SavedRow[]).filter(row => {
+    const current = row.properties?.price;
     const prev    = row.notified_price;
     return current != null && (prev == null || current < prev);
   });
@@ -73,28 +74,28 @@ export async function POST(req: NextRequest) {
   if (!dropped.length) return NextResponse.json({ sent: 0 });
 
   // 2. Load push tokens for affected user_ids
-  const userIds = [...new Set(dropped.map(r => r.user_id))];
+  const userIds = [...new Set(dropped.map(r => r.user_id as string))];
   const { data: tokens } = await supabase
     .from("push_tokens")
     .select("user_id, token")
     .in("user_id", userIds);
 
-  const tokenMap = new Map((tokens ?? []).map(t => [t.user_id, t.token]));
+  const tokenMap = new Map((tokens ?? []).map((t: { user_id: string; token: string }) => [t.user_id, t.token]));
 
   // 3. Build push messages
   const messages: ExpoPushMessage[] = [];
   const updates: { id: string; notified_price: number }[] = [];
 
   for (const row of dropped) {
-    const token = tokenMap.get(row.user_id);
+    const token = tokenMap.get(row.user_id as string);
     if (!token) continue;
-    const prop = (row as any).properties;
+    const prop = row.properties;
     const priceFmt = prop.currency === "ETB"
       ? `ETB ${Number(prop.price).toLocaleString()}`
       : `${prop.currency} ${Number(prop.price).toLocaleString()}`;
 
     messages.push({
-      to:    token,
+      to:    token as string,
       title: "Price drop on a saved property 🏘️",
       body:  `${prop.title ?? [prop.neighbourhood, prop.city].filter(Boolean).join(", ")} is now ${priceFmt}`,
       sound: "default",
