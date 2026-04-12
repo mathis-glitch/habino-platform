@@ -9,7 +9,7 @@ DECLARE
   v_tenant_id uuid;
 BEGIN
   -- Resolve first active tenant (adjust WHERE if multi-tenant)
-  SELECT id INTO v_tenant_id FROM tenants WHERE status = 'active' ORDER BY created_at LIMIT 1;
+  SELECT id INTO v_tenant_id FROM tenants WHERE is_active = true ORDER BY created_at LIMIT 1;
   IF v_tenant_id IS NULL THEN
     RAISE NOTICE 'No active tenant found — skipping market data seed';
     RETURN;
