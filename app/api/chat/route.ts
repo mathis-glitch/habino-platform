@@ -1,6 +1,48 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
+import { captureError } from "@/lib/monitoring";
+
+const RATE_LIMIT_MAX = 20; // requests per window
+const RATE_LIMIT_WINDOW_MINUTES = 60;
+
+async function checkRateLimit(ip: string): Promise<{ allowed: boolean; remaining: number }> {
+  try {
+    const sb = createServiceClient();
+    const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_MINUTES * 60 * 1000).toISOString();
+
+    const { data, error } = await sb
+      .from("ai_rate_limits")
+      .select("request_count, window_start")
+      .eq("ip", ip)
+      .single();
+
+    if (error && error.code !== "PGRST116") throw error;
+
+    // No record or window expired — reset
+    if (!data || data.window_start < windowStart) {
+      await sb.from("ai_rate_limits").upsert(
+        { ip, request_count: 1, window_start: new Date().toISOString() },
+        { onConflict: "ip" }
+      );
+      return { allowed: true, remaining: RATE_LIMIT_MAX - 1 };
+    }
+
+    // Within window — check count
+    if (data.request_count >= RATE_LIMIT_MAX) {
+      return { allowed: false, remaining: 0 };
+    }
+
+    await sb.from("ai_rate_limits")
+      .update({ request_count: data.request_count + 1 })
+      .eq("ip", ip);
+
+    return { allowed: true, remaining: RATE_LIMIT_MAX - data.request_count - 1 };
+  } catch (e) {
+    captureError(e, { context: "rate_limit_check" });
+    return { allowed: true, remaining: RATE_LIMIT_MAX }; // fail open — don't block on DB error
+  }
+}
 
 // ── Anthropic client ──────────────────────────────────────────────────────────
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -226,6 +268,19 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     );
   }
+
+  // ── Rate limiting ─────────────────────────────────────────────────────────
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+    ?? req.headers.get("x-real-ip")
+    ?? "unknown";
+  const { allowed, remaining } = await checkRateLimit(ip);
+  if (!allowed) {
+    return new Response(
+      JSON.stringify({ error: "Too many requests. Please try again later." }),
+      { status: 429, headers: { "Retry-After": String(RATE_LIMIT_WINDOW_MINUTES * 60) } }
+    );
+  }
+  void remaining; // available for response headers if needed later
 
   const body        = await req.json();
   const rawMsgs: Array<{ role: string; content: string }> = body.messages ?? [];

@@ -19,7 +19,8 @@ export default async function AdminDashboard() {
 
   const { count: totalCount }       = await serviceClient.from("properties").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId);
   const { count: activeCount }      = await serviceClient.from("properties").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("status", "active");
-  const { count: pendingApptCount } = await serviceClient.from("appointments").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("status", "pending");
+  const { count: pendingApptCount }   = await serviceClient.from("appointments").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId).eq("status", "pending");
+  const { count: pendingAgentsCount } = await serviceClient.from("sales_agents").select("*", { count: "exact", head: true }).eq("status", "pending");
 
   const { data: tenant } = await serviceClient
     .from("tenants")
@@ -34,10 +35,11 @@ export default async function AdminDashboard() {
     .order("created_at", { ascending: false })
     .limit(8);
 
-  const total  = totalCount  || 0;
-  const active = activeCount || 0;
-  const draft  = total - active;
-  const appts  = pendingApptCount || 0;
+  const total         = totalCount        || 0;
+  const active        = activeCount       || 0;
+  const draft         = total - active;
+  const appts         = pendingApptCount  || 0;
+  const pendingAgents = pendingAgentsCount || 0;
 
   const hasListings = total > 0;
   const hasContact  = !!tenant?.contact_email;
@@ -249,7 +251,7 @@ export default async function AdminDashboard() {
         </div>
 
         {/* Quick links */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
           {[
             {
               href: "/admin/settings",
@@ -272,6 +274,19 @@ export default async function AdminDashboard() {
                 </svg>
               ),
               badge: appts > 0 ? appts : null,
+            },
+            {
+              href: "/admin/sales",
+              title: "Sales Team",
+              desc: "Agents & referrals",
+              icon: (
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                  <circle cx="9" cy="7" r="4"/>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
+                </svg>
+              ),
+              badge: pendingAgents > 0 ? pendingAgents : null,
             },
           ].map(({ href, title, desc, icon, badge }) => (
             <Link key={href} href={href} style={{

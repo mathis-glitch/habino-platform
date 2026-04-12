@@ -9,6 +9,7 @@ import { Tenant } from "@/lib/types";
 import BottomNav from "@/components/layout/BottomNav";
 import SplashScreen from "@/components/SplashScreen";
 import CookieBanner from "@/components/privacy/CookieBanner";
+import { PostHogProvider } from "@/components/PostHogProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -69,6 +70,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="icon" href="/icon-192.svg" type="image/svg+xml" />
       </head>
       <body className={inter.className} style={{ margin: 0, padding: 0 }}>
+        <PostHogProvider>
         <TenantProvider tenant={tenant}>
           {/*
             ── Layout strategy ───────────────────────────────────────────────
@@ -116,6 +118,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <SplashScreen />
           <CookieBanner />
         </TenantProvider>
+        </PostHogProvider>
       </body>
     </html>
   );
