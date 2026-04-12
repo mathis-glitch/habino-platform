@@ -111,14 +111,27 @@ async function backfillNearbyText(): Promise<string[]> {
   if (ids.length === 0) { console.log("  Nothing to update."); return []; }
   console.log(`  ${ids.length} properties need nearby_text...`);
 
+  const CONCURRENCY = 20; // parallel Supabase RPC calls
   const updated: string[] = [];
-  for (const id of ids) {
-    const { data: nearby } = await supabase
-      .rpc("generate_property_nearby_text", { p_property_id: id, p_radius_m: 2000, p_max_pois: 8 });
-    if (nearby) {
-      await supabase.from("properties").update({ nearby_text: nearby }).eq("id", id);
-      updated.push(id);
-      process.stdout.write(".");
+
+  for (let i = 0; i < ids.length; i += CONCURRENCY) {
+    const batch = ids.slice(i, i + CONCURRENCY);
+    const results = await Promise.allSettled(
+      batch.map(async (id) => {
+        const { data: nearby } = await supabase
+          .rpc("generate_property_nearby_text", { p_property_id: id, p_radius_m: 2000, p_max_pois: 8 });
+        if (nearby) {
+          await supabase.from("properties").update({ nearby_text: nearby }).eq("id", id);
+          return id;
+        }
+        return null;
+      })
+    );
+    for (const r of results) {
+      if (r.status === "fulfilled" && r.value) {
+        updated.push(r.value);
+        process.stdout.write(".");
+      }
     }
   }
   console.log(`\n  Done — updated ${updated.length} properties with nearby_text.`);
