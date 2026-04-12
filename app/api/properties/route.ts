@@ -254,21 +254,63 @@ export async function POST(request: NextRequest) {
   return NextResponse.json(data, { status: 201 });
 }
 
+// ── Rich property text for embedding ──────────────────────────────────────────
+function buildPropertyText(p: Record<string, unknown>): string {
+  const parts: string[] = [];
+  if (p.title)         parts.push(String(p.title));
+  if (p.property_type) parts.push(String(p.property_type));
+  if (p.listing_type)  parts.push(p.listing_type === "rent" ? "for rent" : "for sale");
+  if (p.bedrooms)      parts.push(`${p.bedrooms} bedrooms`);
+  if (p.bathrooms)     parts.push(`${p.bathrooms} bathrooms`);
+  if (p.area_sqm)      parts.push(`${p.area_sqm} sqm`);
+  if (p.neighbourhood) parts.push(String(p.neighbourhood));
+  if (p.city)          parts.push(String(p.city));
+  if (p.furnished)     parts.push(String(p.furnished));
+  if (p.condition)     parts.push(`condition: ${p.condition}`);
+  if (p.parking)       parts.push(`${p.parking} parking`);
+  if (p.floor)         parts.push(`floor ${p.floor}`);
+  if (Array.isArray(p.amenities) && p.amenities.length > 0)
+    parts.push("amenities: " + (p.amenities as string[]).join(", "));
+  if (p.nearby_text)   parts.push("nearby: " + String(p.nearby_text));
+  if (p.description)   parts.push(String(p.description).slice(0, 600));
+  return parts.join(". ");
+}
+
 // ── Background embedding helper ────────────────────────────────────────────────
 async function embedProperty(p: Record<string, unknown>) {
   try {
-    const text = [
-      p.title, p.property_type,
-      p.listing_type === "rent" ? "for rent" : "for sale",
-      p.bedrooms ? `${p.bedrooms} bedrooms` : null,
-      p.area_sqm ? `${p.area_sqm} sqm` : null,
-      p.neighbourhood, p.city,
-      p.description ? String(p.description).slice(0, 500) : null,
-    ].filter(Boolean).join(". ");
+    const supabase = createServiceClient();
 
+    // Step 1: Auto-generate nearby_text from POI data if property has coordinates
+    // This uses PostGIS + OpenStreetMap POI table — no broker input needed
+    let autoNearby: string | null = null;
+    if (p.lat && p.lng) {
+      const { data: nearbyResult } = await supabase
+        .rpc("generate_property_nearby_text", { p_property_id: p.id, p_radius_m: 2000, p_max_pois: 8 });
+      if (nearbyResult) {
+        autoNearby = nearbyResult as string;
+        // Persist it so it's visible on the property detail page too
+        await supabase.from("properties").update({ nearby_text: autoNearby }).eq("id", p.id);
+      }
+    }
+
+    // Step 2: Fetch full property data (including broker-added nearby_text if any)
+    const { data: full } = await supabase
+      .from("properties")
+      .select("id, title, property_type, listing_type, bedrooms, bathrooms, area_sqm, neighbourhood, city, description, furnished, condition, parking, floor, amenities, nearby_text")
+      .eq("id", p.id)
+      .single();
+
+    // Merge: prefer broker text + auto POI text together
+    const merged = full ? {
+      ...full,
+      nearby_text: [full.nearby_text, autoNearby].filter(Boolean).join(". ") || null,
+    } : p;
+
+    // Step 3: Build rich text and generate embedding
+    const text = buildPropertyText(merged);
     const res  = await openai.embeddings.create({ model: "text-embedding-3-small", input: text });
     const vec  = res.data[0].embedding;
-    const supabase = createServiceClient();
     await supabase.from("properties").update({ embedding: vec as unknown as string }).eq("id", p.id);
   } catch {
     // Non-critical — backfill script can re-run to catch failures
