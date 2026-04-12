@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { analytics } from "@/lib/analytics";
 import { createBrowserClient } from "@supabase/ssr";
 
 const G  = "#2D6A4F";
@@ -165,6 +166,7 @@ export default function BrokerProfilePage() {
       .then(d => {
         setBroker(d.broker);
         setListings(d.listings ?? []);
+        if (d.broker?.id) analytics.brokerViewed({ broker_id: d.broker.id });
       })
       .catch(console.error)
       .finally(() => setLoading(false));

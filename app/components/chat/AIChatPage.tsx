@@ -8,6 +8,7 @@ import { Property } from "@/lib/types";
 import { formatPrice, getHeroImage } from "@/lib/utils";
 import { useSavedListings } from "@/app/hooks/useSavedListings";
 import RightPanel from "./RightPanel";
+import { analytics } from "@/lib/analytics";
 
 interface ListingCreated {
   id: string;
@@ -564,6 +565,9 @@ export function AIChatPage({
     }, () => { /* user denied */ });
   }, []);
 
+  // Track AI chat opened
+  useEffect(() => { analytics.aiChatOpened(); }, []);
+
   // Auto-send ?q= query param OR initialQuery prop
   // Also handle ?wizard=profile to start the profile setup interview
   useEffect(() => {
@@ -682,6 +686,7 @@ export function AIChatPage({
               // Final event — attach properties and highlight map pins
               const props = (parsed.properties as Property[] | undefined) ?? [];
               const ids   = (parsed.propertyIds as string[]  | undefined) ?? [];
+              analytics.aiSearchCompleted({ result_count: props.length, query_length: userText.length });
               if (ids.length > 0) {
                 onPropertiesFound?.(ids, props);
                 onViewSuggested?.("listings");

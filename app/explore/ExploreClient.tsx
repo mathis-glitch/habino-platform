@@ -5,6 +5,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import dynamic from "next/dynamic";
 import type { Property } from "@/lib/types";
 import { useSavedListings } from "@/app/hooks/useSavedListings";
+import { analytics } from "@/lib/analytics";
 
 const MapView = dynamic(() => import("./MapView"), { ssr: false, loading: () => (
   <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", background: "#F7F7F7" }}>
@@ -774,6 +775,14 @@ export default function ExploreClient() {
       if (res.ok) {
         setProperties(data.data ?? []);
         setTotal(data.total ?? 0);
+        analytics.search({
+          query: search || undefined,
+          listing_type: chipListingType || filters.propertyType || undefined,
+          city: "Addis Ababa",
+          neighbourhood: chipNeighbourhoods[0] || undefined,
+          result_count: data.total ?? 0,
+          source: "filter",
+        });
       }
     } finally {
       setLoading(false);

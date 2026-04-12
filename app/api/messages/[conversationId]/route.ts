@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { createServiceClient } from "@/lib/supabase/server";
 import { cookies } from "next/headers";
+import { sendNewMessageEmail } from "@/lib/email";
 
 async function getAuthUser() {
   const cookieStore = await cookies();
@@ -104,5 +105,37 @@ export async function POST(
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Notify the other participant via email (non-blocking)
+  const recipientId = conv.participant_a === user.id ? conv.participant_b : conv.participant_a;
+  if (recipientId) {
+    (async () => {
+      try {
+        const { data: recipient } = await supabase
+          .from("profiles").select("email, full_name").eq("id", recipientId).single();
+        const { data: sender } = await supabase
+          .from("profiles").select("full_name").eq("id", user.id).single();
+        // Get property title from conversation
+        const { data: convFull } = await supabase
+          .from("conversations").select("property_id").eq("id", conversationId).single();
+        let propertyTitle = "a property";
+        if (convFull?.property_id) {
+          const { data: prop } = await supabase
+            .from("properties").select("title").eq("id", convFull.property_id).single();
+          if (prop?.title) propertyTitle = prop.title;
+        }
+        if (recipient?.email) {
+          await sendNewMessageEmail({
+            agentEmail:     recipient.email,
+            agentName:      recipient.full_name ?? undefined,
+            senderName:     sender?.full_name ?? user.email ?? "A user",
+            propertyTitle,
+            messagePreview: message.trim().slice(0, 120),
+          });
+        }
+      } catch { /* non-blocking */ }
+    })();
+  }
+
   return NextResponse.json({ message: msg }, { status: 201 });
 }
