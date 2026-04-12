@@ -75,7 +75,7 @@ async function embedTexts(texts: string[]): Promise<number[][]> {
 }
 
 // ── Auto-populate nearby_text from PostGIS POI data ───────────────────────────
-async function backfillNearbyText() {
+async function backfillNearbyText(): Promise<string[]> {
   console.log("\n── Auto-generating nearby_text from POI data ───────");
 
   // Check if POI table has any data first — skip if empty
@@ -86,28 +86,60 @@ async function backfillNearbyText() {
   if (!poiCount || poiCount === 0) {
     console.log("  POI table is empty — skipping nearby_text generation.");
     console.log("  Import OSM data first, then re-run this script.");
-    return;
+    return [];
   }
 
   console.log(`  Found ${poiCount} POIs — generating nearby_text for properties...`);
-  const { data: props } = await supabase
-    .from("properties")
-    .select("id")
-    .eq("status", "active")
-    .not("lat", "is", null)
-    .or("nearby_text.is.null,nearby_text.eq.");
 
-  if (!props || props.length === 0) { console.log("  Nothing to update."); return; }
+  // Paginate: fetch all IDs needing nearby_text update
+  const ids: string[] = [];
+  let page = 0;
+  while (true) {
+    const { data: pageIds } = await supabase
+      .from("properties")
+      .select("id")
+      .eq("status", "active")
+      .not("lat", "is", null)
+      .or("nearby_text.is.null,nearby_text.eq.")
+      .range(page * 1000, page * 1000 + 999);
+    if (!pageIds || pageIds.length === 0) break;
+    ids.push(...pageIds.map(r => r.id));
+    if (pageIds.length < 1000) break;
+    page++;
+  }
 
-  for (const p of props) {
+  if (ids.length === 0) { console.log("  Nothing to update."); return []; }
+  console.log(`  ${ids.length} properties need nearby_text...`);
+
+  const updated: string[] = [];
+  for (const id of ids) {
     const { data: nearby } = await supabase
-      .rpc("generate_property_nearby_text", { p_property_id: p.id, p_radius_m: 2000, p_max_pois: 8 });
+      .rpc("generate_property_nearby_text", { p_property_id: id, p_radius_m: 2000, p_max_pois: 8 });
     if (nearby) {
-      await supabase.from("properties").update({ nearby_text: nearby }).eq("id", p.id);
+      await supabase.from("properties").update({ nearby_text: nearby }).eq("id", id);
+      updated.push(id);
       process.stdout.write(".");
     }
   }
-  console.log(`\n  Done — updated ${props.length} properties.`);
+  console.log(`\n  Done — updated ${updated.length} properties with nearby_text.`);
+  return updated; // IDs that now have new nearby_text → need re-embedding
+}
+
+// ── Clear embeddings for re-embed ─────────────────────────────────────────────
+async function clearEmbeddingsForIds(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  console.log(`\n── Clearing stale embeddings for ${ids.length} properties (nearby_text updated) ───`);
+  // Process in batches of 500
+  for (let i = 0; i < ids.length; i += 500) {
+    const batch = ids.slice(i, i + 500);
+    const { error } = await supabase
+      .from("properties")
+      .update({ embedding: null })
+      .in("id", batch);
+    if (error) console.error("  Clear error:", error.message);
+    else process.stdout.write(".");
+  }
+  console.log(`\n  Cleared ${ids.length} embeddings — will re-embed with enriched text.`);
 }
 
 // ── Backfill properties ────────────────────────────────────────────────────────
@@ -207,8 +239,9 @@ async function backfillBrokers() {
 (async () => {
   console.log("Habino embedding backfill");
   console.log("Model:", MODEL);
-  await backfillNearbyText();   // Step 1: auto-fill nearby_text from POI data
-  await backfillProperties();   // Step 2: embed with enriched text
-  await backfillBrokers();      // Step 3: embed broker profiles
+  const updatedIds = await backfillNearbyText();   // Step 1: auto-fill nearby_text from POI data
+  await clearEmbeddingsForIds(updatedIds);          // Step 2: clear stale embeddings for re-embed
+  await backfillProperties();                       // Step 3: embed all properties without embedding
+  await backfillBrokers();                          // Step 4: embed broker profiles
   console.log("\nAll done.");
 })();
