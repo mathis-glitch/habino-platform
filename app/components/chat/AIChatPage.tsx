@@ -303,8 +303,9 @@ function FollowUpChips({ msg, onSend }: { msg: ChatMessage; onSend: (text: strin
     chips.push("Search nearby areas");
   } else {
     // AI responded with text only — offer discovery shortcuts
-    chips.push("🏠 Apartments for rent in Bole");
-    chips.push("🛏️ 2-bed apartment in Kazanchis");
+    const d0 = (currentCity?.districts ?? []).filter(d => d.is_major).map(d => d.name);
+    chips.push(`🏠 Apartments for rent in ${d0[0] ?? "the city"}`);
+    chips.push(`🛏️ 2-bed apartment in ${d0[1] ?? "the city"}`);
     chips.push("📝 List my property");
     chips.push(`💰 Cheapest rentals in ${currentCity?.name ?? "Addis Ababa"}`);
   }
@@ -502,7 +503,7 @@ function makeSuggestions(_loc: UserLocation | null, cityName = "Addis Ababa", di
     { icon: "📊", text: `Average rents in ${d[0] ?? "Bole"} this year`, group: "Market" },
     { icon: "📈", text: `Property price trends in ${cityName}`,       group: "Market" },
     { icon: "🏙️", text: `Best areas to invest in ${cityName}`,       group: "Market" },
-    { icon: "💹", text: "Rental yield in Kazanchis",             group: "Market" },
+    { icon: "💹", text: `Rental yield in ${d[1] ?? "prime areas"}`, group: "Market" },
   ];
 }
 
@@ -889,7 +890,7 @@ export function AIChatPage({
               onKeyDown={handleKeyDown}
               onFocus={e => { const p = e.currentTarget.parentElement; if (p) { p.style.borderColor = "var(--color-primary)"; p.style.boxShadow = "0 0 0 3px color-mix(in srgb, var(--color-primary) 12%, transparent), 0 2px 12px rgba(0,0,0,0.08)"; }}}
               onBlur={e => { const p = e.currentTarget.parentElement; if (p) { p.style.borderColor = "#e2e8f0"; p.style.boxShadow = "0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)"; }}}
-              placeholder="e.g. 2-bed apartment in Bole under 40k…"
+              placeholder="e.g. 2-bed apartment under 40k…"
               rows={3}
               className="flex-1 min-w-0 bg-transparent text-sm text-slate-800 placeholder-slate-400 focus:outline-none leading-relaxed w-full"
               style={{ minHeight: 72, maxHeight: 160, resize: "none", width: "100%", padding: "14px 16px 10px", boxSizing: "border-box", display: "block", fontFamily: "inherit" }}
@@ -1024,7 +1025,7 @@ export function AIChatPage({
               {/* 2×2 Action cards */}
               <div className="grid grid-cols-2 gap-4 w-full mb-8" style={{ maxWidth: 640 }}>
                 {[
-                  { icon: "🔍", title: "Search Properties", desc: "Find apartments, villas & more", text: "Find me a 2-bedroom apartment in Bole" },
+                  { icon: "🔍", title: "Search Properties", desc: "Find apartments, villas & more", text: `Find me a 2-bedroom apartment in ${currentCity?.name ?? "the city"}` },
                   { icon: "🏠", title: "List a Property", desc: "Add your property in minutes", text: "List my property" },
                   { icon: "📄", title: "Draft a Contract", desc: "Rental agreements in seconds", text: "Draft a rental contract" },
                   { icon: "📊", title: "Market Analysis", desc: "Current prices & trends", text: `What are current rental prices in ${currentCity?.name ?? "Addis Ababa"}?` },
