@@ -271,10 +271,37 @@ const PHOTOS: Record<string, string[]> = {
   villa: [
     "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&h=500&fit=crop",
     "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=500&fit=crop",
+    "https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=800&h=500&fit=crop",
   ],
   office: [
     "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&h=500&fit=crop",
     "https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=800&h=500&fit=crop",
+    "https://images.unsplash.com/photo-1604328698692-f76ea9498e76?w=800&h=500&fit=crop",
+  ],
+  commercial: [
+    "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&h=500&fit=crop",
+    "https://images.unsplash.com/photo-1528698827591-e19ccd7bc23d?w=800&h=500&fit=crop",
+    "https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=800&h=500&fit=crop",
+  ],
+  land: [
+    "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&h=500&fit=crop",
+    "https://images.unsplash.com/photo-1628624747186-a941c476b7ef?w=800&h=500&fit=crop",
+    "https://images.unsplash.com/photo-1516253593875-bd7ba052b0ae?w=800&h=500&fit=crop",
+  ],
+  plot: [
+    "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&h=500&fit=crop",
+    "https://images.unsplash.com/photo-1628624747186-a941c476b7ef?w=800&h=500&fit=crop",
+    "https://images.unsplash.com/photo-1516253593875-bd7ba052b0ae?w=800&h=500&fit=crop",
+  ],
+  hall: [
+    "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=800&h=500&fit=crop",
+    "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&h=500&fit=crop",
+    "https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=800&h=500&fit=crop",
+  ],
+  production: [
+    "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=800&h=500&fit=crop",
+    "https://images.unsplash.com/photo-1553877522-43269d4ea984?w=800&h=500&fit=crop",
+    "https://images.unsplash.com/photo-1565610222536-ef125c59da2e?w=800&h=500&fit=crop",
   ],
 };
 
