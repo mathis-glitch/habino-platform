@@ -24,8 +24,8 @@ const sb = createClient(
 
 // ── Overpass mirrors ────────────────────────────────────────────────────────────
 const OVERPASS_MIRRORS = [
-  "https://overpass-api.de/api/interpreter",
   "https://overpass.kumi.systems/api/interpreter",
+  "https://overpass-api.de/api/interpreter",
 ];
 const DELAY_MS = 8000;
 
@@ -158,7 +158,7 @@ async function fetchOverpass(queryDef: QueryDef, bbox: string): Promise<Overpass
         body: `data=${encodeURIComponent(query)}`,
         signal: AbortSignal.timeout(90_000),
       });
-      if (res.status === 429 || res.status === 504) {
+      if (res.status === 429 || res.status === 504 || res.status === 406) {
         console.log(`    → ${url} returned ${res.status}, trying next mirror...`);
         await sleep(3000);
         continue;

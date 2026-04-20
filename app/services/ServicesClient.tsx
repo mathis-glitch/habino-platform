@@ -53,7 +53,7 @@ const PROVIDERS = [
   {
     id: "2", name: "Green Thumb Ethiopia", category: "garden",
     rating: 4.8, reviews: 64, price: "From ETB 600/visit", priceNum: 600,
-    description: "Expert garden design, regular maintenance, and landscaping across Addis Ababa.",
+    description: "Expert garden design, regular maintenance, and landscaping across your area.",
     tags: ["Lawn care", "Planting", "Design"],
     photo: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=80&h=80&fit=crop&auto=format",
     verified: true, responseTime: "< 2 hours",
@@ -72,7 +72,7 @@ const PROVIDERS = [
     tags: ["Cooking", "Childcare", "Daily help"],
     photo: "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=80&h=80&fit=crop&auto=format",
     verified: true, responseTime: "< 3 hours",
-    districts: ["All districts", "Addis Ababa-wide"],
+    districts: ["All districts", "City-wide"],
     workingHours: "Mon–Sun 6:00–20:00",
     phone: "+251 93 456 7890",
     founded: "2016",
@@ -81,7 +81,7 @@ const PROVIDERS = [
     highlights: ["Background checks", "Trial period available", "Flexible hours", "Live-in options"],
   },
   {
-    id: "4", name: "Addis Fix Plumbing", category: "plumbing",
+    id: "4", name: "ProFix Plumbing", category: "plumbing",
     rating: 4.6, reviews: 87, price: "From ETB 500/job", priceNum: 500,
     description: "Licensed plumbers for repairs, installations, and emergency call-outs city-wide.",
     tags: ["Emergency", "Installation", "Repairs"],
@@ -111,13 +111,13 @@ const PROVIDERS = [
     highlights: ["Safety certified", "Generator install", "Free safety inspection", "Insurance covered"],
   },
   {
-    id: "6", name: "Move It Addis", category: "moving",
+    id: "6", name: "Move It Express", category: "moving",
     rating: 4.5, reviews: 56, price: "From ETB 2,000/move", priceNum: 2000,
-    description: "Professional moving & delivery services across all districts of Addis Ababa.",
+    description: "Professional moving & delivery services across all districts of your area.",
     tags: ["Furniture", "Packing", "Same-day"],
     photo: "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=80&h=80&fit=crop&auto=format",
     verified: false, responseTime: "< 4 hours",
-    districts: ["All districts", "Addis Ababa-wide"],
+    districts: ["All districts", "City-wide"],
     workingHours: "Mon–Sat 7:00–20:00",
     phone: "+251 93 789 0123",
     founded: "2020",
@@ -661,7 +661,7 @@ export default function ServicesClient() {
             <span style={{ fontSize: 18, fontWeight: 800, color: G, letterSpacing: -0.5 }}>habino</span>
           </div>
           <h1 style={{ fontSize: 26, fontWeight: 800, color: T.text1, letterSpacing: -0.6, marginBottom: 2 }}>Services</h1>
-          <p style={{ fontSize: 13, color: T.text3 }}>Household services in Addis Ababa</p>
+          <p style={{ fontSize: 13, color: T.text3 }}>Household services in your area</p>
         </div>
 
         {/* AI Panel */}
@@ -759,7 +759,7 @@ export default function ServicesClient() {
             <div style={{ fontSize: 20, marginBottom: 8 }}>🏢</div>
             <div style={{ fontSize: 15, fontWeight: 700, color: T.text1, marginBottom: 6 }}>List your business</div>
             <p style={{ fontSize: 13, color: T.text2, lineHeight: 1.6, marginBottom: 14 }}>
-              Offer your services to hundreds of Habino users across Addis Ababa.
+              Offer your services to hundreds of Habino users across your area.
             </p>
             <button onClick={() => router.push("/services/new")} style={{
               padding: "10px 24px", borderRadius: 12,

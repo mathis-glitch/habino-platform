@@ -383,14 +383,6 @@ async function seedListings(tenantId: string, city: CityConf, count = 2000) {
 async function seedImages(tenantId: string, cityName: string) {
   console.log(`\n── Seeding images for ${cityName} ──`);
 
-  const { data: props, error } = await sb
-    .from("properties")
-    .select("id, property_type")
-    .eq("tenant_id", tenantId)
-    .eq("city", cityName)
-    .is("id", null) // trick: get IDs without images
-    .limit(0);
-
   // Get all property IDs for this city
   const { data: allProps } = await sb
     .from("properties")
@@ -400,14 +392,19 @@ async function seedImages(tenantId: string, cityName: string) {
 
   if (!allProps?.length) { console.log("  No properties found"); return; }
 
-  // Check which already have images
+  // Check which already have images (paginate to handle >1000)
   const propIds = allProps.map(p => p.id);
-  const { data: existing } = await sb
-    .from("property_images")
-    .select("property_id")
-    .in("property_id", propIds.slice(0, 1000));
+  const existingIds: string[] = [];
+  for (let i = 0; i < propIds.length; i += 500) {
+    const batch = propIds.slice(i, i + 500);
+    const { data: existing } = await sb
+      .from("property_images")
+      .select("property_id")
+      .in("property_id", batch);
+    if (existing) existingIds.push(...existing.map(e => e.property_id));
+  }
+  const existingSet = new Set(existingIds);
 
-  const existingSet = new Set((existing ?? []).map(e => e.property_id));
   const needImages = allProps.filter(p => !existingSet.has(p.id));
 
   console.log(`  ${needImages.length} properties need images`);

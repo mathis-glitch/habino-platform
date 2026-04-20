@@ -2199,8 +2199,47 @@ export function MapHomePage() {
     setAiDrawerOpen(false);
   }, []);
 
+  // ── Fetch real properties when city changes ─────────────────────────────
+  useEffect(() => {
+    if (!currentCity) return;
+    setMapCenter(cityCenter);
+    setMapZoom(cityZoom);
+    setIsIdleState(true);
+    setSelected(null);
+    setSelectedPos(null);
+
+    async function loadCityProperties() {
+      try {
+        const res = await fetch(`/api/properties?city=${encodeURIComponent(currentCity!.name)}&limit=200`);
+        const json = await res.json();
+        const props = json.data ?? [];
+        if (props.length > 0) {
+          const withC = withCoords(props, []);
+          setProperties(withC);
+        } else {
+          setProperties(ALL_DEMO_PINS);
+        }
+      } catch {
+        setProperties(ALL_DEMO_PINS);
+      }
+    }
+    loadCityProperties();
+  }, [currentCity?.id]);
+
   const handleReset = useCallback(() => {
-    setProperties(ALL_DEMO_PINS);
+    // Re-fetch properties for current city instead of reverting to demo
+    if (currentCity) {
+      fetch(`/api/properties?city=${encodeURIComponent(currentCity.name)}&limit=200`)
+        .then(r => r.json())
+        .then(json => {
+          const props = json.data ?? [];
+          if (props.length > 0) setProperties(withCoords(props, []));
+          else setProperties(ALL_DEMO_PINS);
+        })
+        .catch(() => setProperties(ALL_DEMO_PINS));
+    } else {
+      setProperties(ALL_DEMO_PINS);
+    }
     setIsIdleState(true);
     setHighlightedIds([]);
     setMarketContext(null);
@@ -2208,7 +2247,7 @@ export function MapHomePage() {
     setSelectedPos(null);
     setMapCenter(cityCenter);
     setMapZoom(cityZoom);
-  }, [cityCenter, cityZoom]);
+  }, [cityCenter, cityZoom, currentCity]);
 
   // ── MOBILE: full-screen AI overlay ────────────────────────────────────────
   if (isMobile && aiDrawerOpen) {
