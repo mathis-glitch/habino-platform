@@ -9,6 +9,7 @@ import { formatPrice, getHeroImage } from "@/lib/utils";
 import { useSavedListings } from "@/app/hooks/useSavedListings";
 import RightPanel from "./RightPanel";
 import { analytics } from "@/lib/analytics";
+import { useCity } from "@/lib/cityContext";
 
 interface ListingCreated {
   id: string;
@@ -290,6 +291,7 @@ function WizardChips({ chips, onSend }: { chips: string[]; onSend: (text: string
 
 // ── Follow-up chips ──────────────────────────────────────────────────────────
 function FollowUpChips({ msg, onSend }: { msg: ChatMessage; onSend: (text: string) => void }) {
+  const { currentCity } = useCity();
   const chips: string[] = [];
   if (msg.properties && msg.properties.length > 0) {
     chips.push("Book a viewing");
@@ -304,7 +306,7 @@ function FollowUpChips({ msg, onSend }: { msg: ChatMessage; onSend: (text: strin
     chips.push("🏠 Apartments for rent in Bole");
     chips.push("🛏️ 2-bed apartment in Kazanchis");
     chips.push("📝 List my property");
-    chips.push("💰 Cheapest rentals in Addis");
+    chips.push(`💰 Cheapest rentals in ${currentCity?.name ?? "Addis Ababa"}`);
   }
   if (!chips.length) return null;
   return (
@@ -472,15 +474,19 @@ const COUNTRY_CURRENCY: Record<string, string> = {
 
 interface UserLocation { city: string; country: string; currency: string }
 
-function makeSuggestions(_loc: UserLocation | null) {
+function makeSuggestions(_loc: UserLocation | null, cityName = "Addis Ababa", districtNames: string[] = []) {
+  // Pick up to 4 district names for suggestion variety
+  const d = districtNames.length > 0
+    ? districtNames.filter((_, i) => i < 5)
+    : ["Bole", "Kazanchis", "Megenagna", "Ayat", "Westlands"];
   return [
     // ── Search ────────────────────────────────────────────────────────────
-    { icon: "🏠", text: "Apartments for rent in Bole",          group: "Search" },
-    { icon: "🛏️", text: "2-bedroom apartment in Kazanchis",     group: "Search" },
-    { icon: "🏡", text: "Family home in Megenagna",              group: "Search" },
-    { icon: "🏘️", text: "Houses for sale in Ayat",              group: "Search" },
-    { icon: "🌇", text: "Luxury villa in Bole",                  group: "Search" },
-    { icon: "💰", text: "Cheapest rentals in Addis Ababa",       group: "Search" },
+    { icon: "🏠", text: `Apartments for rent in ${d[0] ?? "Bole"}`,      group: "Search" },
+    { icon: "🛏️", text: `2-bedroom apartment in ${d[1] ?? "Kazanchis"}`, group: "Search" },
+    { icon: "🏡", text: `Family home in ${d[2] ?? "Megenagna"}`,          group: "Search" },
+    { icon: "🏘️", text: `Houses for sale in ${d[3] ?? "Ayat"}`,          group: "Search" },
+    { icon: "🌇", text: `Luxury villa in ${d[0] ?? "Bole"}`,              group: "Search" },
+    { icon: "💰", text: `Cheapest rentals in ${cityName}`,               group: "Search" },
     // ── List ──────────────────────────────────────────────────────────────
     { icon: "📝", text: "List my apartment for rent",            group: "List" },
     { icon: "🏡", text: "List my house for sale",                group: "List" },
@@ -493,9 +499,9 @@ function makeSuggestions(_loc: UserLocation | null) {
     { icon: "💵", text: "What's a fair rent for my area?",       group: "Rent Out" },
     { icon: "📋", text: "What documents do I need to rent out?", group: "Rent Out" },
     // ── Market ────────────────────────────────────────────────────────────
-    { icon: "📊", text: "Average rents in Bole this year",       group: "Market" },
-    { icon: "📈", text: "Property price trends in Addis",        group: "Market" },
-    { icon: "🏙️", text: "Best areas to invest in Addis Ababa",  group: "Market" },
+    { icon: "📊", text: `Average rents in ${d[0] ?? "Bole"} this year`, group: "Market" },
+    { icon: "📈", text: `Property price trends in ${cityName}`,       group: "Market" },
+    { icon: "🏙️", text: `Best areas to invest in ${cityName}`,       group: "Market" },
     { icon: "💹", text: "Rental yield in Kazanchis",             group: "Market" },
   ];
 }
@@ -514,6 +520,7 @@ export function AIChatPage({
   onPropertiesFound?: (ids: string[], properties?: Property[]) => void;
   onViewSuggested?: (view: "listings" | "map" | "data") => void;
 } = {}) {
+  const { currentCity } = useCity();
   const [messages, setMessages]       = useState<ChatMessage[]>([]);
   const [input, setInput]             = useState("");
   const [loading, setLoading]         = useState(false);
@@ -632,6 +639,9 @@ export function AIChatPage({
           messages: apiMessages,
           context: currentProperty ? { currentProperty } : undefined,
           wizard: wizardState,
+          cityName: currentCity?.name ?? "Addis Ababa",
+          cityCountry: currentCity?.country ?? "Ethiopia",
+          cityCurrency: currentCity?.currency ?? "ETB",
         }),
       });
 
@@ -759,7 +769,10 @@ export function AIChatPage({
     { icon: "👤", text: "Set up my profile", label: "Profile" },
   ];
 
-  const suggestions = makeSuggestions(userLocation);
+  const majorDistricts = (currentCity?.districts ?? [])
+    .filter((d) => d.is_major)
+    .map((d) => d.name);
+  const suggestions = makeSuggestions(userLocation, currentCity?.name, majorDistricts);
 
   const hasMessages = messages.length > 0;
 
@@ -775,7 +788,7 @@ export function AIChatPage({
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ fontSize: 13.5, fontWeight: 600, color: "#1A1714" }}>Ask AI</div>
             <span style={{ color: "#C8C0B8", fontSize: 13 }}>·</span>
-            <span style={{ fontSize: 13, color: "#7A736C" }}>Addis Ababa Market</span>
+            <span style={{ fontSize: 13, color: "#7A736C" }}>{currentCity?.name ?? "Addis Ababa"} Market</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#7A736C" }}>
@@ -1014,7 +1027,7 @@ export function AIChatPage({
                   { icon: "🔍", title: "Search Properties", desc: "Find apartments, villas & more", text: "Find me a 2-bedroom apartment in Bole" },
                   { icon: "🏠", title: "List a Property", desc: "Add your property in minutes", text: "List my property" },
                   { icon: "📄", title: "Draft a Contract", desc: "Rental agreements in seconds", text: "Draft a rental contract" },
-                  { icon: "📊", title: "Market Analysis", desc: "Current prices & trends", text: "What are current rental prices in Addis Ababa?" },
+                  { icon: "📊", title: "Market Analysis", desc: "Current prices & trends", text: `What are current rental prices in ${currentCity?.name ?? "Addis Ababa"}?` },
                 ].map((card) => (
                   <button
                     key={card.text}

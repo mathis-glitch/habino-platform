@@ -6,6 +6,7 @@ import Link from "next/link";
 import type { Property } from "@/lib/types";
 import type { PropertyWithCoords, NeighbourhoodLabel, PinClickPosition, CityBounds } from "./LeafletMap";
 import { AIChatPage } from "@/app/components/chat/AIChatPage";
+import { useCity } from "@/lib/cityContext";
 
 // Load Leaflet map client-side only (no SSR)
 const LeafletMap = dynamic(() => import("./LeafletMap"), {
@@ -415,13 +416,16 @@ function fmtFull(price: number, currency: string) {
 // ── Currency conversion ────────────────────────────────────────────────────────
 // Approximate indicative rates (demo). In production, fetch from a live FX feed.
 // 1 USD ≈ 130 ETB  |  1 EUR ≈ 140 ETB
-export const SUPPORTED_CURRENCIES = ["ETB", "USD", "EUR"] as const;
+export const SUPPORTED_CURRENCIES = ["ETB", "KES", "TZS", "USD", "EUR"] as const;
 export type DisplayCurrency = typeof SUPPORTED_CURRENCIES[number];
 
+// Approximate indicative rates (demo). 1 USD ≈ 130 ETB | 129 KES | 2650 TZS | 0.92 EUR
 const FX: Record<string, Record<string, number>> = {
-  ETB: { ETB: 1,       USD: 1 / 130,  EUR: 1 / 140  },
-  USD: { ETB: 130,     USD: 1,        EUR: 130 / 140 },
-  EUR: { ETB: 140,     USD: 140 / 130, EUR: 1        },
+  ETB: { ETB: 1,       KES: 129/130,  TZS: 2650/130, USD: 1/130,     EUR: 1/140     },
+  KES: { ETB: 130/129, KES: 1,        TZS: 2650/129, USD: 1/129,     EUR: 1/140     },
+  TZS: { ETB: 130/2650,KES: 129/2650, TZS: 1,        USD: 1/2650,    EUR: 1/(2650*1.08) },
+  USD: { ETB: 130,     KES: 129,      TZS: 2650,     USD: 1,         EUR: 0.92      },
+  EUR: { ETB: 140,     KES: 140,      TZS: 2870,     USD: 1.08,      EUR: 1         },
 };
 
 function convertPrice(price: number, from: string, to: string): number {
@@ -585,6 +589,8 @@ function getPropertyDetails(id: string, propType: string): { label: string; valu
 // ── Currency flag map ──────────────────────────────────────────────────────────
 const CURRENCY_META: Record<string, { flag: string; label: string }> = {
   ETB: { flag: "🇪🇹", label: "ETB" },
+  KES: { flag: "🇰🇪", label: "KES" },
+  TZS: { flag: "🇹🇿", label: "TZS" },
   USD: { flag: "🇺🇸", label: "USD" },
   EUR: { flag: "🇪🇺", label: "EUR" },
 };
@@ -2119,6 +2125,33 @@ function MarketTicker({ properties, context }: {
 
 // ── Main component ────────────────────────────────────────────────────────────
 export function MapHomePage() {
+  const { currentCity, districts } = useCity();
+
+  // Derive map defaults from the selected city (fall back to Addis)
+  const cityCenter: [number, number] = currentCity
+    ? [currentCity.lat, currentCity.lng]
+    : ADDIS_CENTER;
+  const cityZoom = currentCity?.zoom ?? ADDIS_ZOOM;
+  const cityCurrency = (currentCity?.currency ?? "ETB") as DisplayCurrency;
+  const cityBoundsVal: CityBounds | undefined = currentCity
+    ? [currentCity.bounds_sw as [number, number], currentCity.bounds_ne as [number, number]]
+    : CITY_CONFIG["Addis Ababa"]?.bounds;
+
+  // Build neighbourhood labels from DB districts
+  const dynamicLabels: NeighbourhoodLabel[] = districts
+    .filter((d) => d.is_major)
+    .map((d) => ({ name: d.name, lat: d.lat, lng: d.lng }));
+  const labels = dynamicLabels.length > 0 ? dynamicLabels : NEIGHBOURHOOD_LABELS;
+
+  // Build district coordinate lookup from DB
+  const districtCoords: Record<string, [number, number]> = {};
+  for (const d of districts) {
+    districtCoords[d.name] = [d.lat, d.lng];
+    for (const alias of d.aliases ?? []) {
+      districtCoords[alias] = [d.lat, d.lng];
+    }
+  }
+
   const [properties,     setProperties]     = useState<PropertyWithCoords[]>(ALL_DEMO_PINS);
   const [selected,       setSelected]       = useState<PropertyWithCoords | null>(null);
   const [selectedPos,    setSelectedPos]    = useState<PinClickPosition | null>(null);
@@ -2127,10 +2160,10 @@ export function MapHomePage() {
   const [highlightedIds, setHighlightedIds] = useState<string[]>([]);
   const [isIdleState,    setIsIdleState]    = useState(true);
   const [marketContext,    setMarketContext]    = useState<{ city: string; country: string; currency: string } | null>(null);
-  const [mapCenter,        setMapCenter]        = useState<[number, number]>(ADDIS_CENTER);
-  const [mapZoom,          setMapZoom]          = useState(ADDIS_ZOOM);
+  const [mapCenter,        setMapCenter]        = useState<[number, number]>(cityCenter);
+  const [mapZoom,          setMapZoom]          = useState(cityZoom);
   const [hoveredId,        setHoveredId]        = useState<string | null>(null);
-  const [displayCurrency,  setDisplayCurrency]  = useState<DisplayCurrency>("ETB");
+  const [displayCurrency,  setDisplayCurrency]  = useState<DisplayCurrency>(cityCurrency);
   const [detailProperty,   setDetailProperty]   = useState<PropertyWithCoords | null>(null);
 
   const HEADER_H = 56;
@@ -2173,9 +2206,9 @@ export function MapHomePage() {
     setMarketContext(null);
     setSelected(null);
     setSelectedPos(null);
-    setMapCenter(ADDIS_CENTER);
-    setMapZoom(ADDIS_ZOOM);
-  }, []);
+    setMapCenter(cityCenter);
+    setMapZoom(cityZoom);
+  }, [cityCenter, cityZoom]);
 
   // ── MOBILE: full-screen AI overlay ────────────────────────────────────────
   if (isMobile && aiDrawerOpen) {
@@ -2403,9 +2436,9 @@ export function MapHomePage() {
             cityClusters={[]}
             currentZoom={mapZoom}
             onCityClick={() => {}}
-            neighbourhoodLabels={NEIGHBOURHOOD_LABELS}
-            cityBounds={CITY_CONFIG["Addis Ababa"]?.bounds}
-            cityMinZoom={CITY_CONFIG["Addis Ababa"]?.minZoom}
+            neighbourhoodLabels={labels}
+            cityBounds={cityBoundsVal}
+            cityMinZoom={11}
           />
 
           {/* ── Compact popup — appears next to the clicked pin ── */}

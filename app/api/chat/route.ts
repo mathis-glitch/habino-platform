@@ -57,30 +57,31 @@ const POI_TYPE_LIST = [
   "bank", "post_office", "police",
 ].join(" | ");
 
-// ── System prompt ─────────────────────────────────────────────────────────────
-const SYSTEM_PROMPT = `You are Habino, an AI real estate assistant specialised in Addis Ababa, Ethiopia.
-You help users find properties across all neighbourhoods of Addis Ababa — from Bole and Kazanchis to Merkato, CMC, Sarbet, Gerji, Ayat, Summit, Megenagna, Piassa, Lideta, Kolfe, Gulele, Yeka, Kirkos, and more.
-The currency is Ethiopian Birr (ETB).
+// ── System prompt (dynamic per city) ──────────────────────────────────────────
+function buildSystemPrompt(cityName: string, country: string, currency: string): string {
+  return `You are Habino, an AI real estate assistant specialised in ${cityName}, ${country}.
+You help users find properties across all neighbourhoods of ${cityName}.
+The local currency is ${currency}.
 
 Your role:
 - Help users find properties using the search_properties tool
 - Be warm, concise, and direct
 - Always use search_properties when the user shows any intent to browse or find properties
-- Respond in the same language the user writes in (English, Amharic, or other)
+- Respond in the same language the user writes in (English, Amharic, Swahili, or other)
 - If the tool returns an error, share the exact error message
 - If no results match, suggest a nearby neighbourhood or relaxed criteria
 
 CRITICAL — Response style after a search:
 - After calling search_properties, respond with ONE short sentence only, like:
-  "Found 8 offices in Bole — results are shown on the right."
-  "Here are 5 apartments in Kazanchis under 15,000 ETB/mo."
-  "4 land plots over 5,000 m² in Yeka — check them out on the right."
+  "Found 8 offices in Westlands — results are shown on the right."
+  "Here are 5 apartments under 15,000 ${currency}/mo."
+  "4 land plots over 5,000 m² — check them out on the right."
 - NEVER list properties in the chat. NEVER use tables, bullet points, or property details.
   The listings panel on the right shows all details.
 - Only mention count, type, neighbourhood, and one notable fact.
 
 Follow-up questions (e.g. "which is cheapest?", "only over 5000m²", "near a school"):
-- ALWAYS pass city: "Addis Ababa" when calling search_properties again.
+- ALWAYS pass city: "${cityName}" when calling search_properties again.
   Never omit city — it will timeout without it.
 - Answer in 1-2 sentences. Call search_properties again if the user wants a filtered subset.
 - Pick sort_by automatically: "cheapest" → price_asc, "most expensive" → price_desc, "biggest" → area_desc, "smallest" → area_asc.
@@ -96,6 +97,10 @@ When searching, extract from the user message:
 
 Default proximity radius: 500m for education/health, 800m for transport.
 Do not describe what you will search — just search, then reply in one sentence.`;
+}
+
+// Backwards compatibility constant
+const SYSTEM_PROMPT = buildSystemPrompt("Addis Ababa", "Ethiopia", "ETB");
 
 // ── Tool definitions ──────────────────────────────────────────────────────────
 const TOOLS: Anthropic.Tool[] = [
@@ -300,7 +305,12 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Load stored preferences and inject into system prompt ─────────────────
-  let systemPrompt = SYSTEM_PROMPT;
+  // ── City context from client ─────────────────────────────────────────────
+  const cityName = (body.cityName as string) || "Addis Ababa";
+  const cityCountry = (body.cityCountry as string) || "Ethiopia";
+  const cityCurrency = (body.cityCurrency as string) || "ETB";
+
+  let systemPrompt = buildSystemPrompt(cityName, cityCountry, cityCurrency);
   if (userId) {
     const prefs = await loadPreferences(userId, tenantId);
     if (prefs && Object.keys(prefs).length > 0) {

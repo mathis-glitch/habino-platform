@@ -14,6 +14,35 @@ export interface Tenant {
   created_at: string;
 }
 
+// ── City ─────────────────────────────────────────────────────
+export interface City {
+  id: string;
+  tenant_id: string;
+  name: string;
+  country: string;
+  country_code: string;
+  currency: string;
+  lat: number;
+  lng: number;
+  zoom: number;
+  bounds_sw: [number, number];
+  bounds_ne: [number, number];
+  is_active: boolean;
+  districts?: District[];
+}
+
+// ── District ─────────────────────────────────────────────────
+export interface District {
+  id: string;
+  city_id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  aliases: string[];
+  is_major: boolean;
+  metadata: Record<string, unknown> | null;
+}
+
 // ── User ──────────────────────────────────────────────────────
 export type UserRole = "operator_admin" | "buyer";
 

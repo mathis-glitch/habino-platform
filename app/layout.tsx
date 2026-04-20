@@ -10,6 +10,7 @@ import BottomNav from "@/components/layout/BottomNav";
 import SplashScreen from "@/components/SplashScreen";
 import CookieBanner from "@/components/privacy/CookieBanner";
 import { PostHogProvider } from "@/app/components/PostHogProvider";
+import { CityProvider } from "@/lib/cityContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -71,6 +72,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body className={inter.className} style={{ margin: 0, padding: 0 }}>
         <PostHogProvider>
+        <CityProvider>
         <TenantProvider tenant={tenant}>
           {/*
             ── Layout strategy ───────────────────────────────────────────────
@@ -118,6 +120,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <SplashScreen />
           <CookieBanner />
         </TenantProvider>
+        </CityProvider>
         </PostHogProvider>
       </body>
     </html>

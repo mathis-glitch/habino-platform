@@ -11,7 +11,7 @@ interface Props {
   tenantId: string;
 }
 
-const CURRENCIES = ["EUR", "USD", "GBP", "CHF", "AED", "KES", "NGN", "ZAR"];
+const CURRENCIES = ["ETB", "KES", "TZS", "USD", "EUR", "GBP", "CHF", "AED", "NGN", "ZAR"];
 
 const LISTING_TYPES = [
   { value: "rent", label: "For Rent" },
@@ -233,7 +233,7 @@ export function ListingForm({ property, tenantId }: Props) {
             <label className={labelClass}>City *</label>
             <input required type="text" value={form.city}
               onChange={(e) => update("city", e.target.value)}
-              placeholder="e.g. Addis Ababa" className={inputClass} />
+              placeholder="e.g. Nairobi" className={inputClass} />
           </div>
           <div>
             <label className={labelClass}>Neighbourhood</label>
@@ -246,7 +246,7 @@ export function ListingForm({ property, tenantId }: Props) {
           <label className={labelClass}>Full address (optional)</label>
           <input type="text" value={form.address}
             onChange={(e) => update("address", e.target.value)}
-            placeholder="e.g. Bole Road, Addis Ababa" className={inputClass} />
+            placeholder="e.g. Westlands, Nairobi" className={inputClass} />
         </div>
       </div>
 

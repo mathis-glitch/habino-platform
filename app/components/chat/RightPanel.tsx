@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useCity } from "@/lib/cityContext";
 
 const T = {
   ink:        "#1A1714",
@@ -51,7 +52,13 @@ function Divider() {
 }
 
 /* ── Market pulse ─────────────────────────────────────────────────────────── */
+function useCityName() {
+  const { currentCity } = useCity();
+  return { cName: currentCity?.name ?? "Addis Ababa", cCountry: currentCity?.country ?? "Ethiopia" };
+}
+
 function MarketPulse() {
+  const { cName } = useCityName();
   const bars = [50, 58, 63, 72, 80, 100];
   const months = ["Oct", "Nov", "Dec", "Jan", "Feb", "Mar"];
   return (
@@ -59,7 +66,7 @@ function MarketPulse() {
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12 }}>
         <div>
           <div style={{ fontSize: 14, fontWeight: 700, color: T.ink }}>Bole District</div>
-          <div style={{ fontSize: 11.5, color: T.ink3, marginTop: 2 }}>Addis Ababa · 2BR Segment</div>
+          <div style={{ fontSize: 11.5, color: T.ink3, marginTop: 2 }}>{cName} · 2BR Segment</div>
         </div>
         <div style={{
           display: "flex", alignItems: "center", gap: 5,
@@ -118,6 +125,7 @@ function MarketPulse() {
 
 /* ── Map module ───────────────────────────────────────────────────────────── */
 function MapModule() {
+  const { cName, cCountry } = useCityName();
   return (
     <div style={{
       height: 140, borderRadius: 16, overflow: "hidden", position: "relative",
@@ -156,7 +164,7 @@ function MapModule() {
       </div>
       {/* Footer */}
       <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "8px 12px", background: "linear-gradient(to top, rgba(0,0,0,0.5), transparent)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <span style={{ fontSize: 11.5, fontWeight: 700, color: "#fff" }}>Addis Ababa, Ethiopia</span>
+        <span style={{ fontSize: 11.5, fontWeight: 700, color: "#fff" }}>{cName}, {cCountry}</span>
         <span style={{ fontSize: 10.5, color: "rgba(255,255,255,0.6)", cursor: "pointer" }}>Explore full map</span>
       </div>
     </div>
@@ -283,6 +291,9 @@ function SavedHomes() {
 
 /* ── RightPanel ───────────────────────────────────────────────────────────── */
 export default function RightPanel() {
+  const { currentCity } = useCity();
+  const cName = currentCity?.name ?? "Addis Ababa";
+  const cCountry = currentCity?.country ?? "Ethiopia";
   return (
     <aside style={{
       width: 300, flexShrink: 0,
@@ -302,7 +313,7 @@ export default function RightPanel() {
         }}>
           <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#22C55E", flexShrink: 0 }} />
           <span style={{ fontSize: 11, color: T.ink3 }}>
-            <strong style={{ color: T.ink2, fontWeight: 600 }}>Live market data</strong> · Addis Ababa
+            <strong style={{ color: T.ink2, fontWeight: 600 }}>Live market data</strong> · {cName}
           </span>
           <span style={{ marginLeft: "auto", fontSize: 10, color: T.ink4, whiteSpace: "nowrap" }}>4 min ago</span>
         </div>
