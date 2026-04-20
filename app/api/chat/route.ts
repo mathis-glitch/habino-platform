@@ -94,6 +94,7 @@ When searching, extract from the user message:
 - Number of bedrooms / area in m²
 - Proximity: "near school" → {poi_type:"school",radius_m:500}, "near metro" → {poi_type:"subway",radius_m:800}
 - Sorting intent → set sort_by accordingly
+- "plot" and "land" are the same — always use property_type "land" for both
 
 Default proximity radius: 500m for education/health, 800m for transport.
 Do not describe what you will search — just search, then reply in one sentence.`;
@@ -112,7 +113,7 @@ const TOOLS: Anthropic.Tool[] = [
       properties: {
         city:           { type: "string",  description: "City name (e.g. Dubai, Lagos, Tokyo)" },
         neighbourhood:  { type: "string",  description: "Neighbourhood or district" },
-        property_type:  { type: "string",  enum: ["apartment","house","villa","office","commercial","land","plot","hall","production"] },
+        property_type:  { type: "string",  enum: ["apartment","house","villa","office","commercial","land","hall","production"], description: "Property type. Use 'land' for plots/land." },
         listing_type:   { type: "string",  enum: ["buy","rent"] },
         min_price:      { type: "number",  description: "Minimum price in local currency" },
         max_price:      { type: "number",  description: "Maximum price in local currency" },
