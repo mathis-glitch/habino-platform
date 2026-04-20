@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { PropertyFilters } from "@/lib/types";
 import OpenAI from "openai";
+import { getCachedEmbedding, setCachedEmbedding } from "@/lib/embeddingCache";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 
@@ -29,22 +30,29 @@ export async function GET(request: NextRequest) {
 
   // ── Semantic search: ?q= natural language query ────────────────────────────
   const q = searchParams.get("q")?.trim();
+  const cityFilter = searchParams.get("city") || null;
   if (q) {
-    // Embed the user's query and find semantically similar properties
     let semanticIds: string[] = [];
     try {
-      const embResponse = await openai.embeddings.create({
-        model: "text-embedding-3-small",
-        input: q,
-      });
-      const queryEmbedding = embResponse.data[0].embedding;
+      // #2: Check embedding cache first (avoids redundant OpenAI calls)
+      let queryEmbedding = getCachedEmbedding(q);
+      if (!queryEmbedding) {
+        const embResponse = await openai.embeddings.create({
+          model: "text-embedding-3-small",
+          input: q,
+        });
+        queryEmbedding = embResponse.data[0].embedding;
+        setCachedEmbedding(q, queryEmbedding);
+      }
 
+      // #5: Pass city filter to semantic search RPC
       const supabase = createServiceClient();
       const { data: matches } = await supabase.rpc("search_properties_semantic", {
         query_embedding:  queryEmbedding,
         tenant_id_filter: tenantId,
         match_count:      30,
         threshold:        0.35,
+        city_filter:      cityFilter,
       });
 
       if (matches && matches.length > 0) {
@@ -55,7 +63,6 @@ export async function GET(request: NextRequest) {
     }
 
     if (semanticIds.length > 0) {
-      // Fetch full property data for the matched IDs, preserving similarity order
       const supabase = createServiceClient();
       const { data: props } = await supabase
         .from("properties")
@@ -64,16 +71,19 @@ export async function GET(request: NextRequest) {
         .eq("status", "active")
         .in("id", semanticIds);
 
-      // Re-sort to match semantic order (Supabase .in() doesn't preserve order)
+      // Re-sort to match semantic order
       const ordered = semanticIds
         .map(id => props?.find((p: { id: string }) => p.id === id))
         .filter(Boolean);
 
+      // #3: Diversify results — pick top items from different neighbourhoods
+      const diversified = diversifyResults(ordered as Array<{ neighbourhood?: string; [k: string]: unknown }>);
+
       return NextResponse.json({
-        data:  ordered,
-        total: ordered.length,
+        data:  diversified,
+        total: diversified.length,
         page:  1,
-        limit: ordered.length,
+        limit: diversified.length,
         semantic: true,
       });
     }
@@ -315,4 +325,42 @@ async function embedProperty(p: Record<string, unknown>) {
   } catch {
     // Non-critical — backfill script can re-run to catch failures
   }
+}
+
+// ── #3: Result diversification ──────────────────────────────────────────────
+// Ensures semantic results aren't all from the same neighbourhood/price band.
+// Picks round-robin from different clusters to give users variety.
+function diversifyResults<T extends { neighbourhood?: string; price?: number }>(
+  results: T[],
+  maxResults = 20,
+): T[] {
+  if (results.length <= maxResults) return results;
+
+  // Group by neighbourhood
+  const buckets = new Map<string, T[]>();
+  for (const r of results) {
+    const key = r.neighbourhood ?? "other";
+    const arr = buckets.get(key) ?? [];
+    arr.push(r);
+    buckets.set(key, arr);
+  }
+
+  // Round-robin pick from each bucket
+  const diversified: T[] = [];
+  const bucketList = [...buckets.values()];
+  let idx = 0;
+  while (diversified.length < maxResults) {
+    let picked = false;
+    for (const bucket of bucketList) {
+      if (idx < bucket.length) {
+        diversified.push(bucket[idx]);
+        picked = true;
+        if (diversified.length >= maxResults) break;
+      }
+    }
+    if (!picked) break;
+    idx++;
+  }
+
+  return diversified;
 }

@@ -155,9 +155,31 @@ async function execSearch(
 
   // ── Path A: proximity search via PostGIS RPC ──────────────────────────────
   if (proximity.length > 0) {
+    // #4: Support multiple POI types in a single query
+    if (proximity.length > 1) {
+      const poiTypes = proximity.map((p) => p.poi_type);
+      const maxRadius = Math.max(...proximity.map((p) => p.radius_m));
+      const { data, error } = await sb.rpc("find_properties_near_pois", {
+        p_tenant_id:     tenantId,
+        p_poi_types:     poiTypes,
+        p_radius_m:      maxRadius,
+        p_city:          input.city          ?? null,
+        p_country:       input.country       ?? null,
+        p_listing_type:  input.listing_type  ?? null,
+        p_property_type: input.property_type ?? null,
+        p_max_price:     input.max_price     ?? null,
+        p_min_price:     input.min_price     ?? null,
+        p_min_bedrooms:  input.min_bedrooms  ?? null,
+        p_lim:           Math.min(Number(input.limit) || 8, 20),
+      });
+      if (!error && data?.length > 0) return data as Record<string, unknown>[];
+      if (error) console.warn("[/api/chat] multi-POI RPC:", error.message, "→ fallback");
+    }
+
+    // Single POI type fallback
     const p = proximity[0];
     const { data, error } = await sb.rpc("find_properties_near_poi", {
-      p_tenant_id:     tenantId,            // ✅ tenant-isolated
+      p_tenant_id:     tenantId,
       p_poi_type:      p.poi_type,
       p_radius_m:      p.radius_m,
       p_city:          input.city          ?? null,
