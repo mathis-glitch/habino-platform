@@ -1,7 +1,14 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM   = process.env.RESEND_FROM_EMAIL ?? "noreply@habino.app";
+// Lazy init — avoid crash during build when env var is not set
+let _resend: Resend | null = null;
+function getResend(): Resend {
+  if (!_resend) {
+    _resend = new Resend(process.env.RESEND_API_KEY ?? "");
+  }
+  return _resend;
+}
+const FROM = process.env.RESEND_FROM_EMAIL ?? "noreply@habino.app";
 
 /** Send booking confirmation to user + notification to agent */
 export async function sendBookingEmails(params: {
@@ -21,7 +28,7 @@ export async function sendBookingEmails(params: {
   });
 
   // Confirmation to user
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM,
     to:   params.userEmail,
     subject: `Viewing confirmed — ${params.propertyTitle}`,
@@ -44,7 +51,7 @@ export async function sendBookingEmails(params: {
 
   // Notification to agent
   if (params.agentEmail) {
-    await resend.emails.send({
+    await getResend().emails.send({
       from: FROM,
       to:   params.agentEmail,
       subject: `New viewing request — ${params.propertyTitle}`,
@@ -75,7 +82,7 @@ export async function sendNewMessageEmail(params: {
 }) {
   if (!process.env.RESEND_API_KEY) return;
 
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM,
     to:   params.agentEmail,
     subject: `New message from ${params.senderName} — ${params.propertyTitle}`,
