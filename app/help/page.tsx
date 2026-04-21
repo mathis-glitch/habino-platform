@@ -17,7 +17,7 @@ const FAQ = [
   { q: "How do I contact an agent?", a: "Click any listing to see the agent card. Tap 'WhatsApp' to open a direct chat. No account is required to contact agents.", topic: "listings" },
   { q: "How do I list my property?", a: "Open the AI chat and type 'List my property'. The step-by-step wizard guides you through all details. Listings go live immediately after confirmation.", topic: "listings" },
   { q: "Is Habino free?", a: "Yes — searching and browsing is free. Listing a property is also free during our launch period.", topic: "account" },
-  { q: "Which areas does Habino cover?", a: "Habino currently covers Addis Ababa and its surroundings — Bole, Kazanchis, Megenagna, Ayat, Piassa, Arat Kilo, and more.", topic: "listings" },
+  { q: "Which areas does Habino cover?", a: "Habino covers Addis Ababa (Ethiopia), Nairobi (Kenya), and Dar es Salaam (Tanzania) — with more cities coming soon.", topic: "listings" },
   { q: "Can I save listings?", a: "Tap the bookmark icon on any listing to save it. Find your saved properties under My Account in the menu.", topic: "account" },
   { q: "How do I generate a rental contract?", a: "Open the AI chat and type 'Draft a rental contract'. The wizard collects the landlord, tenant, and property details, then generates a professional contract.", topic: "contracts" },
   { q: "Is my data secure?", a: "Yes. All data is encrypted in transit. We use Supabase with row-level security — users can only access their own data. We never sell personal data.", topic: "security" },

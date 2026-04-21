@@ -568,7 +568,7 @@ export function ProfileClient() {
           </div>
         </div>
 
-        <p style={{ fontSize: 11, color: T.text3, textAlign: "center" }}>Habino v2.0 · Addis Abeba</p>
+        <p style={{ fontSize: 11, color: T.text3, textAlign: "center" }}>Habino v2.0 · East Africa</p>
       </div>
 
       {/* ── Edit Modal ── */}

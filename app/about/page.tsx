@@ -41,7 +41,7 @@ const VALUES = [
 
 const WHAT_WE_DO = [
   { label: "AI property search",   desc: "Describe what you need — we find it instantly." },
-  { label: "Interactive map",      desc: "Browse listings live on a map of Addis Ababa." },
+  { label: "Interactive map",      desc: "Browse listings live on an interactive map." },
   { label: "Direct agent contact", desc: "Connect via WhatsApp — no middlemen." },
   { label: "Smart listings",       desc: "List your property in minutes with AI assistance." },
   { label: "Digital contracts",    desc: "Generate rental contracts with a guided AI wizard." },
@@ -79,7 +79,7 @@ export default function AboutPage() {
         <div>
           <h1 className="text-[28px] font-bold text-white leading-tight">Habino</h1>
           <p className="text-[15px] text-white/75 mt-1.5 max-w-xs leading-relaxed">
-            {"Ethiopia's AI-powered real estate platform — making property search simple and trustworthy."}
+            {"East Africa's AI-powered real estate platform — making property search simple and trustworthy."}
           </p>
         </div>
       </div>
@@ -108,7 +108,7 @@ export default function AboutPage() {
           <p className="text-[15px] text-slate-600 leading-relaxed">
             We believe finding a home should be straightforward — not stressful.
             Habino combines AI-powered search, real-time listings, and direct agent connections
-            so every person in Ethiopia can access the best property options on the market.
+            so every person in East Africa can access the best property options on the market.
           </p>
         </div>
 
@@ -161,7 +161,7 @@ export default function AboutPage() {
             </div>
             <div className="px-5 py-3.5 flex justify-between items-center">
               <span className="text-[13px] text-slate-400">Location</span>
-              <span className="text-[14px] font-medium text-slate-700">Bole, Addis Ababa</span>
+              <span className="text-[14px] font-medium text-slate-700">Addis Ababa, Ethiopia</span>
             </div>
           </div>
         </div>

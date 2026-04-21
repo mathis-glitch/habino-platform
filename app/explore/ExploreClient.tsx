@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import type { Property } from "@/lib/types";
 import { useSavedListings } from "@/app/hooks/useSavedListings";
 import { analytics } from "@/lib/analytics";
+import { useCity } from "@/lib/cityContext";
 
 const MapView = dynamic(() => import("./MapView"), { ssr: false, loading: () => (
   <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", background: "#F7F7F7" }}>
@@ -69,10 +70,7 @@ const LISTING_TYPE_CHIPS = [
   { key: "buy",  label: "Buy"  },
 ];
 
-const DISTRICT_CHIPS = [
-  "Bole", "Kazanchis", "Sarbet", "CMC", "Megenagna", "Piassa",
-  "Yeka", "Lideta", "Kirkos", "Addis Ketema", "Nifas Silk", "Kolfe", "Arada", "Gulele",
-];
+// District chips loaded dynamically from city context (see component)
 
 const PROPERTY_TYPE_CHIPS = [
   { key: "apartment",  label: "Apartment" },
@@ -82,14 +80,8 @@ const PROPERTY_TYPE_CHIPS = [
   { key: "land",       label: "Land"      },
 ];
 
-// AI prompt suggestions
-const AI_SUGGESTIONS = [
-  "3-bedroom apartment in Bole",
-  "Villa for rent near CMC",
-  "Commercial space Kazanchis",
-  "Budget flat under 20K ETB",
-  "New development Yeka",
-];
+// AI suggestions — fallback values, overridden in component with dynamic districts
+let AI_SUGGESTIONS = ["Apartments for rent", "Villa for sale", "Commercial space", "Budget flat", "Land for sale"];
 
 // Deterministic broker portrait photos (Unsplash faces)
 const BROKER_PHOTOS = [
@@ -720,6 +712,21 @@ function parsePropertyQuery(raw: string) {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function ExploreClient() {
+  const { currentCity, districts } = useCity();
+  const DISTRICT_CHIPS = districts.filter(d => d.is_major).map(d => d.name);
+  const cityName = currentCity?.name ?? "Addis Ababa";
+  const cityCurrency = currentCity?.currency ?? "ETB";
+  // Update module-level AI_SUGGESTIONS with dynamic city data
+  AI_SUGGESTIONS = DISTRICT_CHIPS.length > 0
+    ? [
+        `3-bedroom apartment in ${DISTRICT_CHIPS[0]}`,
+        `Villa for rent in ${DISTRICT_CHIPS[1] ?? cityName}`,
+        `Commercial space ${DISTRICT_CHIPS[2] ?? ""}`,
+        `Budget flat under 20K ${cityCurrency}`,
+        `Land for sale in ${DISTRICT_CHIPS[3] ?? cityName}`,
+      ]
+    : [`Apartments in ${cityName}`, `Villa for rent`, `Commercial space`, `Budget flat`, `Land for sale`];
+
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading]             = useState(true);
   const [search, setSearch]               = useState("");
@@ -869,7 +876,7 @@ export default function ExploreClient() {
               </svg>
               <span style={{ fontSize: 20, fontWeight: 800, color: T.primary, letterSpacing: -0.5, fontFamily: T.font }}>habino</span>
             </div>
-            <div style={{ fontSize: 12, color: T.text3 }}>{greeting()}, Addis Abeba 👋</div>
+            <div style={{ fontSize: 12, color: T.text3 }}>{greeting()} 👋</div>
           </div>
           {/* Right buttons: Saved + Filter */}
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>

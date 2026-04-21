@@ -32,7 +32,7 @@ export default function ImprintPage() {
 
         <div className="mt-6 space-y-4 text-sm text-slate-500 leading-relaxed">
           <p>
-            Habino is a digital platform connecting property seekers, landlords, and agents in Addis Ababa.
+            Habino is a digital platform connecting property seekers, landlords, and agents across East Africa.
             We do not act as a real estate broker and are not a party to any transaction.
           </p>
           <p>

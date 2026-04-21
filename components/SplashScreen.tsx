@@ -62,7 +62,7 @@ export default function SplashScreen() {
         opacity: 0,
       }}>
         <span style={{ fontSize: 14, color: "rgba(255,255,255,0.65)", fontFamily: "'Inter',-apple-system,sans-serif" }}>
-          Find your space in Addis Ababa
+          Find your space.
         </span>
       </div>
 

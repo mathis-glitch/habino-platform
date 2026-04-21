@@ -165,7 +165,7 @@ export default function SettingsPage() {
           <SettingsRow icon="🗑"  label="Delete account" subtitle="Permanently remove your account & data" danger onClick={() => setShowDelete(true)} />
         </Section>
 
-        <p className="text-center text-xs text-slate-300 pb-2">Habino · v1.0 · Addis Ababa</p>
+        <p className="text-center text-xs text-slate-300 pb-2">Habino · v2.0 · Find your space.</p>
       </div>
 
       {showDelete && <DeleteModal onClose={() => setShowDelete(false)} />}
